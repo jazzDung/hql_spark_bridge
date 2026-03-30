@@ -3,6 +3,6 @@ k2:
     database: dbo
     port: 1433
 fra:
-    type: mssql
-    database: dbo
-    port: 1433
+    type: hdfs
+tomsapi:
+    type: api
