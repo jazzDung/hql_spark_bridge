@@ -1,0 +1,183 @@
+from pyspark.sql import SparkSession
+from datetime import datetime, timedelta
+import subprocess
+import re
+import sys
+import os
+
+beeline_path = "/opt/mapr/hive/hive-3.1.3/bin/beeline"
+local_hive_jdbc_url = "jdbc:hive2://kibbktdhezapp01.kenanga.local:10000/ctr;auth=maprsasl;ssl=true"
+    
+def run_etl(source_name, table_name):
+    spark = SparkSession.builder \
+        .appName(f"ETL-{source_name}_{table_name}") \
+        .config("spark.sql.hive.metastore.uris", "thrift://kibbktdhezapp01.kenanga.local:9083") \
+        .config("spark.sql.parquet.writeLegacyFormat", "true") \
+        .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension") \
+        .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
+        .config("spark.sql.sources.partitionOverwriteMode", "dynamic") \
+        .enableHiveSupport() \
+        .getOrCreate()
+        
+    query = f"""
+            SELECT ext_start_time, 
+            --coalesce(ext_end_time, date_format(date_sub(current_date(),1), 'yyyyMMdd')) AS ext_end_time, 
+            ext_end_time, 
+            date_format(current_date(), 'yyyyMMdd') AS today_date,
+            date_format(date_sub(current_date(),1), 'yyyyMMdd') AS yesterday_date,
+            CASE
+                WHEN ext_end_time <= date_format(date_sub(current_date(),1), 'yyyyMMdd') AND
+                ext_end_time >= ext_start_time
+                  THEN 1
+                ELSE 0
+            END AS run_flag
+            FROM ctr.c_etl_run
+            WHERE source_name = '{source_name}' and table_name = '{table_name}'
+            LIMIT 1"""
+    cmd = '{} -u "{}" -n mapr --silent=true --outputformat=tsv2 -e"{}"'.format(beeline_path, local_hive_jdbc_url, query)
+
+    result = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+
+    if result.returncode != 0:
+        raise RuntimeError(f"Beeline query failed: {result.stderr}")
+
+    lines = [line.strip() for line in result.stdout.strip().split("\n") if line.strip()]
+    
+    if len(lines) < 2:
+        raise ValueError("Query returned no rows")
+
+    # Split by tabs since outputformat=tsv2
+    headers = [h.strip().lower() for h in lines[0].split("\t")]
+    values = [v.strip() for v in lines[1].split("\t")]
+
+    row = dict(zip(headers, values))
+
+    ext_start_time = row['ext_start_time']
+    ext_end_time = row['ext_end_time']
+    today_date = row['today_date']
+    yesterday_date = row['yesterday_date']
+    run_flag = row['run_flag']
+
+    print(f"ext_start_time     : {ext_start_time}")
+    print(f"ext_end_time       : {ext_end_time}")
+    print(f"Yesterday date     : {yesterday_date}")
+
+    if not run_flag:
+        print("Batch date is in the future. Exiting.")
+        sys.exit(0)
+
+    return spark, ext_start_time, ext_end_time, today_date, yesterday_date
+
+def batch_start(spark, source_name, table_name):
+    query = f"""
+      update ctr.c_etl_run set last_etl_start_time = current_timestamp(), last_etl_end_time = null where source_name = '{source_name}' and table_name = '{table_name}'
+    """
+    cmd = '{} -u "{}" -n mapr --silent=true --outputformat=tsv2 -e"{}"'.format(beeline_path, local_hive_jdbc_url, query)
+    result = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+
+    if result.returncode != 0:
+        raise RuntimeError(f"Beeline query failed: {result.stderr}")
+
+def batch_end(spark, source_name, table_name):
+    query = f"""
+      update ctr.c_etl_run set
+      last_ext_start_time = ext_start_time,
+      last_ext_end_time = ext_end_time,
+      ext_start_time = DATE_FORMAT(date_add(TO_DATE(from_unixtime(unix_timestamp('{batch_date}','yyyyMMdd'))),1), 'yyyyMMdd'), 
+      last_etl_end_time = current_timestamp()
+      where source_name = '{source_name}' and table_name = '{table_name}'
+    """
+    cmd = '{} -u "{}" -n mapr --silent=true --outputformat=tsv2 -e"{}"'.format(beeline_path, local_hive_jdbc_url, query)
+    result = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+
+    if result.returncode != 0:
+        raise RuntimeError(f"Beeline query failed: {result.stderr}")
+    
+def batch_end_sftp_daily(spark, batch_date, source_name, table_name):
+    query = f"""
+      update ctr.c_etl_run set
+      last_ext_start_time = ext_start_time,
+      last_ext_end_time = ext_end_time,
+      ext_start_time = DATE_FORMAT(date_add(TO_DATE(from_unixtime(unix_timestamp('{batch_date}','yyyyMMdd'))),1), 'yyyyMMdd'), 
+      ext_end_time = null,
+      last_etl_end_time = current_timestamp()
+      where source_name = '{source_name}' and table_name = '{table_name}'
+    """
+    cmd = '{} -u "{}" -n mapr --silent=true --outputformat=tsv2 -e"{}"'.format(beeline_path, local_hive_jdbc_url, query)
+    result = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+
+    if result.returncode != 0:
+        raise RuntimeError(f"Beeline query failed: {result.stderr}")
+
+def set_parameter():
+    query = "SELECT var_name, var_value FROM ctr.c_p_all WHERE var_name <> '' and var_value <> ''"
+    cmd = '{} -u "{}" -n mapr --silent=true --outputformat=tsv2 -e"{}"'.format(beeline_path, local_hive_jdbc_url, query)
+
+    result = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr)
+
+    lines = result.stdout.strip().splitlines()
+    params = {}
+
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("var_name") or line.startswith("Connecting"):
+            continue
+
+        parts = re.split(r"\s+", line, maxsplit=1)
+        if len(parts) != 2:
+            continue
+
+        var_name, var_value = parts
+        params[var_name] = var_value
+
+    return params
+    
+def drop_partition_day(spark, batch_date, schema, tablename, partition_col, retention):
+    batch_date_dt = datetime.strptime(batch_date, "%Y%m%d").date()
+    cutoff_date_dt = batch_date_dt - timedelta(days=int(retention))
+    cutoff_date_str = cutoff_date_dt.strftime("%Y%m%d")
+    print(f"Batch date                  : {batch_date}")
+    print(f"Retention                   : {retention} days")
+    print(f"Cutoff date for housekeeping: {cutoff_date_str}")
+	
+    partitions_df = spark.sql(f"SHOW PARTITIONS {schema}.{tablename}")
+    old_partitions = [
+        row[0].split('=')[1]
+        for row in partitions_df.collect()
+        if row[0].split('=')[1] < cutoff_date_str
+    ]
+
+    for p in old_partitions:
+        print(f"Dropping partition: {p}")
+        spark.sql(f"ALTER TABLE {schema}.{tablename} DROP IF EXISTS PARTITION ({partition_col}='{p}')")
+        
+def get_available_files(base_path, start_date, end_date, file_pattern):
+    start = datetime.strptime(start_date, "%Y%m%d")
+    end = datetime.strptime(end_date, "%Y%m%d")
+
+    file_list = []
+    dates_with_files = []
+
+    current = start
+    while current <= end:
+        d = current.strftime("%Y%m%d")
+        
+        filename = file_pattern.format(d)
+        file_path = os.path.join(base_path, d, filename)
+
+        if os.path.exists(file_path):
+            file_list.append(file_path)
+            dates_with_files.append(d)
+
+        current += timedelta(days=1)
+
+    if not dates_with_files:
+        return None, None, []
+
+    min_date = min(dates_with_files)
+    max_date = max(dates_with_files)
+
+    return min_date, max_date, file_list
+    

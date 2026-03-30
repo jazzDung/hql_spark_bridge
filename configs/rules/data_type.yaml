@@ -1,0 +1,27 @@
+# Mapping Hive Types to PySpark Types
+# Format: SOURCE_TYPE: SPARK_TYPE_NAME
+# Note: SPARK_TYPE_NAME must match class names in pyspark.sql.types
+
+data_type_mapping:
+  VARCHAR2: "StringType"
+  VARCHAR: "StringType"
+  STRING: "StringType"
+  CHAR: "StringType"
+  TEXT: "StringType"
+
+  NUMBER: "DecimalType" # Cần xử lý tham số (38, 10) trong code
+  DECIMAL: "DecimalType"
+
+  INTEGER: "IntegerType"
+  INT: "IntegerType"
+  BIGINT: "LongType"
+  SMALLINT: "ShortType"
+
+  DATE: "DateType"
+  TIMESTAMP: "TimestampType"
+  DATETIME: "TimestampType"
+
+  BOOLEAN: "BooleanType"
+  BINARY: "BinaryType"
+
+default_type: "StringType"

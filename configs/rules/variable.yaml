@@ -1,0 +1,66 @@
+# Central configuration for schema and variable mapping
+
+# Schema
+raw_schema:
+  pyspark: 'params["raw_schema"]'
+  hiveql: '${raw_schema}'
+  uat: uat_raw
+  dev: raw
+  prod: raw
+
+com_schema:
+  pyspark: 'params["com_schema"]'
+  hiveql: '${com_schema}'
+  uat: uat_com
+  dev: com
+  prod: com
+
+cur_schema:
+  pyspark: 'params["cur_schema"]'
+  hiveql: '${cur_schema}'
+  uat: uat_cur
+  dev: cur
+  prod: cur
+
+
+# Variable
+batch_date:
+  pyspark: batch_date
+  hiveql: ${batch_date}
+  uat: "DATE_FORMAT(CURRENT_DATE(), 'yyyyMMdd')"
+  dev: "DATE_FORMAT(CURRENT_DATE(), 'yyyyMMdd')"
+  prod: "DATE_FORMAT(CURRENT_DATE(), 'yyyyMMdd')"
+retain_day:
+  pyspark: 'params["retention_raw_delta"]'
+  hiveql: "DATE_FORMAT(CURRENT_TIMESTAMP(), 'yyyy-MM-dd HH:mm:ss')"
+  uat: "DATE_FORMAT(CURRENT_TIMESTAMP(), 'yyyy-MM-dd HH:mm:ss')"
+  dev: "DATE_FORMAT(CURRENT_TIMESTAMP(), 'yyyy-MM-dd HH:mm:ss')"
+  prod: "DATE_FORMAT(CURRENT_TIMESTAMP(), 'yyyy-MM-dd HH:mm:ss')"
+batch_timestamp:
+  pyspark: 'current_timestamp()'
+  hiveql: "DATE_FORMAT(CURRENT_TIMESTAMP(), 'yyyy-MM-dd HH:mm:ss')"
+  uat: "DATE_FORMAT(CURRENT_TIMESTAMP(), 'yyyy-MM-dd HH:mm:ss')"
+  dev: "DATE_FORMAT(CURRENT_TIMESTAMP(), 'yyyy-MM-dd HH:mm:ss')"
+  prod: "DATE_FORMAT(CURRENT_TIMESTAMP(), 'yyyy-MM-dd HH:mm:ss')"
+last_date:
+  pyspark: "date_format(date_sub(current_date(), 1), 'yyyyMMdd')"
+  hiveql: "DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1), 'yyyyMMdd')"
+  uat: "DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1), 'yyyyMMdd')"
+  dev: "DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1), 'yyyyMMdd')"
+  prod: "DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1), 'yyyyMMdd')"
+
+# 2. File Format Mapping: Maps Hive file formats to Spark equivalents
+PARQUET:
+  pyspark: PARQUET
+  hiveql: PARQUET
+  uat: PARQUET
+  dev: PARQUET
+  prod: PARQUET
+ORC:
+  pyspark: ORC
+  hiveql: ORC
+  uat: ORC
+  dev: ORC
+  prod: ORC
+
+

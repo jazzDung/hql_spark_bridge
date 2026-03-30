@@ -1,0 +1,39 @@
+{% if header_comments %}
+{{ header_comments }}
+{% endif %}
+import sys
+sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
+
+from etl_common_function import run_etl, set_parameter, drop_partition_day, batch_start, batch_end
+
+source_name = "{{ source_name }}"
+table_name = "{{ table_name }}"
+
+{% raw %}# set parameter, call parameter by params["<parameter name>"]{% endraw %}
+
+params = set_parameter()
+
+# spark session
+spark, batch_date = run_etl(source_name, table_name)
+
+# update control table start, first task in the flow only
+batch_start(spark, source_name, table_name)
+{% if is_partitioned %}
+
+# housekeep partition if required
+drop_partition_day(spark, batch_date, params["raw_schema"], table_name, "etl_dt", params.get("retention_raw_delta", 14))
+{% endif %}
+
+# add queries here
+{% for query in transformed_queries %}
+spark.sql(f"""
+{{ query }}
+""")
+
+{% endfor %}
+
+# update control table end, last task in the flow only
+batch_end(spark, source_name, table_name)
+
+# Stop Spark when done
+spark.stop()

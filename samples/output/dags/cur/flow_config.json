@@ -1,0 +1,22 @@
+[
+  {
+    "flow_name": "cur_dim_declaration",
+    "schedule": "guava_company,fra_connected_parties",
+    "email": "abc@asd.com",
+    "email_on_failure": "False",
+    "email_on_retry": "False",
+    "retries": "1",
+    "retry_delay": "5",
+    "catchup": "False"
+  },
+  {
+    "flow_name": "ref_lookup",
+    "schedule": "ref_general_lookup",
+    "email": "abcd@gmail.com",
+    "email_on_failure": "False",
+    "email_on_retry": "False",
+    "retries": "1",
+    "retry_delay": "5",
+    "catchup": "False"
+  }
+]

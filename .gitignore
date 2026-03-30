@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Distribution / Packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Deployment
+deploy/
+
+# Spark / Hadoop
+metastore_db/
+derby.log
+spark-warehouse/
+
+# Temporary files
+*.tmp
+.cache/
+
+# Sample file

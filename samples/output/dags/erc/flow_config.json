@@ -1,0 +1,52 @@
+[
+  {
+    "flow_name": "guava_company",
+    "schedule": "None",
+    "email": "abc@asd.com",
+    "email_on_failure": "False",
+    "email_on_retry": "False",
+    "retries": "1",
+    "retry_delay": "5",
+    "catchup": "False"
+  },
+  {
+    "flow_name": "k2_account",
+    "schedule": "None",
+    "email": "abc@asd.com",
+    "email_on_failure": "False",
+    "email_on_retry": "False",
+    "retries": "1",
+    "retry_delay": "5",
+    "catchup": "False"
+  },
+  {
+    "flow_name": "k2_bank",
+    "schedule": "None",
+    "email": "abc@asd.com",
+    "email_on_failure": "False",
+    "email_on_retry": "False",
+    "retries": "1",
+    "retry_delay": "5",
+    "catchup": "False"
+  },
+  {
+    "flow_name": "fra_connected_parties",
+    "schedule": "None",
+    "email": "abc@asd.com",
+    "email_on_failure": "False",
+    "email_on_retry": "False",
+    "retries": "1",
+    "retry_delay": "5",
+    "catchup": "False"
+  },
+  {
+    "flow_name": "ref_general_lookup",
+    "schedule": "None",
+    "email": "abcd@gmail.com",
+    "email_on_failure": "False",
+    "email_on_retry": "False",
+    "retries": "1",
+    "retry_delay": "5",
+    "catchup": "False"
+  }
+]

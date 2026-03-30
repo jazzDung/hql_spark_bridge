@@ -1,0 +1,10 @@
+- HDFS (Namenode)
+  - hdfs://localhost: 9000
+- Hive Metastore
+  - hive:hive@localhost:5432
+  - thrift://localhost:9083
+- Spark
+  - Spark Master://localhost:7077
+  - Spark Master UI: http://localhost:8080
+  - Spark Worker UI: http://localhost:8081
+  - HDFS NameNode UI: http://localhost:9870
