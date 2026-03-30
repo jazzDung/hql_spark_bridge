@@ -1,3 +1,6 @@
 
 pyspark-stubs
 jinja2
+pyyaml
+sqlglot
+acryl-datahub
