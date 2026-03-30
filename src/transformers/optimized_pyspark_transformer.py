@@ -67,7 +67,7 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
                 # Fallback to hardcoded query if available (backward compatibility)
                 query = params.get("query", "")
 
-            # Trả về một dictionary chứa thông tin cần thiết để sinh code
+            # Return a dictionary containing the necessary information for code generation
             return {
                 "type": "jdbc_read",
                 "jdbc_url_variable": params["jdbc_url_variable"],
@@ -80,25 +80,25 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
     def transform(self, context: SqlConversionContext) -> JinjaRenderModel:
         optimized_blocks = []
 
-        # --- Xử lý Header Comments ---
+        # --- Header Comments Processing ---
         python_header_comments = []
         if context.header_comments:
             lines = context.header_comments.split('\n')
-            # Lọc bỏ các dòng trống ở đầu/cuối khối comment nếu có
+            # Filter out empty lines at the beginning/end of the comment block if any
             lines = [line for line in lines if line.strip()]
 
             if len(lines) > 1:
-                # Nếu là comment nhiều dòng, dùng docstring của Python
+                # If it's a multi-line comment, use Python docstring
                 python_header_comments.append('"""')
                 for line in lines:
-                    # Loại bỏ '--' và khoảng trắng thừa, sau đó thêm vào docstring
+                    # Remove '--' and extra whitespace, then add to docstring
                     if line.strip().startswith('--'):
                         python_header_comments.append(line.strip()[2:].strip())
                     else:
                         python_header_comments.append(line.strip())
                 python_header_comments.append('"""')
             elif len(lines) == 1:
-                # Nếu là comment một dòng, dùng '#' của Python
+                # If it's a single-line comment, use Python '#'
                 line = lines[0]
                 if line.strip().startswith('--'):
                     python_header_comments.append(f"# {line.strip()[2:].strip()}")
@@ -106,7 +106,7 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
                     python_header_comments.append(f"# {line.strip()}")
 
         formatted_header_comments = '\n'.join(python_header_comments)
-        # --- Kết thúc xử lý Header Comments ---
+        # --- End of Header Comments Processing ---
 
         
         for node in context.ast_nodes:

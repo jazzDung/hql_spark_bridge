@@ -5,46 +5,46 @@ import sqlglot.expressions as exp
 @dataclass
 class SqlConversionContext:
     """
-    Chứa toàn bộ ngữ cảnh GỐC của một file HiveQL.
-    Object này chỉ được ĐỌC (Read-only) bởi các Transformers.
+    Contains the entire ORIGINAL context of a HiveQL file.
+    This object is intended to be READ-ONLY for Transformers.
     """
-    # File thông tin cơ bản
+    # Basic file information
     original_file_path: str
     raw_sql_content: str
     
-    # Metadata bóc tách (Ví dụ bóc từ tên file hoặc LOCATION)
+    # Extracted metadata (e.g., from filename or LOCATION)
     source_name: str
     table_name: str
 
-    # Lưu riêng phần header comment (thông tin file như Purpose, Author...)
+    # Stores header comments (file info like Purpose, Author...)
     header_comments: str = ""
     
-    # Cây AST (Abstract Syntax Tree) đã được parse bởi sqlglot
+    # AST (Abstract Syntax Tree) parsed by sqlglot
     ast_nodes: List[exp.Expression] = field(default_factory=list)
     
-    # "Thùng rác" an toàn cho các config đặc thù nạp từ YAML (nếu cần)
+    # Safe container for specific configurations loaded from YAML (if needed)
     config_rules: Dict[str, Any] = field(default_factory=dict)
 
 @dataclass
 class JinjaRenderModel:
     """
-    Chứa dữ liệu ĐẦU RA đã được xử lý xong, chuẩn bị đưa cho Jinja render.
-    Mỗi loại script (Basic, Optimized) có thể có các fields khác nhau, 
-    nhưng template jinja sẽ gọi chính xác các fields này.
+    Contains the PROCESSED output data, ready to be passed to Jinja for rendering.
+    Different script types (Basic, Optimized) may have different fields,
+    but the Jinja template will call these specific fields.
     """
     source_name: str
     table_name: str
     
-    # Danh sách các câu query đã được dịch sang dạng f-string
-    # Ví dụ: ['DROP TABLE IF EXISTS {params["raw_schema"]}.my_table', 'CREATE TABLE...']
+    # List of queries translated into f-string format
+    # Example: ['DROP TABLE IF EXISTS {params["raw_schema"]}.my_table', 'CREATE TABLE...']
     transformed_queries: List[str] = field(default_factory=list)
     
-    # Các biến bổ sung cho Template
+    # Additional variables for the Template
     is_partitioned: bool = False
     
-    # Chuyền header comment sang Jinja để in ra top của file Python
+    # Pass header comments to Jinja to print at the top of the Python file
     header_comments: str = ""
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert sang dict để **kwargs thẳng vào jinja_template.render()"""
+        """Converts to dict to pass as **kwargs into jinja_template.render()"""
         return self.__dict__

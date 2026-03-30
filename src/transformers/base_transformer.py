@@ -3,14 +3,14 @@ from src.context.sql_conversion_context import SqlConversionContext, JinjaRender
 
 class BaseSqlTransformer(ABC):
     """
-    Khuôn mẫu cốt lõi cho mọi nhánh biến đổi.
-    Chỉ có 1 Input và 1 Output. Không can thiệp vào trạng thái hệ thống.
+    Core template for all transformation branches.
+    Only 1 Input and 1 Output. Does not interfere with system state.
     """
     
     @abstractmethod
     def transform(self, context: SqlConversionContext) -> JinjaRenderModel:
         """
-        Nhận vào context SQL (Đã bóc tách AST).
-        Trả ra model dữ liệu để Jinja ném vào file.
+        Receives SQL context (with extracted AST).
+        Returns data model for Jinja to render into file.
         """
         pass

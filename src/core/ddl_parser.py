@@ -19,25 +19,25 @@ class DDLParser:
 
     def _map_to_spark_type(self, column_def):
         """
-        Sử dụng AST của sqlglot để trích xuất kiểu dữ liệu và tham số
+        Uses sqlglot AST to extract data types and parameters
         """
         data_type_exp = column_def.args['kind']
-        # Lấy tên kiểu cơ bản (ví dụ: DECIMAL, VARCHAR)
+        # Get the base type name (e.g., DECIMAL, VARCHAR)
         base_type = data_type_exp.this.name.upper()
 
-        # Lấy tên Spark Class từ YAML
+        # Get Spark Class name from YAML mapping
         spark_type_name = self.mapping.get(base_type, "StringType")
 
         try:
             if spark_type_name == "DecimalType":
-                # Trích xuất precision và scale từ AST
-                # Ví dụ: DECIMAL(18, 2) -> expressions[0]=18, expressions[1]=2
+                # Extract precision and scale from AST
+                # Example: DECIMAL(18, 2) -> expressions[0]=18, expressions[1]=2
                 params = data_type_exp.expressions
                 p = int(params[0].this) if len(params) > 0 else 38
                 s = int(params[1].this) if len(params) > 1 else 10
                 return DecimalType(p, s)
 
-            # Với các kiểu khác, dùng reflection để khởi tạo
+            # For other types, use reflection to instantiate
             type_class = globals().get(spark_type_name)
             return type_class()
         except Exception:
@@ -45,25 +45,25 @@ class DDLParser:
 
     def parse_hive_ddl(self, ddl_content: str):
         """
-        Parse DDL sử dụng sqlglot dialect Hive
+        Parses DDL using sqlglot with Hive dialect
         """
         try:
-            # Parse câu lệnh SQL thành AST
-            # sqlglot tự động xử lý comments và format lạ
+            # Parse SQL statement into AST
+            # sqlglot automatically handles comments and non-standard formatting
             parsed = sqlglot.parse(ddl_content, read="hive")
 
-            # 1. Lấy tên bảng (Database.Table)
+            # 1. Extract table name (Database.Table)
             table_parts = parsed.this
             db = table_parts.args.get('db', exp.Identifier(this="default", quoted=False)).this
             table = table_parts.this.this
             full_table_name = f"{db}.{table}"
 
-            # 2. Duyệt qua danh sách các cột trong schema
+            # 2. Iterate through column list in schema
             schema_fields = []
 
-            # schema.this trả về danh sách các ColumnDef
+            # schema.this returns a list of ColumnDef objects
             for column_def in parsed.args['schema'].expressions:
-                col_name = column_def.this.this  # Tên cột
+                col_name = column_def.this.this  # Column name
                 spark_type = self._map_to_spark_type(column_def)
 
                 schema_fields.append(StructField(col_name, spark_type, True))
@@ -73,4 +73,3 @@ class DDLParser:
         except Exception as e:
             print(f"ERROR: Failed to parse DDL with sqlglot: {e}")
             return "unknown.table", StructType([])
-
