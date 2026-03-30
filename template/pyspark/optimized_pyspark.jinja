@@ -1,0 +1,71 @@
+{% if header_comments %}
+{{ header_comments }}
+
+{% endif %}
+import os
+import sys
+sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
+
+from etl_common_function import run_etl, set_parameter, drop_partition_day, batch_start, batch_end
+from pyspark.sql.functions import current_timestamp, lit
+
+source_name = "{{ source_name }}"
+table_name = "{{ table_name }}"
+
+# set parameter, call parameter by params["<parameter name>"]
+params = set_parameter()
+
+# spark session
+spark, batch_date = run_etl(source_name, table_name)
+
+# update control table start, first task in the flow only
+batch_start(spark, source_name, table_name)
+
+{% if is_partitioned %}
+# housekeep partition if required
+drop_partition_day(spark, batch_date, params["raw_schema"], table_name, "etl_dt", params.get("retention_raw_delta", 14))
+{% endif %}
+
+# --- OPTIMIZED BLOCKS ---
+{% for block in optimized_blocks %}
+{% if block.type == 'jdbc_read' %}
+# -- JDBC Read Optimization cho bảng {{ block.source_db_table }} --
+jdbc_url = (
+    f"jdbc:sqlserver://{os.environ['MSSQL_HOST']}:{os.environ.get('MSSQL_PORT', '1433')};"
+    f"databaseName={os.environ['MSSQL_DB']};encrypt=true;trustServerCertificate=true"
+)
+user = os.environ["MSSQL_USER"]
+password = os.environ["MSSQL_PASSWORD"]
+
+query = """
+{{ block.query }}
+"""
+
+# Read from MSSQL
+df = (
+    spark.read
+    .format("jdbc")
+    .option("url", jdbc_url)
+    .option("query", query)
+    .option("user", user)
+    .option("password", password)
+    .option("driver", "com.microsoft.sqlserver.jdbc.SQLServerDriver")
+    .option("fetchsize", "10000")
+    .load()
+)
+
+df = df.withColumn("etl_timestamp", current_timestamp().cast("string"))
+df = df.withColumn("etl_dt", lit(batch_date))
+
+{% elif block.type == 'raw_sql' %}
+spark.sql(f"""
+{{ block.query }}
+""")
+{% endif %}
+{% endfor %}
+
+# update control table end, last task in the flow only
+batch_end(spark, source_name, table_name)
+
+# Stop Spark when done
+spark.stop()

@@ -1,0 +1,26 @@
+# Optimization rule for k2_bank table
+# Replaces text file reading with direct JDBC reading
+
+# Enable/disable this rule
+enabled: true
+
+# Condition to trigger the rule
+trigger:
+  node_type: "Create"
+  table_properties:
+    - "STORED AS TEXTFILE"
+
+# Hành động cần thực hiện
+action:
+  type: "generate_jdbc_read"
+  
+  # Các tham số cho hành động generate_jdbc_read
+  parameters:
+    # Tên bảng trong DB nguồn
+    source_db_table: "dbo.bank"
+    
+    # Biến chứa URL kết nối (sẽ được dùng trong template Jinja)
+    jdbc_url_variable: "jdbc_url"
+    
+    # query_template sẽ tự động được điền cột dựa vào câu CREATE TABLE
+    query_template: "SELECT\n    {columns}\nFROM {source_db_table} (NOLOCK)\nWHERE 1 = 1"

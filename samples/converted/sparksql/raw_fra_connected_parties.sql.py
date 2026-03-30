@@ -8,6 +8,7 @@ Logs:
 1.for hive 3.x on cdp 7.1.5
 0.1 set parameter
 """
+
 import sys
 sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
 
