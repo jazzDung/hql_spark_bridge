@@ -38,7 +38,7 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
             return None
 
         # Find the corresponding rule file
-        rule_path = self.config_root / "rules" / "optimizations" / f"{context.source_name}_{context.table_name}.yaml"
+        rule_path = self.config_root / "rules" / "optimizations" / f"{context.source_name}.yaml"
         
         if not rule_path.exists():
             return None # No rule found, will fallback
@@ -61,7 +61,8 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
                 cols_str = ",\n    ".join(columns)
                 query = params["query_template"].format(
                     columns=cols_str, 
-                    source_db_table=params["source_db_table"]
+                    # source_db_table=params["source_db_table"]
+                    source_db_table=f"{params['schema']}.{context.table_name}"
                 )
             else:
                 # Fallback to hardcoded query if available (backward compatibility)
@@ -72,7 +73,7 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
                 "type": "jdbc_read",
                 "jdbc_url_variable": params["jdbc_url_variable"],
                 "query": query,
-                "source_db_table": params["source_db_table"]
+                "source_db_table": f"{params['schema']}.{context.table_name}"
             }
             
         return None

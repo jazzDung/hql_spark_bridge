@@ -17,7 +17,8 @@ action:
   # Parameters for the generate_jdbc_read action
   parameters:
     # Name of the table in the source database
-    source_db_table: "dbo.bank"
+    schema: dbo
+    port: 1433
     
     # Variable containing the connection URL (will be used in Jinja template)
     jdbc_url_variable: "jdbc_url"

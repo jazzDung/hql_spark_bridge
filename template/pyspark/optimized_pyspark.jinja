@@ -21,11 +21,6 @@ spark, batch_date = run_etl(source_name, table_name)
 # update control table start, first task in the flow only
 batch_start(spark, source_name, table_name)
 
-{% if is_partitioned %}
-# housekeep partition if required
-drop_partition_day(spark, batch_date, params["raw_schema"], table_name, "etl_dt", params.get("retention_raw_delta", 14))
-{% endif %}
-
 # --- OPTIMIZED BLOCKS ---
 {% for block in optimized_blocks %}
 {% if block.type == 'jdbc_read' %}
@@ -63,6 +58,17 @@ spark.sql(f"""
 """)
 {% endif %}
 {% endfor %}
+
+# Write directly to Hive
+target_table = f"{params['raw_schema']}.{hive_table_name}"
+target_cols = spark.table(target_table).columns
+df = df.select(*target_cols)
+
+(
+    df.write
+    .mode("overwrite")
+    .insertInto(f"{params['raw_schema']}.{hive_table_name}")
+)
 
 # update control table end, last task in the flow only
 batch_end(spark, source_name, table_name)
