@@ -1,6 +1,5 @@
-
-pyspark-stubs
-jinja2
-pyyaml
-sqlglot
-acryl-datahub
+pyspark==4.1.1
+jinja2==3.1.6
+pyyaml==6.0.3
+acryl-sqlglot==25.25.2.dev9
+acryl-datahub==1.5.0.1
