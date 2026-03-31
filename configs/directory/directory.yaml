@@ -1,0 +1,3 @@
+
+ext_init: samples/input/ext/init
+ext_xml: samples/output/ext/xml

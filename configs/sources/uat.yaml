@@ -1,7 +1,10 @@
 k2:
     type: mssql
-    database: dbo
+    database: k2
+    schema: dbo
     port: 1433
+    jdbc_url_variable: "jdbc_url"
+    query_template: "SELECT\n    {columns}\nFROM {source_db_table} (NOLOCK)\nWHERE 1 = 1"
 fra:
     type: hdfs
 tomsapi:

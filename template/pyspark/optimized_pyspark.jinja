@@ -21,7 +21,7 @@ spark, batch_date = run_etl(source_name, table_name)
 # update control table start, first task in the flow only
 batch_start(spark, source_name, table_name)
 
-# --- OPTIMIZED BLOCKS ---
+
 {% for block in optimized_blocks %}
 {% if block.type == 'jdbc_read' %}
 # -- JDBC Read Optimization cho bảng {{ block.source_db_table }} --
@@ -57,6 +57,7 @@ spark.sql(f"""
 {{ block.query }}
 """)
 {% endif %}
+
 {% endfor %}
 
 # Write directly to Hive

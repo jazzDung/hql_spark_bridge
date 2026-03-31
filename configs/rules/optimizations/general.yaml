@@ -1,0 +1,12 @@
+# Optimization rule for general table
+# Replaces text file reading with direct JDBC reading
+
+# Enable/disable this rule
+enabled: true
+
+
+# Parameters for the generate_jdbc_read action
+parameters:
+  source: general
+
+rules:
