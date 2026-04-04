@@ -1,0 +1,29 @@
+-- Purpose:    curated - Snapshot table script
+-- Author:     {{ author }}
+-- Usage:      python $ETL_HOME/script/main.py yyyymmdd cur_{{ table_name }}
+-- CreateDate: {{ created_date }}
+-- FileType:   DML
+-- Logs:
+--     1.for hive 3.x on cdp 7.1.5
+
+
+-- 0.1 set parameter
+source /jcmAgent/etlscript/execution_engine/autocode/dml/para_config/all_para.sql;
+
+
+-- 2.1 drop partition
+ALTER TABLE ${cur_schema}.{{ table_name.upper() }} DROP IF EXISTS PARTITION ( {% for col in partition_fields %}{{ col.name.lower() }} = {% raw %}'${batch_date}'{% endraw %}{% if not loop.last %}, {% endif %}{% endfor %} );
+
+-- 2.2 insert data to target table
+INSERT INTO TABLE ${cur_schema}.{{ table_name.upper() }} PARTITION ( {% for col in partition_fields %}{{ col.name.lower() }} = {% raw %}'${batch_date}'{% endraw %}{% if not loop.last %}, {% endif %}{% endfor %} )
+SELECT{% for col in table_schema %}
+    {% if not loop.first %}, {% endif %}T{{ 0 if col.is_key else col.reference_table_order }}.{{ col.name.upper() if col.is_key else col.reference_column.upper() }} AS {{ col.name.upper() }}{% endfor %}
+    ,{% raw %}'${batch_timestamp}'{% endraw %} AS ETL_TIMESTAMP -- etl processing time
+FROM {% for table in reference_table_list %}{% if loop.first %}${raw_schema}.{{ source }}_{{ table.name.upper() }} T{{ table.order }}{% endif %}{% if not loop.first %}
+    LEFT JOIN ${raw_schema}.{{ source }}_{{ table.name.upper() }} T{{ table.order }}
+        ON T0.{{ table.left_key }} = T{{ table.order }}.{{ table.right_key }}
+        AND T{{ table.order }}.ETL_DT = '${batch_date}'{% endif %}{% endfor %}
+WHERE {% for table in reference_table_list %}{% if loop.first %}T{{ table.order }}.ETL_DT = '${batch_date}' {% endif %}{% endfor %}
+;
+
+

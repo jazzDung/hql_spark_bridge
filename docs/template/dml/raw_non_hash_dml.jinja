@@ -1,0 +1,45 @@
+-- Purpose:    RAW-DML,Load the data file into the target table's same-day partition
+-- Author:     {{ author }}
+-- Usage:      python $ETL_HOME/script/main.py yyyymmdd raw_{{ source }}_{{ table }}
+-- CreateDate: {{ created_date }}
+-- FileType:   DML
+-- Logs:
+--     1.for hive 3.x on cdp 7.1.5
+
+
+-- 0.1 set parameter
+source /jcmAgent/etlscript/execution_engine/autocode/dml/para_config/all_para.sql;
+
+
+-- 1.1 drop external table
+DROP TABLE IF EXISTS ${raw_schema}.{{ source.upper() }}_{{ table.upper() }}_ET;
+
+CREATE EXTERNAL TABLE IF NOT EXISTS ${raw_schema}.{{ source.upper() }}_{{ table.upper() }}_ET({% for col in table_schema + addition_fields %}
+    {% if not loop.first %}, {% endif %}{{ col.name.upper() }} {{ col.raw_data_type }}{% if col.raw_data_type in ('DECIMAL', 'NUMERIC') %}({{ col.precision }},{{ col.scale }}){% endif %}{% endfor %}
+    , RAW_SYS_TIME STRING COMMENT 'Source processing time'
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\001'
+LINES TERMINATED BY '\n'
+STORED AS TEXTFILE
+LOCATION '${itl_data_path}/{{ source.lower() }}_{{ table.lower() }}_{{ extraction_mode }}.{% raw %}${batch_date}{% endraw %}.dat'
+;
+
+
+-- 2.0 drop history partition
+ALTER TABLE ${raw_schema}.{{ source.upper() }}_{{ table.upper() }} DROP IF EXISTS PARTITION ( {% for col in partition_fields %}{{ col.name.upper() }} = {% raw %}'${retain_day}'{% endraw %}{% if not loop.last %}, {% endif %}{% endfor %} );
+
+-- 2.1 drop partition
+ALTER TABLE ${raw_schema}.{{ source.upper() }}_{{ table.upper() }} DROP IF EXISTS PARTITION ( {% for col in partition_fields %}{{ col.name.upper() }} = {% raw %}'${batch_date}'{% endraw %}{% if not loop.last %}, {% endif %}{% endfor %} );
+
+-- 2.2 insert data to target table
+INSERT INTO TABLE ${raw_schema}.{{ source.upper() }}_{{ table.upper() }} PARTITION ( {% for col in partition_fields %}{{ col.name.upper() }} = {% raw %}'${batch_date}'{% endraw %}{% if not loop.last %}, {% endif %}{% endfor %} )
+SELECT{% for col in table_schema + addition_fields %}
+    {% if not loop.first %}, {% endif %}{% if col.raw_data_type in ('STRING', 'VARCHAR', 'TEXT', 'CHAR') %}TRIM({{ col.name.upper() }}) AS {{ col.name.upper() }}{% else %}{{ col.name.upper() }}{% endif %} {% endfor %}
+    , RAW_SYS_TIME
+    , {% raw %}'${batch_timestamp}'{% endraw %} AS ETL_TIMESTAMP -- etl processing time
+    , NULL AS HASH_VALUE
+FROM ${raw_schema}.{{ source.upper() }}_{{ table.upper() }}_ET
+;
+
+

@@ -1,0 +1,39 @@
+-- Purpose:    COM-DML,Load the data file into the target table's same-day partition
+-- Author:     {{ author }}
+-- Usage:      python $ETL_HOME/script/main.py yyyymmdd com_t_{{ source }}_{{ table }}
+-- CreateDate: {{ created_date }}
+-- FileType:   DML
+-- Logs:
+--     1.for hive 3.x on cdp 7.1.5
+
+
+-- 0.1 set parameter
+source /jcmAgent/etlscript/execution_engine/autocode/dml/para_config/all_para.sql;
+
+-- 2.1 drop partition
+ALTER TABLE ${com_schema}.T_{{ source.upper() }}_{{ table.upper() }} DROP IF EXISTS PARTITION ( {% for col in partition_fields %}{{ col.name.upper() }} = {% raw %}'${batch_date}'{% endraw %}{% if not loop.last %}, {% endif %}{% endfor %} );
+
+-- 2.2 insert data to target table
+INSERT INTO TABLE ${com_schema}.T_{{ source.upper() }}_{{ table.upper() }} PARTITION ( {% for col in partition_fields %}{{ col.name.upper() }} = {% raw %}'${batch_date}'{% endraw %}{% if not loop.last %}, {% endif %}{% endfor %} )
+SELECT{% for col in table_schema + addition_fields %}
+    {% if not loop.first %}, {% endif %}{{ col.name.upper() }}{% endfor %}
+    , {% raw %}'${batch_timestamp}'{% endraw %} AS ETL_TIMESTAMP -- etl processing time
+{% if incremental_fields|length == 0 %}FROM ${raw_schema}.{{ source.upper() }}_{{ table.upper() }}
+WHERE {% for col in partition_fields %}{{ col.name.upper() }} = {% raw %}'${batch_date}'{% endraw %}{% if not loop.last %}
+    AND {% endif %}{% endfor %}
+;
+{% else %}FROM (
+    SELECT
+        *
+        , ROW_NUMBER() OVER (
+            PARTITION BY {% for col_name in primary_key_fields %}{% if not loop.first %}, {% endif %}{{ col_name.upper() }}{% endfor %}
+            ORDER BY {% for col in incremental_fields %}{% if not loop.first %}, {% endif %}{{ col.name.upper() }} {{ col.order.upper() }}{% endfor %}
+        ) RN
+    FROM ${raw_schema}.{{ source.upper() }}_{{ table.upper() }}
+    WHERE {% for col in partition_fields %}{{ col.name.upper() }} <= {% raw %}'${batch_date}'{% endraw %}{% if not loop.last %}
+        AND {% endif %}{% endfor %}
+) T1
+WHERE RN = 1
+;
+{% endif %}
+

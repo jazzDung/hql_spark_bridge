@@ -1,0 +1,14 @@
+INSERT OVERWRITE DIRECTORY '/data/output/{{ unl_folder_name }}/${batch_date}/cur/cur_{{ table_name }}_f.${batch_date}.dat'
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\001'
+LINES TERMINATED BY '\n'
+NULL DEFINED AS ''
+SELECT{% for col in table_schema %}
+    {% if not loop.first %}, {% endif %}REPLACE(REPLACE(T.{{ col.name.upper() }},CHR(13),''),CHR(10),'') AS {{ col.name.upper() }}{% endfor %}
+    , '${batch_timestamp}' AS ETL_TIMESTAMP
+    , ETL_DT
+FROM ${cur_schema}.{{ table_name }} T
+WHERE T.ETL_DT = '${batch_date}'
+;
+
+-- FileName:   /data/output/{{ unl_folder_name }}/${batch_date}/cur/cur_{{ table_name }}_f.${batch_date}.dat

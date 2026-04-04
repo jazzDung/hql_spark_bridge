@@ -1,0 +1,3 @@
+{% for table in tables.keys() %}
+select count(*) from raw.{{source.lower()}}_{{table.lower()}};
+{% endfor %}

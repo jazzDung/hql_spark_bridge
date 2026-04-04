@@ -1,0 +1,26 @@
+-- Purpose:    COM-DDL-CREATE TABLE
+-- Author:     {{ author }}
+-- Usage:      python $ETL_HOME/script/init.py com t_{{ source }}_{{ table }}
+-- CreateDate: {{ created_date }}
+-- FileType:   DDL
+-- Logs:
+--     1.for hive 3.x on cdp 7.1.5
+
+-- 1.0 drop table if exists table
+DROP TABLE IF EXISTS ${com_schema}.T_{{ source.upper() }}_{{ table.upper() }};
+
+-- 1.1 create table
+CREATE TABLE ${com_schema}.T_{{ source.upper() }}_{{ table.upper() }}({% for col in table_schema + addition_fields %}
+    {% if not loop.first %}, {% endif %}{{ col.name.upper() }} {{ col.raw_data_type }}{% if col.raw_data_type in ('DECIMAL', 'NUMERIC') %}({{ col.precision }},{{ col.scale }}){% endif %} COMMENT ''{% endfor %}
+    , ETL_TIMESTAMP STRING COMMENT 'ETL_PROCESSING_TIME'
+)
+COMMENT ''
+PARTITIONED BY ({% for col in partition_fields %}
+    {{ col.name.upper() }} {{ col.data_type.upper() }} COMMENT '{{ col.comment }}'{% if not loop.last %},{% endif %}{% endfor %}
+)
+STORED AS PARQUET
+TBLPROPERTIES(
+    'PARQUET.COMPRESSION'='SNAPPY'
+    , 'EXTERNAL.TABLE.PURGE'='TRUE'
+)
+;

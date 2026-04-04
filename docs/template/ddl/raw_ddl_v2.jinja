@@ -1,0 +1,26 @@
+-- Purpose:    RAW-DDL-CREATE TABLE
+-- Author:     {{ author }}
+-- Usage:      python $ETL_HOME/script/init.py raw {{ source }}_{{ table }}
+-- CreateDate: {{ created_date }}
+-- FileType:   DDL
+-- Logs:
+--     1.for hive 3.x on cdp 7.1.5
+
+-- 1.0 drop table if exists table
+drop table if exists ${raw_schema}.{{ source.lower() }}_{{ table.lower() }};
+
+-- 1.1 create table
+create table ${raw_schema}.{{ source }}_{{ table }}({% for col in table_schema + addition_fields %}
+    {% if not loop.first %},{% endif %}{{ col.name.lower() }} {{ col.raw_data_type.lower() }}{% if col.raw_data_type.upper() in ('INT', 'DECIMAL', 'NUMERIC') %}({{ col.precision }},{{ col.scale }}){% endif %} comment ''{% endfor %}
+    ,etl_timestamp string comment 'ETL_processing_time'
+)
+comment ''
+partitioned by ({% for col in partition_fields %}
+    {{ col.name }} {{ col.data_type }} comment '{{ col.comment }}'{% if not loop.last %},{% endif %}{% endfor %}
+)
+stored as parquet
+tblproperties(
+    'parquet.compression'='SNAPPY'
+    ,'external.table.purge'='true'
+)
+;

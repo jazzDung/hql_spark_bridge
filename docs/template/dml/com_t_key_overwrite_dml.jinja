@@ -1,0 +1,62 @@
+{% set all_cols = (table_schema + addition_fields) %}
+{% set pk_cols = (table_schema + addition_fields)
+    | selectattr("is_primary_key")
+    | list %}
+-- Purpose:    COM-DML,Load the data file into the target table's same-day partition
+-- Author:     {{ author }}
+-- Usage:      python $ETL_HOME/script/main.py yyyymmdd com_t_{{ source }}_{{ table }}
+-- CreateDate: {{ created_date }}
+-- FileType:   DML
+-- Logs:
+--     1.for hive 3.x on cdp 7.1.5
+
+
+-- 0.1 set parameter
+source /jcmAgent/etlscript/execution_engine/autocode/dml/para_config/all_para.sql;
+
+-- 2.2 insert data to target table
+WITH RAW_{{ source.upper() }}_{{ table.upper() }} AS (
+    SELECT
+        *
+        , ROW_NUMBER() OVER (PARTITION BY {% for col in pk_cols %}{% if not loop.first %}, {% endif %}{{ col.name.upper() }}{% endfor %} ORDER BY ETL_DT DESC) RN
+    FROM ${raw_schema}.{{ source.upper() }}_{{ table.upper() }}
+    WHERE
+        ETL_DT = {% raw %}'${batch_date}'{% endraw %}{% for col in pk_colss %}
+        AND NULLIF({{ col.name.upper() }}, '') != '' {% endfor %}
+)
+INSERT OVERWRITE TABLE ${com_schema}.T_{{ source.upper() }}_{{ table.upper() }}
+SELECT{% for col in all_cols %}
+    {% if not loop.first %}, {% endif %}T0.{{ col.name.upper() }}{% endfor %}
+    , T0.RECORD_CREATED_DATE
+    , T0.RECORD_UPDATED_DATE
+    , T0.RECORD_STATUS
+    , {% raw %}'${batch_timestamp}'{% endraw %} AS ETL_TIMESTAMP -- etl processing time
+FROM ${com_schema}.T_{{ source.upper() }}_{{ table.upper() }} T0
+LEFT JOIN RAW_{{ source.upper() }}_{{ table.upper() }} T1
+    ON T1.RN = 1{% for col in pk_cols %}
+    AND T0.{{ col.name.upper() }} = T1.{{ col.name.upper() }} {% endfor %}
+WHERE
+    T0.RECORD_STATUS = 'A'{% if pk_cols %}
+    AND T1.{{ pk_cols[0].name.upper() }} IS NULL{% endif %}
+
+UNION ALL
+
+
+SELECT{% for col in all_cols %}
+    {% if not loop.first %}, {% endif %}{% if col.raw_data_type in ('STRING', 'VARCHAR', 'TEXT', 'CHAR') %}NULLIF(T0.{{ col.name.upper() }}, '') AS {{ col.name.upper() }}{% else %}T0.{{ col.name.upper() }}{% endif %}{% endfor %}
+    , CASE
+        WHEN {% if pk_cols %}T1.{{ pk_cols[0].name.upper() }}{% endif %} IS NOT NULL THEN T1.RECORD_CREATED_DATE
+        ELSE TO_DATE(FROM_UNIXTIME(UNIX_TIMESTAMP('${batch_date}', 'yyyyMMdd')))
+        END AS RECORD_CREATED_DATE
+    , CASE
+        WHEN {% if pk_cols %}T1.{{ pk_cols[0].name.upper() }}{% endif %} IS NOT NULL THEN TO_DATE(FROM_UNIXTIME(UNIX_TIMESTAMP('${batch_date}', 'yyyyMMdd')))
+        END AS RECORD_UPDATED_DATE
+    , 'A' AS RECORD_STATUS
+    , {% raw %}'${batch_timestamp}'{% endraw %} AS ETL_TIMESTAMP -- etl processing time
+FROM RAW_{{ source.upper() }}_{{ table.upper() }} T0
+LEFT JOIN ${com_schema}.T_{{ source.upper() }}_{{ table.upper() }}  T1
+    ON T1.RECORD_STATUS = 'A'{% for col in pk_cols %}
+    AND T0.{{ col.name.upper() }} = T1.{{ col.name.upper() }} {% endfor %}
+WHERE T0.RN = 1
+;
+

@@ -1,0 +1,45 @@
+-- Purpose:    curated - Snapshot table script
+-- Author:     {{ author }}
+-- Usage:      python $ETL_HOME/script/main.py yyyymmdd {{ schema[2:5] }}_{{ parent_table_name }}_{{ source_name }}
+-- CreateDate: {{ created_date }}
+-- FileType:   DML
+-- Logs:
+--     Table name: {{ parent_table_name.upper() }}
+--     Table comment: {{ parent_table_name.upper() }}
+--     Creation date: {{ created_date }} 00:00:00
+--     Primary key field: None
+--     Attribution hierarchy: curated
+--     Attribution subject: None
+--     Main application: None
+--     Analyst: {{ author }}
+--     Time granularity: None
+--     Retention period: None
+--     Descriptive information: None
+
+-- 0.1 set parameter
+source /jcmAgent/etlscript/execution_engine/autocode/dml/para_config/all_tez_para.sql;
+
+-- 1.1 truncate batch day partition/
+ALTER TABLE {{ schema }}.{{ parent_table_name.upper() }}
+    DROP IF EXISTS PARTITION ( {% for col in partition_fields %}{{ col.name.lower() }} = '{{ col.default_value }}'{% if not loop.last %}, {% endif %}{% endfor %} );
+
+/*==============[Group.1]==============*/
+INSERT INTO {{ schema }}.{{ parent_table_name.upper() }} PARTITION ( {% for col in partition_fields %}{{ col.name.lower() }} = '{{ col.default_value }}'{% if not loop.last %}, {% endif %}{% endfor %} )
+(
+    {% for col in table_schema %}{% if not loop.first %}, {% endif %}{{ col.name.upper() }}
+    {% endfor %}, ETL_TIMESTAMP
+)
+SELECT
+    {% for col in table_schema %}{% if col.transformation_rule is not none and '\n' in col.transformation_rule %}/*
+    {{ col.transformation_rule }}
+    */
+    {% elif col.transformation_rule is not none and '\n' not in col.transformation_rule %}-- {{ col.transformation_rule }}
+    {% endif %}{% if not loop.first %}, {% endif %}{% if col.source_column_name is not none %}T{{ col.source_table_order }}.{{ col.source_column_name.upper() }}{% else %}NULL{% endif %} AS {{ col.name.upper() }}
+    {% endfor %}
+    , '${batch_timestamp}' AS ETL_TIMESTAMP
+FROM {% for table in source_table_schema %}{% if loop.first %}{{ table.schema }}.{{ table.name.upper() }} T{{ table.order }}{% endif %}{% if not loop.first %}
+LEFT JOIN {{ table.schema }}.{{ table.name.upper() }} T{{ table.order }}
+    ON T0.{{ table.left_key }} = T{{ table.order }}.{{ table.right_key }}
+    AND T{{ table.order }}.ETL_DT = '${batch_date}'{% endif %}{% endfor %}
+WHERE T1.ETL_DT = '${batch_date}'
+;

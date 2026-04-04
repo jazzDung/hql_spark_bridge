@@ -1,0 +1,27 @@
+-- Purpose:    CUR-DDL-CREATE TABLE
+-- Author:     {{ author }}
+-- Usage:      python $ETL_HOME/script/init.py {{ schema[2:5] }} {{ parent_table_name }}
+-- CreateDate: {{ created_date }}
+-- FileType:   DDL
+-- Logs:
+--     1.for hive 3.x on cdp 7.1.5
+
+
+-- 1.0 drop table if exists table
+DROP TABLE IF EXISTS {{ schema }}.{{ parent_table_name.upper() }};
+
+-- 1.1 create table
+CREATE TABLE {{ schema }}.{{ parent_table_name.upper() }}({% for col in table_schema %}
+    {% if not loop.first %}, {% endif %}{{ col.name.upper() }} {{ col.data_type }}{% if col.data_type in ('DECIMAL', 'NUMERIC') %}({{ col.length }},{{ col.scale }}){% elif col.data_type in ('VARCHAR') %}({{ col.length }}){% endif %} COMMENT ''{% endfor %}
+    , ETL_TIMESTAMP STRING COMMENT 'ETL_PROCESSING_TIME'
+)
+COMMENT ''
+PARTITIONED BY ({% for col in partition_fields %}
+    {{ col.name }} {{ col.data_type }} COMMENT '{{ col.comment }}'{% if not loop.last %},{% endif %}{% endfor %}
+)
+STORED AS PARQUET
+TBLPROPERTIES(
+    'PARQUET.COMPRESSION'='SNAPPY'
+    ,'EXTERNAL.TABLE.PURGE'='TRUE'
+)
+;

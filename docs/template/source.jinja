@@ -1,0 +1,3 @@
+SELECT {% for col in table_schema %}
+    {% if not loop.first %}, {% endif %}{{ col.name }}{% endfor %}
+FROM ${db_schema}.{{ table }} (nolock)

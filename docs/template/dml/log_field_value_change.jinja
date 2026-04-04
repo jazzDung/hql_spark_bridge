@@ -1,0 +1,120 @@
+-- Purpose:    curated - Snapshot table script
+-- Author:     Gia Dung
+-- Usage:      python $ETL_HOME/script/main.py yyyymmdd cur_log_field_value_change_{{ source_name }}
+-- CreateDate: 2025-06-30 00:00:00
+-- FileType:   DML
+-- Logs:
+--     Table name: LOG_FIELD_VALUE_CHANGE
+--     Table comment: LOG_FIELD_VALUE_CHANGE
+--     Creation date: 2025-06-30 00:00:00
+--     Attribution hierarchy: curated
+--     Attribution subject: cust
+--     Main application: None
+--     Time granularity: None
+--     Retention period: None
+--     Descriptive information: None
+
+-- 0.1 set parameter
+source /jcmAgent/etlscript/execution_engine/autocode/dml/para_config/all_tez_para.sql;
+
+
+WITH
+-- Step 1: Isolate today's data using partition pruning
+TODAY_DATA AS (
+    SELECT *
+    FROM ${cur_schema}.{{ table_name.upper() }}
+    WHERE ETL_DT = '${batch_date}'{% if additional_filters is not none %}{% for filter in additional_filters %}
+    {{ filter }}{% endfor %}{% endif %}
+),
+
+-- Step 1: Isolate yesterday's data using partition pruning
+YESTERDAY_DATA AS (
+    SELECT *
+    FROM ${cur_schema}.{{ table_name.upper() }}
+    WHERE ETL_DT = '${last_date}'{% if additional_filters is not none %}{% for filter in additional_filters %}
+    {{ filter }}{% endfor %}{% endif %}
+)
+
+-- Step 2: Join today's and yesterday's data on the business key
+, JOINED_DATA AS (
+    SELECT
+        -- Use COALESCE because join can result in a null key for new/deleted records
+        COALESCE(T.{{ owner_id.upper() }}, Y.{{ owner_id.upper() }}) AS OWNER_ID
+        , 'ACCOUNT' AS OWNER_TYPE
+        , COALESCE(T.{{ source_record_id.upper() }}, Y.{{ source_record_id.upper() }}) AS SOURCE_RECORD_ID
+        , COALESCE(T.{{ source_name.upper() }}, Y.{{ source_name.upper() }}) AS SOURCE_NAME{% if table_schema is not none and additional_fields is not none%}{% for col in table_schema %}{% if col.name.lower() in additional_fields %}
+        , COALESCE(T.{{ col.name.upper() }}, Y.{{ col.name.upper() }}) AS {{ col.name.upper() }}{% endif %}{% endfor %}{% endif %}
+        -- Select all columns needed for the comparison from both tables {% if table_schema is not none and comparison_fields is not none%}{% for col in table_schema %}{% if col.name.lower() in comparison_fields %}
+        {% if col.type in ('varchar', 'string', 'text', 'char') %}, CAST(Y.{{ col.name.upper() }} AS VARCHAR(250)) AS Y_{{ col.name.upper() }}
+        , CAST(T.{{ col.name.upper() }} AS VARCHAR(250)) AS T_{{ col.name.upper() }}
+        {% elif col.type in ('date', 'timestamp') %}, CAST(Y.{{ col.name.upper() }} AS DATE) AS Y_{{ col.name.upper() }}
+        , CAST(T.{{ col.name.upper() }} AS DATE) AS T_{{ col.name.upper() }}
+        {% elif col.type in ('int', 'bigint', 'smallint', 'tinyint') %}, CAST(Y.{{ col.name.upper() }} AS INT) AS Y_{{ col.name.upper() }}
+        , CAST(T.{{ col.name.upper() }} AS INT) AS T_{{ col.name.upper() }}
+        {% endif %}{% endif %}{% endfor %}{% endif %}
+        -- Source update date
+        , Y.{{ source_update_date_field.upper() }} AS PREVIOUS_SOURCE_UPDATE_DATE
+        , T.{{ source_update_date_field.upper() }} AS CURRENT_SOURCE_UPDATE_DATE
+    FROM TODAY_DATA T
+    JOIN YESTERDAY_DATA Y {% if table_schema is not none and join_keys is not none%}{% for col in table_schema %}{% if col.name.lower() in join_keys %}
+        {% if loop.first %}ON T.{{ col.name.upper() }} = Y.{{ col.name.upper() }}{% else %}AND T.{{ col.name.upper() }} = Y.{{ col.name.upper() }} {% endif %}{% endif %}{% endfor %}{% endif %}
+)
+
+-- Final SELECT to insert into the log table
+INSERT INTO TABLE ${cur_schema}.LOG_FIELD_VALUE_CHANGE (
+    OWNER_ID
+    , OWNER_TYPE
+    , FIELD_NAME
+    , PREVIOUS_FIELD_VALUE_STRING
+    , CURRENT_FIELD_VALUE_STRING
+    , PREVIOUS_FIELD_VALUE_DATE
+    , CURRENT_FIELD_VALUE_DATE
+    , PREVIOUS_FIELD_VALUE_INTEGER
+    , CURRENT_FIELD_VALUE_INTEGER
+    , PREVIOUS_SOURCE_UPDATE_DATE
+    , CURRENT_SOURCE_UPDATE_DATE
+    , SOURCE_NAME
+    , SOURCE_RECORD_ID
+    , ETL_TIMESTAMP
+    , SOURCE_KEY
+    , YEAR_MONTH
+)
+SELECT
+    J.OWNER_ID
+    , J.OWNER_TYPE
+    , PIVOTED.FIELD_NAME
+    , PIVOTED.PREVIOUS_FIELD_VALUE_STRING
+    , PIVOTED.CURRENT_FIELD_VALUE_STRING
+    , PIVOTED.PREVIOUS_FIELD_VALUE_DATE
+    , PIVOTED.CURRENT_FIELD_VALUE_DATE
+    , PIVOTED.PREVIOUS_FIELD_VALUE_INTEGER
+    , PIVOTED.CURRENT_FIELD_VALUE_INTEGER
+    , J.PREVIOUS_SOURCE_UPDATE_DATE
+    , J.CURRENT_SOURCE_UPDATE_DATE
+    , J.SOURCE_NAME
+    , J.SOURCE_RECORD_ID
+    , '${batch_timestamp}' AS ETL_TIMESTAMP
+    , '{{ table_name.upper() }}' AS SOURCE_KEY
+    , '${batch_yyyymm}' AS YEAR_MONTH
+FROM
+    -- Step 3: Unpivot the columns into rows using LATERAL VIEW and stack()
+    JOINED_DATA J
+    -- {{ comparison_fields|length }} is the number of fields need to compare
+    LATERAL VIEW STACK(
+        {{ comparison_fields|length }}{% if table_schema is not none and comparison_fields is not none%}
+        {% for col in table_schema %}{% if col.name.lower() in comparison_fields %}{% if col.type in ('varchar', 'string', 'text', 'char') %}, '{{ col.name.upper() }}', J.Y_{{ col.name.upper() }}, J.T_{{ col.name.upper() }}, NULL, NULL, NULL, NULL
+        {% elif col.type in ('date', 'timestamp') %}, '{{ col.name.upper() }}', NULL, NULL, J.Y_{{ col.name.upper() }}, J.T_{{ col.name.upper() }}, NULL, NULL
+        {% elif col.type in ('int', 'bigint', 'smallint', 'tinyint') %}, '{{ col.name.upper() }}', NULL, NULL, NULL, NULL, J.Y_{{ col.name.upper() }}, J.T_{{ col.name.upper() }}{% endif %} {% endif %}{% endfor %}{% endif %}
+    ) PIVOTED AS FIELD_NAME, PREVIOUS_FIELD_VALUE_STRING, CURRENT_FIELD_VALUE_STRING, PREVIOUS_FIELD_VALUE_DATE, CURRENT_FIELD_VALUE_DATE, PREVIOUS_FIELD_VALUE_INTEGER, CURRENT_FIELD_VALUE_INTEGER
+-- Step 4: Filter for actual changes
+WHERE
+--     COALESCE to make sure NULL values and empty string are treated as equal
+    COALESCE(PIVOTED.PREVIOUS_FIELD_VALUE_STRING, '') !=  COALESCE(PIVOTED.CURRENT_FIELD_VALUE_STRING, '')
+    OR COALESCE(PIVOTED.PREVIOUS_FIELD_VALUE_DATE, '') !=  COALESCE(PIVOTED.CURRENT_FIELD_VALUE_DATE, '')
+    OR COALESCE(PIVOTED.PREVIOUS_FIELD_VALUE_INTEGER, '') !=  COALESCE(PIVOTED.CURRENT_FIELD_VALUE_INTEGER, '')
+;
+
+
+-- Step 4: Collect statistics about partitions in the target table on the current day
+ANALYZE TABLE ${cur_schema}.LOG_FIELD_VALUE_CHANGE PARTITION (SOURCE_KEY = '{{ table_name.upper() }}', YEAR_MONTH = '${batch_yyyymm}') COMPUTE STATISTICS;
+

@@ -1,0 +1,60 @@
+-- UAT
+sudo -i
+docker exec -it jcmagent /bin/bash
+
+-- DEV
+podman exec -it jcmagent /bin/bash
+
+ETL Server Password: Sunline300348
+
+# EXT script
+{% for table in tables.keys() %}python "$ETL_HOME"/script/main.py batch_date ext_{{source.lower()}}_{{table.lower()}} # EXT
+{% endfor %}
+
+# RAW DDL script
+
+# Hotshot
+python "$ETL_HOME"/script/init.py raw{% for table in tables.keys() %} {{source.lower()}}_{{table.lower()}}{% endfor %}
+
+# Individual tables
+{% for table in tables.keys() %}python "$ETL_HOME"/script/init.py raw {{source.lower()}}_{{table.lower()}} # RAW DDL
+{% endfor %}
+
+
+# COM_R DDL script
+
+# Hotshot
+python "$ETL_HOME"/script/init.py com{% for table in tables.keys() %} r_{{source.lower()}}_{{table.lower()}}{% endfor %}
+
+# Individual tables
+{% for table in tables.keys() %}python "$ETL_HOME"/script/init.py com r_{{source.lower()}}_{{table.lower()}} # RAW DDL
+{% endfor %}
+
+
+# COM_T DDL script
+
+# Hotshot
+python "$ETL_HOME"/script/init.py com{% for table in tables.keys() %} t_{{source.lower()}}_{{table.lower()}}{% endfor %}
+
+# Individual tables
+{% for table in tables.keys() %}python "$ETL_HOME"/script/init.py com t_{{source.lower()}}_{{table.lower()}} # RAW DDL
+{% endfor %}
+
+
+# COM_M DDL script
+
+# Hotshot
+python "$ETL_HOME"/script/init.py com{% for table in tables.keys() %} m_{{source.lower()}}_{{table.lower()}}{% endfor %}
+
+# Individual tables
+{% for table in tables.keys() %}python "$ETL_HOME"/script/init.py com m_{{source.lower()}}_{{table.lower()}} # RAW DDL
+{% endfor %}
+
+
+# RAW DML script
+{% for table in tables.keys() %}python "$ETL_HOME"/script/main.py batch_date raw_{{source.lower()}}_{{table.lower()}} # RAW DML
+{% endfor %}
+
+# COM DML script
+{% for table in tables.keys() %}python "$ETL_HOME"/script/main.py batch_date com_r_{{source.lower()}}_{{table.lower()}} # RAW DML
+{% endfor %}

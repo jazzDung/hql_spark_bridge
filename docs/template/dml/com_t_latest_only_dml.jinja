@@ -1,0 +1,63 @@
+-- Purpose:    COM-DML,Load the data file into the target table's same-day partition
+-- Author:     {{ author }}
+-- Usage:      python $ETL_HOME/script/main.py yyyymmdd com_t_{{ source }}_{{ table }}
+-- CreateDate: {{ created_date }}
+-- FileType:   DML
+-- Logs:
+--     1.for hive 3.x on cdp 7.1.5
+
+
+-- 0.1 set parameter
+source /jcmAgent/etlscript/execution_engine/autocode/dml/para_config/all_para.sql;
+
+-- DROP temp table
+DROP TABLE IF EXISTS ${com_schema}.TEMP_T_{{ source.upper() }}_{{ table.upper() }}_LATEST;
+
+-- Create old temp table
+CREATE TABLE ${com_schema}.TEMP_T_{{ source.upper() }}_{{ table.upper() }}_LATEST ({% for col in table_schema + addition_fields %}
+    {% if not loop.first %}, {% endif %}{{ col.name.upper() }} {{ col.raw_data_type }}{% if col.raw_data_type in ('DECIMAL', 'NUMERIC') %}({{ col.precision }},{{ col.scale }}){% endif %} COMMENT ''{% endfor %}
+    , ETL_TIMESTAMP STRING COMMENT 'ETL_PROCESSING_TIME'
+)
+PARTITIONED BY ({% for col in partition_fields %}
+    {{ col.name.upper() }} {{ col.data_type.upper() }} COMMENT '{{ col.comment }}'{% if not loop.last %},{% endif %}{% endfor %}
+)
+STORED AS PARQUET
+TBLPROPERTIES(
+    'PARQUET.COMPRESSION'='SNAPPY'
+    ,'EXTERNAL.TABLE.PURGE'='TRUE'
+)
+;
+
+-- Populate latest temp table
+WITH LATEST_RECORDS AS (
+    SELECT
+        *
+        , ROW_NUMBER() over (PARTITION BY {% for col in table_schema %}{% if col.is_primary_key %}{% if not loop.first %}, {% endif %}{{ col.name.upper() }} {% endif %}{% endfor %} ORDER BY ETL_DT DESC, ETL_TIMESTAMP DESC) AS RN
+    FROM ${com_schema}.R_{{ source.upper() }}_{{ table.upper() }}
+    WHERE
+        ETL_DT <= '${batch_date}'{% for col in table_schema %}{% if col.name.upper() == 'RECORD_STATUS_ID' %}
+        AND RECORD_STATUS_ID = 3 {% endif %}{% endfor %}{% for col in table_schema %}{% if col.name.upper() == 'EFFECTIVE_FROM' %}
+        AND FROM_UNIXTIME(UNIX_TIMESTAMP('${batch_date}' , 'yyyyMMdd')) BETWEEN EFFECTIVE_FROM AND EFFECTIVE_TO {% endif %}{% endfor %}
+)
+INSERT INTO ${com_schema}.TEMP_T_{{ source.upper() }}_{{ table.upper() }}_LATEST
+SELECT{% for col in table_schema + addition_fields %}
+    {% if not loop.first %}, {% endif %}{{ col.name.upper() }}{% endfor %}
+    , ETL_TIMESTAMP {% for col in partition_fields %}
+    , {{ col.name.upper() }}{% endfor %}
+FROM LATEST_RECORDS
+WHERE RN = 1
+;
+
+
+
+-- 2.1 drop partition
+TRUNCATE TABLE ${com_schema}.T_{{ source.upper() }}_{{ table.upper() }};
+
+-- 2.2 insert data to target table
+INSERT INTO TABLE ${com_schema}.T_{{ source.upper() }}_{{ table.upper() }}
+SELECT{% for col in table_schema + addition_fields %}
+    {% if not loop.first %}, {% endif %}{{ col.name.upper() }}{% endfor %}
+    , '${batch_timestamp}' AS ETL_TIMESTAMP {% for col in partition_fields %}
+    , {{ col.name.upper() }}{% endfor %}
+FROM ${com_schema}.TEMP_T_{{ source.upper() }}_{{ table.upper() }}_LATEST
+;
