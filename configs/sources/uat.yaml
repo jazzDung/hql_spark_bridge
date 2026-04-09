@@ -1,11 +1,22 @@
 k2:
     type: mssql
-    database: k2
-    schema: dbo
+    host: localhost
     port: 1433
+    user: sa
+    password: Giadungpham@2001
     jdbc_url_variable: "jdbc_url"
     query_template: "SELECT\n    {columns}\nFROM {source_db_table} (NOLOCK)\nWHERE 1 = 1"
 fra:
     type: hdfs
 tomsapi:
     type: api
+m21:
+    type: "mssql"
+    # Dùng cho Spark
+    url: "jdbc:sqlserver://localhost:1433;databaseName=ALGO"
+    # Dùng cho Native Python
+    host: localhost
+    port: 1433
+    user: sa
+    password: Giadungpham@2001
+    database: Algo_Thu

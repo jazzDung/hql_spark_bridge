@@ -1,0 +1,3 @@
+[{{ source.lower() }}]
+{% for table in tables.keys() %}{{ source.lower() }}_{{ table.lower() }} = {{ tables[table]['extraction_mode'] }}
+{% endfor %}

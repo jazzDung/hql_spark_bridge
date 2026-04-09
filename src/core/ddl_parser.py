@@ -3,10 +3,15 @@ from sqlglot import exp
 import yaml
 import os
 from pyspark.sql.types import *
-
+from pathlib import Path
 
 class DDLParser:
-    def __init__(self, config_path=r"C:\Users\dungp\projects\hql_spark_bridge\configs\rules\data_type.yaml"):
+    def __init__(self, config_path: Path):
+        if config_path is None:
+            # src/core/ddl_parser.py -> src/core -> src -> project_root
+            project_root = Path(__file__).resolve().parents[2]
+            config_path = project_root / "configs" / "rules" / "data_type.yaml"
+
         self.config_path = config_path
         self.mapping = self._load_config()
 
@@ -15,7 +20,7 @@ class DDLParser:
             return {"VARCHAR2": "StringType", "NUMBER": "DecimalType"}
         with open(self.config_path, 'r') as f:
             config = yaml.safe_load(f)
-            return config.get('data_type_mapping', {})
+            return config.get('hiveql_to_spark', {})
 
     def _map_to_spark_type(self, column_def):
         """

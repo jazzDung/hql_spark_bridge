@@ -1,0 +1,127 @@
+[
+    {
+        "name": "Firm",
+        "type": "INTEGER",
+        "nullable": false
+    },
+    {
+        "name": "TransactionNo",
+        "type": "INTEGER",
+        "nullable": false
+    },
+    {
+        "name": "TransactionDate",
+        "type": "TIMESTAMP",
+        "nullable": false
+    },
+    {
+        "name": "ValueDate",
+        "type": "TIMESTAMP",
+        "nullable": false
+    },
+    {
+        "name": "DateCleared",
+        "type": "TIMESTAMP",
+        "nullable": true
+    },
+    {
+        "name": "DateCancelled",
+        "type": "TIMESTAMP",
+        "nullable": true
+    },
+    {
+        "name": "CustOrBroker",
+        "type": "TINYINT",
+        "nullable": false
+    },
+    {
+        "name": "CustBroker",
+        "type": "INTEGER",
+        "nullable": false
+    },
+    {
+        "name": "BankAccount",
+        "type": "INTEGER",
+        "nullable": true
+    },
+    {
+        "name": "BankAccountGL",
+        "type": "INTEGER",
+        "nullable": true
+    },
+    {
+        "name": "Type",
+        "type": "TINYINT",
+        "nullable": false
+    },
+    {
+        "name": "Currency",
+        "type": "INTEGER",
+        "nullable": false
+    },
+    {
+        "name": "Amount",
+        "type": "STRING",
+        "nullable": false
+    },
+    {
+        "name": "ModeOfPayment",
+        "type": "TINYINT",
+        "nullable": false
+    },
+    {
+        "name": "ChequeNo",
+        "type": "STRING",
+        "nullable": true
+    },
+    {
+        "name": "Remarks",
+        "type": "STRING",
+        "nullable": true
+    },
+    {
+        "name": "Reference",
+        "type": "INTEGER",
+        "nullable": true
+    },
+    {
+        "name": "CreateUser",
+        "type": "INTEGER",
+        "nullable": true
+    },
+    {
+        "name": "CreateDate",
+        "type": "TIMESTAMP",
+        "nullable": true
+    },
+    {
+        "name": "ModifyUser",
+        "type": "INTEGER",
+        "nullable": true
+    },
+    {
+        "name": "ModifyDate",
+        "type": "TIMESTAMP",
+        "nullable": true
+    },
+    {
+        "name": "SourceDocPrefix",
+        "type": "STRING",
+        "nullable": false
+    },
+    {
+        "name": "UserRef",
+        "type": "STRING",
+        "nullable": false
+    },
+    {
+        "name": "ChqBankAcro",
+        "type": "STRING",
+        "nullable": false
+    },
+    {
+        "name": "SourceOfFunds",
+        "type": "STRING",
+        "nullable": true
+    }
+]

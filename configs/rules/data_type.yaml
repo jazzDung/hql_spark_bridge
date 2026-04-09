@@ -2,14 +2,115 @@
 # Format: SOURCE_TYPE: SPARK_TYPE_NAME
 # Note: SPARK_TYPE_NAME must match class names in pyspark.sql.types
 
-data_type_mapping:
+# 1. BeeVolt Internal Canonical Types
+canonical_types:
+  # --- Group: Numeric ---
+  - id: "TINYINT"
+    hive: "TINYINT"
+    spark: "ByteType"
+    pentaho: "Integer"
+    postgres: "SMALLINT" # Postgres does not have TinyInt
+
+  - id: "SMALLINT"
+    hive: "SMALLINT"
+    spark: "ShortType"
+    pentaho: "Integer"
+    postgres: "SMALLINT"
+
+  - id: "INTEGER"
+    hive: "INT"
+    spark: "IntegerType"
+    pentaho: "Integer"
+    postgres: "INTEGER"
+
+  - id: "BIGINT"
+    hive: "BIGINT"
+    spark: "LongType"
+    pentaho: "Integer" # Pentaho uses Integer for Long as well
+    postgres: "BIGINT"
+
+  - id: "DECIMAL"
+    hive: "DECIMAL"
+    spark: "DecimalType"
+    pentaho: "BigNumber"
+    postgres: "NUMERIC"
+    has_params: true # Flag to indicate parsing (p,s) is required
+
+  - id: "DOUBLE"
+    hive: "DOUBLE"
+    spark: "DoubleType"
+    pentaho: "Number"
+    postgres: "DOUBLE PRECISION"
+
+  # --- Group: String ---
+  - id: "STRING"
+    hive: "STRING"
+    spark: "StringType"
+    pentaho: "String"
+    postgres: "VARCHAR"
+    is_string: true # Flag to trigger Auto-trimming/Nullif
+
+  # --- Group: Date & Time ---
+  - id: "DATE"
+    hive: "DATE"
+    spark: "DateType"
+    pentaho: "Date"
+    postgres: "DATE"
+
+  - id: "TIMESTAMP"
+    hive: "TIMESTAMP"
+    spark: "TimestampType"
+    pentaho: "Date"
+    postgres: "TIMESTAMP"
+
+  # --- Group: Misc ---
+  - id: "BOOLEAN"
+    hive: "BOOLEAN"
+    spark: "BooleanType"
+    pentaho: "Boolean"
+    postgres: "BOOLEAN"
+
+# 2. Dialect Mapping (For Phase 1 Discovery)
+dialect_mapping:
+  mssql:
+    tinyint: "TINYINT"
+    smallint: "SMALLINT"
+    int: "INTEGER"
+    bigint: "BIGINT"
+    decimal: "DECIMAL"
+    numeric: "DECIMAL"
+    float: "DOUBLE"
+    real: "DOUBLE"
+    varchar: "STRING"
+    nvarchar: "STRING"
+    text: "STRING"
+    ntext: "STRING"
+    char: "STRING"
+    date: "DATE"
+    datetime: "TIMESTAMP"
+    datetime2: "TIMESTAMP"
+    bit: "BOOLEAN"
+
+  postgres:
+    int2: "SMALLINT"
+    int4: "INTEGER"
+    int8: "BIGINT"
+    numeric: "DECIMAL"
+    float8: "DOUBLE"
+    varchar: "STRING"
+    text: "STRING"
+    date: "DATE"
+    timestamp: "TIMESTAMP"
+    bool: "BOOLEAN"
+
+hiveql_to_spark:
   VARCHAR2: "StringType"
   VARCHAR: "StringType"
   STRING: "StringType"
   CHAR: "StringType"
   TEXT: "StringType"
 
-  NUMBER: "DecimalType" # Cần xử lý tham số (38, 10) trong code
+  NUMBER: "DecimalType" # Requires parameter handling (38, 10) in code
   DECIMAL: "DecimalType"
 
   INTEGER: "IntegerType"

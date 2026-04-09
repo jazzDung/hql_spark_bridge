@@ -1,39 +1,39 @@
-create table dbo.CashMovement
+create database Algo
+create database Algo_Mon
+create database Algo_Tue
+create database Algo_Wed
+create database Algo_Thu
+create database Algo_Fri
+
+-- drop table Algo_Thu.dbo.CashMovement;
+
+create table Algo_Thu.dbo.CashMovement
 (
-    Firm            id          not null
-        constraint FK_CashMovement_Firm
-            references dbo.Firm (Code),
-    TransactionNo   int identity (10000, 1)
-        constraint PK_CashMovement
-            primary key
-                with (fillfactor = 99),
+    Firm            varchar          not null,
+    TransactionNo   int          not null,
     TransactionDate datetime    not null,
     ValueDate       datetime    not null,
     DateCleared     datetime,
     DateCancelled   datetime,
     CustOrBroker    tinyint     not null,
-    CustBroker      id          not null,
-    BankAccount     largeid,
-    BankAccountGL   largeid,
+    CustBroker      int          not null,
+    BankAccount     int,
+    BankAccountGL   int,
     Type            tinyint     not null,
-    Currency        smallid     not null
-        constraint FK_CashMovement_Currency
-            references dbo.Currency (Code),
+    Currency        int     not null,
     Amount          money       not null,
     ModeOfPayment   tinyint     not null,
     ChequeNo        varchar(20),
     Remarks         varchar(30),
-    Reference       id,
-    CreateUser      id,
+    Reference       int,
+    CreateUser      int,
     CreateDate      datetime,
-    ModifyUser      id,
+    ModifyUser      int,
     ModifyDate      datetime,
     SourceDocPrefix varchar(20) not null,
     UserRef         varchar(16) not null,
     ChqBankAcro     varchar(4)  not null,
-    SourceOfFunds   char(2),
-    check (),
-    check ()
+    SourceOfFunds   char(2)
 )
 go
 

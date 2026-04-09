@@ -1,6 +1,4 @@
-{% set all_cols = (table_schema + addition_fields) %}
-{% set pk_cols = (table_schema + addition_fields) | selectattr("is_primary_key") | list %}
---    File Name     : com_t_{{ source_name }}_{{ table_name }}
+--    File Name     : com_{{ target.table_name.lower() }}
 --    File Type		: DML
 --    Purpose       : [Model 5B] Insert overwrite impacted partition(s) by delete and re-insert updated records based on date range. 
 --    Logs          : 20251219		Developer1			<UserStory/Task number> Create script
@@ -13,14 +11,15 @@ SOURCE /jcmAgent/etlscript/execution_engine/autocode/dml/para_config/all_tez_par
 
 -- 1.0 Create temp table(s) 
 -- 1.1 Create temp table to store updated complete data set for impacted partitions
-DROP TABLE IF EXISTS ${tmp_schema}.temp_t_{{ source_name }}_{{ table_name }}_updated;
-CREATE TABLE ${tmp_schema}.temp_t_{{ source_name }}_{{ table_name }}_updated (
-    {{ all_cols | join(',\n    ') }}
-    ,record_status VARCHAR(10)
-    ,record_created_date TIMESTAMP
-    ,record_updated_date TIMESTAMP
-    ,
-    {{ all_cols | join(',\n    ') }}
+DROP TABLE IF EXISTS ${com_schema}.temp_{{ target.table_name.lower() }}_updated;
+CREATE TABLE ${com_schema}.temp_{{ target.table_name.lower() }}_updated (
+    {% for col in columns if not col.is_partition %}
+    {{ ", " if not loop.first else "" }}{{ col.name }} {{ TypeResolver.get_datatype(col.data_type.upper(), dialect='hive') }}
+    {% endfor %}
+    , record_status VARCHAR(10)
+    , record_created_date TIMESTAMP
+    , record_updated_date TIMESTAMP
+    , etl_timestamp STRING COMMENT 'etl_processing_time'
 )
 stored as parquet
 tblproperties(
@@ -30,10 +29,11 @@ tblproperties(
 
 
 -- 1.2 Create temp table to store impacted partitions
-DROP TABLE IF EXISTS ${tmp_schema}.temp_t_{{ source_name }}_{{ table_name }}_partitions;
-CREATE TABLE ${tmp_schema}.temp_t_{{ source_name }}_{{ table_name }}_partitions (
-    <data_partition_column1> STRING
-    ,<data_partition_column2> STRING
+DROP TABLE IF EXISTS ${com_schema}.temp_{{ target.table_name.lower() }}_partitions;
+CREATE TABLE ${com_schema}.temp_{{ target.table_name.lower() }}_partitions (
+    {% for p_key in target.partition_keys %}
+    {{ ", " if not loop.first else "" }}{{ p_key }} STRING
+    {% endfor %}
 )
 stored as parquet
 tblproperties(
@@ -44,37 +44,40 @@ tblproperties(
 
 -- 2.0 Populate latest complete dataset to temp table - only for impacted partitions
 -- 2.1 Identify impacted partition(s) from RAW and load partition value(s) to temp table 
-INSERT INTO TABLE ${tmp_schema}.temp_t_{{ source_name }}_{{ table_name }}_partitions
-SELECT DISTINCT 
-    <data_partition_column1>
-    ,<data_partition_column2>
-FROM ${raw_schema}.{{ source_name }}_{{ table_name }}  
-WHERE etl_dt = '${batch_date}' ; 
+INSERT INTO TABLE ${com_schema}.temp_{{ target.table_name.lower() }}_partitions
+SELECT DISTINCT
+    {% for p_key in target.partition_keys %}
+    {{ ", " if not loop.first else "" }}{{ p_key }}
+    {% endfor %}
+FROM ${raw_schema}.{{ target.table_name.lower() }}
+WHERE etl_dt = '${batch_date}';
 
 
 -- 2.2 Insert existing unchanged records from COM_T to temp table
-INSERT INTO TABLE ${tmp_schema}.temp_t_{{ source_name }}_{{ table_name }}_updated
+INSERT INTO TABLE ${com_schema}.temp_{{ target.table_name.lower() }}_updated
 SELECT 
-	com_t.<column1>
-	, com_t.<datecolumn2>
-	, com_t.<column3>	
-	, com_t.<column4>	
-    , com_t.<transformed_col1>
-    , com_t.<transformed_col2>
-    , com_t.record_status 
-    , com_t.record_created_date 
-    , com_t.record_updated_date 
-    , com_t.<data_partition_column1>
-    , com_t.<data_partition_column2>
-FROM ${com_schema}.t_{{ source_name }}_{{ table_name }} com_t
-INNER JOIN ${tmp_schema}.temp_t_{{ source_name }}_{{ table_name }}_partitions p -- to filter COM_T only for impacted partition(s)
-    ON com_t.<data_partition_column1> = p.<data_partition_column1> 
-    AND com_t.<data_partition_column2> = p.<data_partition_column2> 
-WHERE NOT EXISTS -- get unchanged records based on date column (date range) and partition column(s)
-    (SELECT 1 FROM ${raw_schema}.{{ source_name }}_{{ table_name }} r 
-    WHERE r.etl_dt = '${batch_date}' 
-    AND r.<datecolumn2> = com_t.<datecolumn2>
-    AND r.<data_partition_column1> = com_t.<data_partition_column1> AND r.<data_partition_column2> = com_t.<data_partition_column2>)
+    {% for col in columns if not col.is_partition %}
+    {{ ", " if not loop.first else "" }}{{ col.get_select_expression('raw') }}
+    {% endfor %}
+    {% for p_key in target.partition_keys %}
+    , {{ p_key }}
+    {% endfor %}
+FROM ${com_schema}.{{ target.table_name.lower() }} com_t
+INNER JOIN ${com_schema}.temp_{{ target.table_name.lower() }}_partitions p -- to filter COM_T only for impacted partition(s)
+    {%- for p_key in target.partition_keys %}
+    {{ "AND " if not loop.first else "ON " }}com_t.{{ p_key }} = p.{{ p_key }}
+    {% endfor %}
+WHERE NOT EXISTS ( -- get unchanged records based on date column (date range) and partition column(s)
+    SELECT 1 FROM ${raw_schema}.{{ target.table_name.lower() }} r
+    WHERE
+        r.etl_dt = '${batch_date}'
+        {% for p_key in target.partition_keys %}
+        AND r.{{ p_key }} = com_t.{{ p_key }}
+        {% endfor %}
+        {% for d_key in target.date_keys %}
+        AND r.{{ d_key }} = com_t.{{ d_key }}
+        {% endfor %}
+);
 
 
 -- 2.3 Insert latest records from RAW to temp table 
@@ -83,44 +86,44 @@ WHERE NOT EXISTS -- get unchanged records based on date column (date range) and 
 /************** once all transformation completed, load the cleaned records temp table ***************/
 
 --Below shows sample of simple transformation logic that can be writen in single query, and directly load to temp table
-INSERT INTO TABLE ${tmp_schema}.temp_t_{{ source_name }}_{{ table_name }}_updated
+INSERT INTO TABLE ${com_schema}.temp_{{ target.table_name.lower() }}_updated
 SELECT 
-	<column1>
-	, <datecolumn2>
-	, <column3>	
-	, <column4>	
-    , <transformation logic 1> as <transformed_col1>
-    , <transformation logic 2> as <transformed_col2>
+    {% for col in columns if not col.is_partition %}
+    {{ ", " if not loop.first else "" }}{{ col.name }}
+    {% endfor %}
     , 'A' as record_status 
-    , current_timestamp() record_created_date 
-    , current_timestamp() record_updated_date 
-    , <data_partition_column1>
-    , <data_partition_column2>
-FROM ${raw_schema}.{{ source_name }}_{{ table_name }}
+    , CURRENT_TIMESTAMP() record_created_date
+    , CURRENT_TIMESTAMP() record_updated_date
+    {% for p_key in target.partition_keys %}
+    , {{ p_key }}
+    {% endfor %}
+FROM ${raw_schema}.{{ target.table_name.lower() }}
 WHERE etl_dt = '${batch_date}' 
 ;
 
 
 -- 3.0 Insert overwrite COM_T impacted partition(s) with updated data set from temp table
-INSERT OVERWRITE TABLE ${com_schema}.t_{{ source_name }}_{{ table_name }} PARTITION (<data_partition_column1>, <data_partition_column2>)
+INSERT OVERWRITE TABLE ${com_schema}.{{ target.table_name.lower() }} PARTITION (
+    {% for p_key in target.partition_keys %}
+    {{ ", " if not loop.first else "" }}{{ p_key }}
+    {% endfor %}
+)
 SELECT 
-    <column1>
-	, <datecolumn2>
-	, <column3>	
-	, <column4>	
-    , <transformed_col1>
-    , <transformed_col2>
+    {% for col in columns if not col.is_partition %}
+    {{ ", " if not loop.first else "" }}{{ col.name }}
+    {% endfor %}
     , record_status 
     , record_created_date 
     , record_updated_date 
     , '${batch_date}' as etl_dt
     , '${batch_timestamp}' as etl_timestamp
-    , <data_partition_column1>
-    , <data_partition_column2>
-FROM ${tmp_schema}.temp_t_{{ source_name }}_{{ table_name }}_updated;
+    {% for p_key in target.partition_keys %}
+    , {{ p_key }}
+    {% endfor %}
+FROM ${com_schema}.temp_{{ target.table_name.lower() }}_updated;
 
 
 -- Collect table statistics 
-ANALYZE TABLE ${com_schema}.t_{{ source_name }}_{{ table_name }} COMPUTE STATISTICS;
+ANALYZE TABLE ${com_schema}.{{ target.table_name.lower() }} COMPUTE STATISTICS;
 
 

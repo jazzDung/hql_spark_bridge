@@ -4,6 +4,8 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from typing import Union, Dict, Any
 
 from src.context.sql_conversion_context import JinjaRenderModel
+from src.core.type_resolver import TypeResolver
+
 
 def create_jinja_env(template_dir: Union[str, Path]) -> Environment:
     template_dir = Path(template_dir)
@@ -16,8 +18,9 @@ def create_jinja_env(template_dir: Union[str, Path]) -> Environment:
         trim_blocks=True,
         lstrip_blocks=True,
     )
+    env.globals["TypeResolver"] = TypeResolver
     
-    # Chúng ta đã loại bỏ filter wrap_fstring_vars vì sqlglot đã làm việc đó ở tầng Transformer.
+    # We removed the wrap_fstring_vars filter because sqlglot already does that at the Transformer layer.
     return env
 
 def render_template(template_name: str, render_model: Union[JinjaRenderModel, Dict[str, Any]], template_dir: str = "template") -> str:

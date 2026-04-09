@@ -1,0 +1,47 @@
+-- Purpose:    RAW-DML - Load data from HDFS (Model 5B)
+-- Author:     {{ author | default('Datalake') }}
+-- CreateDate: {{ created_date }}
+-- FileType:   DML
+
+-- 0.1 set parameter
+SOURCE /jcmAgent/etlscript/execution_engine/autocode/dml/para_config/all_tez_para.sql;
+
+-- 1.0 Create external table to read the source data from HDFS
+DROP TABLE IF EXISTS ${raw_schema}.{{ target.table_name.lower() }}_et;
+
+CREATE EXTERNAL TABLE IF NOT EXISTS ${raw_schema}.{{ target.table_name.lower() }}_et(
+    {% for col in columns if not col.is_partition %}
+    {{ ", " if not loop.first else "" }}{{ col.name.upper() }} {{ TypeResolver.get_datatype(col.data_type.upper(), dialect='hive') }}
+    {% endfor %}
+    , RAW_SYS_TIME STRING
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '\001'
+LINES TERMINATED BY '\n'
+STORED AS TEXTFILE
+LOCATION '${itl_data_path}/{{ target.table_name.lower() }}_{{ extraction_mode | default('i')  }}.{{ '${batch_date}' }}.dat'
+
+;
+
+-- 2.0 Insert overwrite partition with data
+INSERT OVERWRITE TABLE ${raw_schema}.{{ target.table_name.lower() }}
+PARTITION (
+    {% for p_key in target.partition_keys %}
+    {{ ", " if not loop.first else "" }}{{ p_key }} = '{{ '${batch_date}' }}'
+    {% endfor %}
+)
+SELECT
+    {% for col in columns if not col.is_partition %}
+    {{ ", " if not loop.first else "" }}{{ col.get_select_expression('raw') }}
+    {% endfor %}
+    , RAW_SYS_TIME AS RAW_SYS_TIME
+    , '{{ '${batch_timestamp}' }}' AS ETL_TIMESTAMP
+    , NULL AS HASH_VALUE
+FROM ${raw_schema}.{{ target.table_name.lower() }}_et
+;
+
+-- 3.0 Drop history partitions - Data retention (Optional)
+-- ALTER TABLE ${raw_schema}.{{ target.table_name.lower() }} DROP IF EXISTS PARTITION ( etl_dt < '${retain_day}' );
+
+-- 4.0 Cleanup External Table
+DROP TABLE IF EXISTS ${raw_schema}.{{ target.table_name.lower() }}

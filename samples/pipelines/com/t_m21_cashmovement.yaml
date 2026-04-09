@@ -1,0 +1,32 @@
+# Unique identifier for the pipeline
+pipeline_id: "t_m21_cashmovement"
+
+# Data layer and transformation model
+layer: "com"
+model_type: "update / insert based on TransactionDate"
+
+# Data source definition
+sources:
+  - alias: "raw_m21_cashmovement"
+    source_type: "metadata"
+    table_name: "m21_cashmovement"
+    # Path to SQL Query and Schema discovered in Phase 1
+    query_path: "metadata/discovery_output/queries/m21_cashmovement.sql"
+    schema_path: "m21_cashmovement.json"
+
+# Target table definition on Datalake
+target:
+  schema_name: "${com_schema}"
+  table_name: "t_m21_cashmovement"
+  transformation_model: 5b
+  partition_keys:
+    - "year_month"
+
+# The columns section is OPTIONAL for RAW/COM layers
+# If left empty, the tool automatically maps 1:1 from cashmovement.json and applies TRIM/NULLIF
+columns:
+  - name: "year_month"
+    data_type: "String"
+    is_partition: True
+    # Example: Only override columns that require special logic
+    expression: "DATE_FORMAT(TransactionDate, 'yyyyMM')"

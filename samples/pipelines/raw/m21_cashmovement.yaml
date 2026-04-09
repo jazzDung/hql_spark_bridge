@@ -1,0 +1,41 @@
+# Unique identifier for the pipeline
+pipeline_id: "m21_cashmovement"
+
+# Data layer and transformation model
+layer: "raw"
+model_type: "overwrite"
+
+# Data source definition
+sources:
+  - alias: "src_m21"
+    source_type: "DB"
+    connection_id: "m21"
+    table_name: "m21_cashmovement"
+    # Path to SQL Query and Schema discovered in Phase 1
+    query_path: "metadata/discovery_output/queries/m21_cashmovement.sql"
+    schema_path: "m21_cashmovement.json"
+
+# Target table definition on Datalake
+target:
+  - table_type: raw
+    schema_name: raw
+    table_name: "m21_cashmovement"
+    transformation_model: 5b
+    partition_keys:
+    - "etl_dt"
+
+  - table_type: com_t
+    schema_name: com
+    table_name: "t_m21_cashmovement"
+    transformation_model: 5b
+    partition_keys:
+    - "year_month"
+    date_keys:
+    - "TransactionDate"
+    transform_logic:
+      - name: "year_month"
+        data_type: "String"
+        is_partition: True
+        # Example: Only override columns that require special logic
+        expression: "DATE_FORMAT({{ TransactionDate }}, 'yyyyMM')"
+

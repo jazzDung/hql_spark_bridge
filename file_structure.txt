@@ -1,0 +1,66 @@
+hql_spark_bridge
+├── .github
+│   └── workflows
+├── .venv
+├── configs
+│   ├── directory
+│   ├── rules
+│   ├── sources
+│   │   └── uat.yaml
+│   ├── sunejcm
+│   │   └── metadb_credential.yaml
+│   └── variables
+│       └── base_spark_config.yaml
+├── deploy
+├── docs
+├── notebooks
+├── samples
+│   ├── converted
+│   ├── hpe
+│   ├── input
+│   ├── jcmdb
+│   └── sources
+├── src
+│   ├── context
+│   ├── core
+│   ├── data_integrity
+│   ├── jinja
+│   ├── transformers
+│   ├── ui
+│   └── utils
+├── template
+│   ├── datahub
+│   │   ├── main_table_dm_account.jinja
+│   │   ├── sp_dm_account.jinja
+│   │   └── staging_table_dm_account.jinja
+│   ├── datalake_model_1
+│   │   ├── hiveql_ddl
+│   │   │   ├── com_m.jinja
+│   │   │   ├── com_t.jinja
+│   │   │   ├── cur.jinja
+│   │   │   └── raw.jinja
+│   │   ├── hiveql_dml
+│   │   │   ├── com_m.jinja
+│   │   │   ├── com_t.jinja
+│   │   │   ├── cur.jinja
+│   │   │   └── raw.jinja
+│   ├── datalake_model_2a
+│   ├── datalake_model_2b
+│   ├── datalake_model_3
+│   ├── datalake_model_4
+│   ├── datalake_model_5a
+│   ├── datalake_model_5b
+│   ├── datalake_model_6
+│   ├── documents
+│   ├── extraction
+│   ├── orchestration
+│   ├── pyspark
+│   ├── sparksql
+│   ├── testing
+│   └── unload
+├── tests
+├── .gitignore
+├── .wslconfig
+├── main.py
+├── README.md
+└── requirements.txt
