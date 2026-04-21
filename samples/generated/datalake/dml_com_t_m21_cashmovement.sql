@@ -13,8 +13,7 @@ SOURCE /jcmAgent/etlscript/execution_engine/autocode/dml/para_config/all_tez_par
 -- 1.1 Create temp table to store updated complete data set for impacted partitions
 DROP TABLE IF EXISTS ${com_schema}.temp_t_m21_cashmovement_updated;
 CREATE TABLE ${com_schema}.temp_t_m21_cashmovement_updated (
-    Firm INT
-    , TransactionNo INT
+    TransactionNo INT
     , TransactionDate TIMESTAMP
     , ValueDate TIMESTAMP
     , DateCleared TIMESTAMP
@@ -74,8 +73,7 @@ WHERE etl_dt = '${batch_date}';
 -- 2.2 Insert existing unchanged records from COM_T to temp table
 INSERT INTO TABLE ${com_schema}.temp_t_m21_cashmovement_updated
 SELECT 
-    Firm
-    , TransactionNo
+    TransactionNo
     , TransactionDate
     , ValueDate
     , DateCleared
@@ -119,8 +117,7 @@ WHERE NOT EXISTS ( -- get unchanged records based on date column (date range) an
 --Below shows sample of simple transformation logic that can be writen in single query, and directly load to temp table
 INSERT INTO TABLE ${com_schema}.temp_t_m21_cashmovement_updated
 SELECT 
-    Firm
-    , TransactionNo
+    TransactionNo
     , TransactionDate
     , ValueDate
     , DateCleared
@@ -158,8 +155,7 @@ INSERT OVERWRITE TABLE ${com_schema}.t_m21_cashmovement PARTITION (
     year_month
 )
 SELECT 
-    Firm
-    , TransactionNo
+    TransactionNo
     , TransactionDate
     , ValueDate
     , DateCleared

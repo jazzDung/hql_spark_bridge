@@ -1,6 +1,6 @@
 -- Purpose:    RAW-DDL-CREATE TABLE
 -- Author:     dungp
--- CreateDate: 2026-04-09 08:07:54
+-- CreateDate: 2026-04-09 21:03:16
 -- FileType:   DDL
 
 -- 1.0 drop table if exists table

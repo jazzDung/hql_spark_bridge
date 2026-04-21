@@ -47,10 +47,9 @@ class YamlHydrator:
                 "model_type": t_config.get('transformation_model', 'overwrite'),
                 "sources": yaml_raw['sources'],
                 "target": t_config,
-                "columns": self._merge_columns(t_config.get('columns', []), json_schema),
+                "columns": self._merge_columns(t_config.get('transform_logic', []), json_schema),
                 "partition_keys": t_config.get('partition_keys', []),
                 "date_keys": t_config.get('date_keys', []),
-                "transform_logic": t_config.get('transform_logic', {})
             }
 
             # Ép vào Pydantic để validate riêng từng thằng

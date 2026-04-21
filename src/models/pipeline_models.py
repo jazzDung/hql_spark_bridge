@@ -12,7 +12,6 @@ class ColumnModel(BaseModel):
     expression: Optional[str] = None
     is_partition: bool = False
     is_primary_key: bool = False
-    transform_logic: str
 
     def get_select_expression(
         self,
@@ -47,18 +46,23 @@ class ColumnModel(BaseModel):
 
         return f"{expr} AS {self.name}"
 
-    def get_transform_query(self, alias: str = None):
+    def get_expression(self, alias: str = None):
         """
         Finds placeholders like {{ field_name }} in the expression and replaces them
         with alias.field_name.
         """
         def replacer(match):
             field_name = match.group(1)
+            if alias is None:
+                return field_name
             return f"{alias}.{field_name}"
+
+        if self.expression is None:
+            return f"{alias}.{self.name}"
 
         # Regex to find {{ field_name }}
         # It captures 'field_name' in group 1
-        return re.sub(r"\{\{\s*(\w+)\s*\}\}", replacer, self.transform_logic)
+        return re.sub(r"\{\{\s*(\w+)\s*\}\}", replacer, self.expression)
 
 class SourceModel(BaseModel):
     """Data source information extracted from YAML"""

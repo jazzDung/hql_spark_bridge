@@ -29,13 +29,16 @@ target:
     table_name: "t_m21_cashmovement"
     transformation_model: 5b
     partition_keys:
-    - "year_month"
+    - name: "year_month"
+      data_type: "String"
+      is_partition: True
+      expression: "DATE_FORMAT({{ TransactionDate }}, 'yyyyMM')"
     date_keys:
     - "TransactionDate"
     transform_logic:
-      - name: "year_month"
+      - name: "Firm"
         data_type: "String"
         is_partition: True
         # Example: Only override columns that require special logic
-        expression: "DATE_FORMAT({{ TransactionDate }}, 'yyyyMM')"
+        expression: "Firm"
 
