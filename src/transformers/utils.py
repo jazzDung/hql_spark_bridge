@@ -1,10 +1,22 @@
-from sqlglot import exp, expressions
+import logging
 
+from sqlglot import exp, expressions
+from pathlib import Path
 from src.core.ext_parser import ExtParser
 from src.context.sql_conversion_context import SqlConversionContext, JinjaRenderModel
+# Import the centralized path for external XMLs
+from src.paths import INCREMENATL_EXT_DIR
 
 
-def _extract_columns_from_create(node: exp.Create) -> list:
+def is_comment_only(node):
+    return (
+        isinstance(node, exp.Semicolon)
+        and not node.this
+        and not node.args.get("expression")
+    )
+
+
+def extract_columns_from_create(node: exp.Create) -> list:
     """Extract the list of column names from a CREATE TABLE statement."""
     columns = []
     if node.args.get("this") and isinstance(node.args["this"], exp.Schema):
@@ -32,31 +44,56 @@ def format_header_comments(header_comments: str) -> str:
     return '\n'.join(python_header_comments)
 
 
-def _handle_skip_action(rule: dict, node: exp.Expression, context: SqlConversionContext) -> dict:
+def handle_skip_action(
+    rule: dict,
+    node: exp.Expression,
+    context: SqlConversionContext,
+) -> dict:
     """Handle the 'skip' action."""
     # Add logging here in the future if needed for traceability
-
     return {"type": "skip"}
 
 
-def handle_generate_jdbc_read_action(config_root, rule: dict, node: exp.Expression, context: SqlConversionContext) -> dict:
-    """Handle the 'generate_jdbc_read' action with robustness checks."""
+def handle_generate_jdbc_read_action(
+    rule: dict,
+    node: exp.Create,
+    context: SqlConversionContext,
+) -> dict:
+    """
+    Handle the 'generate_jdbc_read' action.
+    
+    This function now uses the centralized EXTERNAL_XML_DIR path to locate
+    the required XML files, making the path resolution robust and portable.
+    """
     action = rule.get("action", {})
     params = {**rule, **action.get("parameters", {})}
-    columns = _extract_columns_from_create(node)
-
+    columns = extract_columns_from_create(node)
     query = ""
-    if "query_template" in params and columns:
-        cols_str = ",\n    ".join(columns)
-        query = params["query_template"].format(
-            columns=cols_str,
-            source_db_table=f"{params.get('schema', '')}.{context.table_name}"
-        )
-    else:
-        ext_file_path = config_root.parent / "samples" / "input" / "ext" / "xml" / f"{context.source_name}_{context.table_name}.xml"
+
+    try:
+        # Use the centrally defined path to build the full path to the XML file.
+        ext_file_path = INCREMENATL_EXT_DIR / f"{context.source_name}_{context.table_name}.xml"
+        
+        # Add a check to ensure the file exists before trying to parse it.
+        if not ext_file_path.exists():
+            raise FileNotFoundError(f"External XML file not found at: {ext_file_path}")
+
         parsed_ext = ExtParser.parse_ext(ext_file_path)
         query = parsed_ext.query
-        # query = params.get("query", "")
+
+    except Exception as e:
+        print(f"Error processing external XML file: {e}")
+        print(f"Fallback to using default query template.")
+
+        if "default_query_template" in params and columns:
+            cols_str = ",\n    ".join(columns)
+            query = params["default_query_template"].format(
+                columns=cols_str,
+                source_db_table=f"{params.get('schema', '')}.{context.table_name}"
+            )
+        else:
+            # If no default template, the query will remain empty.\
+            logging.warning("No default query template provided, using empty query.")
 
     return {
         "type": "jdbc_read",
@@ -111,7 +148,7 @@ def is_rule_triggered(rule: dict, node: exp.Expression, context: SqlConversionCo
                 elif isinstance(node, tuple([exp.Drop, exp.Alter, exp.Insert])):
                     table_name = node.this.this.this
                 else:
-                    raise ValueError(f"Unsupported node type: {node_type}")
+                    raise ValueError(f"Unsupported node type for node: {node}")
 
                 print(f"table_name: {table_name}, suffix: {suffixes}, result: {table_name.endswith(suffixes)}")
 

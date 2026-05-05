@@ -1,4 +1,4 @@
-# Optimization rule for mhbos table
+# Optimization rule for limkibb2 table
 # Replaces text file reading with direct JDBC reading
 
 # Enable/disable this rule
@@ -7,7 +7,7 @@ enabled: true
 
 # Parameters for the generate_jdbc_read action
 parameters:
-  source: mhbos
+  source: limkibb2
 
 rules:
   drop_partition:
@@ -17,22 +17,20 @@ rules:
     action:
       type: "skip"
 
-  drop_external_table:
-    enabled: true
-    trigger:
-      node_type: "Drop"
-      table_name_suffix:
-        - "_et"
-    action:
-      type: "skip"
+#  drop_external_table:
+#    enabled: true
+#    trigger:
+#      node_type: "Drop"
+#      table_name_suffix:
+#        - "_et"
+#    action:
+#      type: "skip"
 
   create_external_table:
     enabled: true
     # Condition to trigger the rule
     trigger:
       node_type: "Create"
-      table_name_suffix:
-        - "_et"
       table_properties:
         - "STORED AS TEXTFILE"
 
@@ -42,7 +40,6 @@ rules:
 
       # Parameters for the generate_jdbc_read action
       parameters:
-        source: ext
         # Name of the table in the source database
         schema: dbo
         port: 1433

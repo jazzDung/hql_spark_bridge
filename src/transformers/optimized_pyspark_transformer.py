@@ -2,10 +2,11 @@ import yaml
 from pathlib import Path
 from sqlglot import exp
 
+from paths import *
 from src.context.sql_conversion_context import SqlConversionContext, JinjaRenderModel
 from src.transformers.base_transformer import BaseSqlTransformer
 from src.transformers.basic_pyspark_transformer import BasicPySparkTransformer
-from src.transformers.utils import format_header_comments, _handle_skip_action, \
+from src.transformers.utils import format_header_comments, handle_skip_action, \
     handle_generate_jdbc_read_action, is_rule_triggered
 
 
@@ -16,9 +17,21 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
     - Fallback to BasicPySparkTransformer logic if no rule is found.
     """
     
-    def __init__(self, variable_mapping: dict, config_root: Path):
-        self.variable_mapping = variable_mapping
-        self.config_root = config_root
+    def __init__(self, variable_mapping: dict = None, config_root: Path = None):
+
+        if variable_mapping is None:
+            # 2. Load mapping configuration from YAML
+            with open(VARIABLE_CONFIG_PATH, 'r', encoding='utf-8') as f:
+                self.variable_mapping = yaml.safe_load(f)
+        else:
+            self.variable_mapping = variable_mapping
+
+        if config_root is None:
+            self.config_root = PROJECT_ROOT / "configs"
+
+        else:
+            self.config_root = config_root
+
         self.fallback_transformer = BasicPySparkTransformer(variable_mapping)
 
     def _find_and_apply_optimization_rule(self, node: exp.Expression, context: SqlConversionContext):
@@ -40,7 +53,7 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
             return None
 
         action_handlers = {
-            "skip": _handle_skip_action,
+            "skip": handle_skip_action,
             "generate_jdbc_read": handle_generate_jdbc_read_action,
         }
 
@@ -61,7 +74,7 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
 
         return None # No matching rule found
 
-    def transform(self, context: SqlConversionContext) -> JinjaRenderModel:
+    def transform(self, context: SqlConversionContext, dialect: str = 'pyspark') -> JinjaRenderModel:
         optimized_blocks = []
 
         formatted_header_comments = format_header_comments(context.header_comments)
@@ -83,9 +96,7 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
                     ast_nodes=[node]
                 )
                 fallback_model = self.fallback_transformer.transform(temp_context)
-                optimized_blocks.extend([
-                    {"type": "raw_sql", "query": q} for q in fallback_model.transformed_queries
-                ])
+                optimized_blocks.extend(q for q in fallback_model.transformed_queries)
 
         render_model = JinjaRenderModel(
             source_name=context.source_name,

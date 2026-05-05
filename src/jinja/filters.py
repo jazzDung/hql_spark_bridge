@@ -1,8 +1,6 @@
+from typing import Any
 import re
-from jinja2 import Environment, FileSystemLoader
 
-
-# Function to automatically wrap {} around valid Python variables in SQL
 def wrap_fstring_vars(sql_string):
     # Rule 1: Find all variables in the form params["..."] or params['...']
     # and wrap them as {params["..."]}
@@ -17,6 +15,41 @@ def wrap_fstring_vars(sql_string):
 
     return sql_string
 
-# Function test:
-# Input from sqlglot: CREATE TABLE params["raw_schema"].my_table (date STRING) LOCATION params["itl_data_path"]/batch_date
-# Output: CREATE TABLE {params["raw_schema"]}.my_table (date STRING) LOCATION {params["itl_data_path"]}/{batch_date}
+def to_fstring(value: Any) -> str:
+    """
+    The filter will transform the string into:
+    "SELECT {{col1, col2}} FROM my_table WHERE id = 1;"
+    
+    This is now a valid Python f-string that produces the original SQL.
+
+    :param value: The input value (string or otherwise) to be escaped.
+    :return: A string with f-string-escaped curly braces.
+    """
+    # Ensure the input is a string
+    if not isinstance(value, str):
+        value = str(value)
+
+    # Escape f-string special characters by doubling them
+    return value.replace("{", "{{").replace("}", "}}")
+
+def comment_formatting(sql: str) -> str:
+    """
+    Split ONLY consecutive /* */ comments with nothing but whitespace between them.
+    """
+
+    # Pattern an toàn hơn
+    pattern = re.compile(
+        r'(/\*(?:(?!\*/).)*\*/(?:\s*/\*(?:(?!\*/).)*\*/)+)',
+        re.DOTALL
+    )
+
+    def split_block(match):
+        block = match.group(0)
+
+        comments = re.findall(r'/\*.*?\*/', block, re.DOTALL)
+        return "\n".join(to_fstring(c.strip()) for c in comments)
+
+    result = pattern.sub(split_block, sql)
+
+    return result
+

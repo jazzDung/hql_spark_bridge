@@ -6,20 +6,27 @@ import os
 import sys
 sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
 
-from etl_common_function import run_etl, set_parameter, drop_partition_day, batch_start, batch_end
+from etl_common_function import run_etl, set_parameter, drop_partition_day
 from pyspark.sql.functions import current_timestamp, lit
+from datetime import datetime
 
 source_name = "{{ source_name }}"
 table_name = "{{ table_name }}"
-
-# set parameter, call parameter by params["<parameter name>"]
-params = set_parameter()
+hive_table_name = source_name + "_" + table_name
+partition_col = "etl_dt"
 
 # spark session
-spark, batch_date = run_etl(source_name, table_name)
+spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source_name, table_name)
+batch_date = today_date
+last_date = yesterday_date
+batch_yyyymm = batch_date[:-2]
 
-# update control table start, first task in the flow only
-batch_start(spark, source_name, table_name)
+# ext_start_time = datetime.strptime(ext_start_time, '%Y-%m-%d %H:%M:%S.%f').strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]
+# ext_end_time = datetime.strptime(ext_end_time, '%Y-%m-%d %H:%M:%S.%f').strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]
+
+# set parameter, call parameter by params["<parameter name>"]
+params = set_parameter(spark)
+
 
 
 {% for block in optimized_blocks %}
@@ -52,10 +59,15 @@ df = (
 df = df.withColumn("etl_timestamp", current_timestamp().cast("string"))
 df = df.withColumn("etl_dt", lit(batch_date))
 
-{% elif block.type == 'raw_sql' %}
-spark.sql(f"""
-{{ block.query }}
+# add queries here
+{% elif block.type == 'query' %}
+spark.sql(rf"""
+{{ block.content | comment_formatting }}
 """)
+{% elif block.type == 'comment' %}
+"""
+{{ block.content | comment_formatting }}
+"""
 {% endif %}
 
 {% endfor %}
@@ -70,9 +82,6 @@ df = df.select(*target_cols)
     .mode("overwrite")
     .insertInto(f"{params['raw_schema']}.{hive_table_name}")
 )
-
-# update control table end, last task in the flow only
-batch_end(spark, source_name, table_name)
 
 # Stop Spark when done
 spark.stop()

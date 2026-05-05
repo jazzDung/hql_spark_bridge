@@ -8,7 +8,7 @@ class BaseSqlTransformer(ABC):
     """
     
     @abstractmethod
-    def transform(self, context: SqlConversionContext) -> JinjaRenderModel:
+    def transform(self, context: SqlConversionContext, dialect: str) -> JinjaRenderModel:
         """
         Receives SQL context (with extracted AST).
         Returns data model for Jinja to render into file.

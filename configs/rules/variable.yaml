@@ -43,11 +43,14 @@ batch_timestamp:
   dev: "DATE_FORMAT(CURRENT_TIMESTAMP(), 'yyyy-MM-dd HH:mm:ss')"
   prod: "DATE_FORMAT(CURRENT_TIMESTAMP(), 'yyyy-MM-dd HH:mm:ss')"
 last_date:
-  pyspark: "date_format(date_sub(current_date(), 1), 'yyyyMMdd')"
+  pyspark: last_date
   hiveql: "DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1), 'yyyyMMdd')"
   uat: "DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1), 'yyyyMMdd')"
   dev: "DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1), 'yyyyMMdd')"
   prod: "DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1), 'yyyyMMdd')"
+batch_yyyymm:
+  pyspark: batch_yyyymm
+
 
 # 2. File Format Mapping: Maps Hive file formats to Spark equivalents
 PARQUET:

@@ -1,8 +1,11 @@
 import re
 import sqlglot
 from sqlglot import exp
+import yaml
 from src.context.sql_conversion_context import SqlConversionContext, JinjaRenderModel
 from src.transformers.base_transformer import BaseSqlTransformer
+from src.paths import VARIABLE_CONFIG_PATH
+from src.transformers.utils import is_comment_only
 
 class BasicPySparkTransformer(BaseSqlTransformer):
     """
@@ -11,14 +14,21 @@ class BasicPySparkTransformer(BaseSqlTransformer):
     - Convert dialect from hive -> spark.
     """
     
-    def __init__(self, variable_mapping: dict):
+    def __init__(self, variable_mapping: dict = None):
         """
         Receives mapping rules from the variable.yaml file
         Example: {'raw_schema': 'params["raw_schema"]', 'batch_date': 'batch_date'}
         """
-        self.variable_mapping = variable_mapping
 
-    def transform(self, context: SqlConversionContext) -> JinjaRenderModel:
+        if variable_mapping is None:
+            # 2. Load mapping configuration from YAML
+            with open(VARIABLE_CONFIG_PATH, 'r', encoding='utf-8') as f:
+                self.variable_mapping = yaml.safe_load(f)
+
+        else:
+            self.variable_mapping = variable_mapping
+
+    def transform(self, context: SqlConversionContext, dialect: str = 'pyspark') -> JinjaRenderModel:
         transformed_queries = []
         is_partitioned = False
 
@@ -59,7 +69,7 @@ class BasicPySparkTransformer(BaseSqlTransformer):
                     if var_name in self.variable_mapping:
                         # Replace Parameter node with an Identifier containing the configuration string
                         # Example: replace with string '{params["raw_schema"]}'
-                        py_var_str = f'{{{self.variable_mapping[var_name]}}}'
+                        py_var_str = f'{{{self.variable_mapping[var_name][dialect]}}}'
                         # Quoted=False so sqlglot doesn't wrap with backticks (`{params...}`)
                         param_node.replace(exp.Identifier(this=py_var_str, quoted=False))
 
@@ -74,7 +84,7 @@ class BasicPySparkTransformer(BaseSqlTransformer):
                     if exact_match:
                         var_name = exact_match.group(1)
                         if var_name in self.variable_mapping:
-                            mapped_val = self.variable_mapping[var_name]
+                            mapped_val = self.variable_mapping[var_name][dialect]
 
                             # DECISION MOMENT: Identify whether this is a SQL Function or Python variable?
                             # Heuristic: If the configuration ends with '()' -> It's a SQL function
@@ -90,7 +100,7 @@ class BasicPySparkTransformer(BaseSqlTransformer):
                         v_name = match.group(1)
                         if v_name in self.variable_mapping:
                             # Return f-string format
-                            return f'{{{self.variable_mapping[v_name]}}}'
+                            return f'{{{self.variable_mapping[v_name][dialect]}}}'
                         return match.group(0)
 
                     new_text = re.sub(r'\$\{([a-zA-Z0-9_]+)\}', replace_fstring_var, text_content)
@@ -111,9 +121,13 @@ class BasicPySparkTransformer(BaseSqlTransformer):
 
             # 4. Transpile to Spark SQL
             # sqlglot will automatically convert TEXT to STRING (if needed)
-            spark_sql_str = node.sql(dialect="spark", pretty=True)
 
-            transformed_queries.append(spark_sql_str)
+            sql_str = node.sql(dialect="hive", pretty=True)
+
+            transformed_queries.append({
+                'type': 'comment' if is_comment_only(node) else 'query',
+                'content': sql_str
+            })
 
         return JinjaRenderModel(
             source_name=context.source_name,

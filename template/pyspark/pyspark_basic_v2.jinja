@@ -7,13 +7,16 @@ sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
 
 from etl_common_function import run_etl, set_parameter, drop_partition_day
 from pyspark.sql.functions import current_timestamp, lit
-from datetime import datetime, timedelta
+from datetime import datetime
+
+source_name = "mhbos"
+table_name = "m_client"
+hive_table_name = source_name + "_" + table_name
+partition_col = "etl_dt"
 
 # spark session
 spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source_name, table_name)
 batch_date = today_date
-last_date = yesterday_date
-batch_yyyymm = batch_date[:-2]
 
 
 # set parameter, call parameter by params["<parameter name>"]
@@ -28,16 +31,9 @@ drop_partition_day(spark, batch_date, params["raw_schema"], table_name, "etl_dt"
 
 # add queries here
 {% for query in transformed_queries %}
-    {% if query.type == 'query' %}
-spark.sql(rf"""
-{{ query.content | comment_formatting }}
+spark.sql(f"""
+{{ query }}
 """)
-    {% elif query.type == 'comment' %}
-"""
-{{ query.content | comment_formatting }}
-"""
-{% endif %}
-
 
 {% endfor %}
 
