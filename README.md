@@ -1,4 +1,4 @@
-# HQL Spark Bridge — Data Pipeline Factory
+# HQL Spark Bridge - Data Pipeline Factory
 
 > **A YAML-driven, template-based automation engine that transpiles HiveQL to PySpark
 > and generates complete ETL pipeline scripts across a multi-layer Datalake architecture.**
@@ -42,10 +42,10 @@ The engine operates in two modes:
 
 **Key design goals:**
 
-- **Zero hardcoding** — all transformation rules, type mappings, and variables are YAML-configurable
-- **Separation of concerns** — Discovery, Hydration, Generation, and Transpilation are fully decoupled
-- **Strategy Pattern** — multiple transpilation strategies (Basic, Optimized) selectable at runtime
-- **Single Source of Truth** — one `PipelineConfig` Pydantic model drives all code generation paths
+- **Zero hardcoding** - all transformation rules, type mappings, and variables are YAML-configurable
+- **Separation of concerns** - Discovery, Hydration, Generation, and Transpilation are fully decoupled
+- **Strategy Pattern** - multiple transpilation strategies (Basic, Optimized) selectable at runtime
+- **Single Source of Truth** - one `PipelineConfig` Pydantic model drives all code generation paths
 
 ---
 
@@ -95,7 +95,7 @@ The engine operates in two modes:
 
 ## Data Flow
 
-### Mode A — Pipeline Factory (YAML → Generated Scripts)
+### Mode A - Pipeline Factory (YAML → Generated Scripts)
 ```
 
 1. User writes samples/pipelines/raw/m21_cashmovement.yaml
@@ -113,7 +113,7 @@ The engine operates in two modes:
       ├─ Renders DDL → samples/generated/datalake/ddl_*.sql
       └─ Renders DML → samples/generated/datalake/dml_*.sql
 ```
-### Mode B — SQL Transpiler (HiveQL → PySpark)
+### Mode B - SQL Transpiler (HiveQL → PySpark)
 ```
 
 1. HiveScriptParser.parse_file("raw_k2_bank.sql")
@@ -251,7 +251,7 @@ JSON Schema (base)     +    YAML column overrides    =    PipelineConfig
 ```
 
 
-**`src/models/pipeline_models.py`** — `PipelineConfig` (Pydantic v2)
+**`src/models/pipeline_models.py`** - `PipelineConfig` (Pydantic v2)
 
 Central validated model. Key computed fields:
 
@@ -285,7 +285,7 @@ dml_sql = render_template(f'{config.layer}.jinja', context, dml_template_folder)
 ```
 
 
-**`ColumnModel.get_select_expression()`** — auto-applies transformation rules:
+**`ColumnModel.get_select_expression()`** - auto-applies transformation rules:
 
 ```python
 # STRING columns in raw/com layer auto-get TRIM() + NULLIF()
@@ -298,7 +298,7 @@ dml_sql = render_template(f'{config.layer}.jinja', context, dml_template_folder)
 
 ### 4. Transpilation Engine
 
-**Parsing** — `src/core/parser.py`
+**Parsing** - `src/core/parser.py`
 
 ```python
 # Strips header comments, removes non-standard Hive commands (SOURCE ...)
@@ -312,7 +312,7 @@ context = SqlConversionContext(
 ```
 
 
-**Strategy Pattern** — Two transformer implementations:
+**Strategy Pattern** - Two transformer implementations:
 
 | | `BasicPySparkTransformer` | `OptimizedPySparkTransformer` |
 |---|---|---|
@@ -323,7 +323,7 @@ context = SqlConversionContext(
 | **Output** | `spark.sql(f"...")` | DataFrame API |
 | **Config** | `variable.yaml` | `configs/rules/optimizations/{source}.yaml` |
 
-**Rule Matching Engine** — `src/transformers/utils.py`
+**Rule Matching Engine** - `src/transformers/utils.py`
 
 ```python
 # For each AST node, check YAML rules sequentially:
@@ -437,11 +437,11 @@ Each model resolves to a folder: `template/datalake_model_{id}/{hiveql_ddl|hiveq
 
 ## Template System
 
-**`src/jinja/environment.py`** — Jinja2 environment with:
+**`src/jinja/environment.py`** - Jinja2 environment with:
 
-- `StrictUndefined` — fails immediately on missing variables (no silent errors)
-- `TypeResolver` injected as a global — callable from within any `.jinja` file
-- `trim_blocks=True`, `lstrip_blocks=True` — clean whitespace control
+- `StrictUndefined` - fails immediately on missing variables (no silent errors)
+- `TypeResolver` injected as a global - callable from within any `.jinja` file
+- `trim_blocks=True`, `lstrip_blocks=True` - clean whitespace control
 
 **Usage in templates:**
 
@@ -484,7 +484,7 @@ pip install -r requirements.txt
 ```
 
 
-### Step 1 — Configure Source Connection
+### Step 1 - Configure Source Connection
 
 ```yaml
 # configs/sources/uat.yaml
@@ -498,7 +498,7 @@ m21:
 ```
 
 
-### Step 2 — Run Schema Discovery
+### Step 2 - Run Schema Discovery
 
 ```python
 # main.py
@@ -507,7 +507,7 @@ run_discovery("CashMovement", "m21")
 ```
 
 
-### Step 3 — Write Pipeline Config
+### Step 3 - Write Pipeline Config
 
 ```shell script
 # Create: samples/pipelines/raw/m21_cashmovement.yaml
@@ -515,7 +515,7 @@ run_discovery("CashMovement", "m21")
 ```
 
 
-### Step 4 — Generate Scripts
+### Step 4 - Generate Scripts
 
 ```python
 generate_scripts('raw/m21_cashmovement')
@@ -525,7 +525,7 @@ generate_scripts('raw/m21_cashmovement')
 ```
 
 
-### Step 5 — Transpile HiveQL (optional)
+### Step 5 - Transpile HiveQL (optional)
 
 ```python
 # notebooks/test_basic_transformer.ipynb
@@ -556,4 +556,4 @@ python_script = render_template("pyspark/pyspark_basic.jinja", render_model)
 ```
 ---
 
-> **Note:** README này đã cover đầy đủ toàn bộ kiến trúc thực tế của project — từ discovery, hydration, code generation, đến transpilation engine và rule system. Bạn có thể attach thẳng vào CV hoặc GitHub repo mà không cần chỉnh sửa thêm gì đáng kể. Nếu muốn bổ sung badge (build status, Python version, license), tôi có thể thêm vào phần đầu.
+> **Note:** README này đã cover đầy đủ toàn bộ kiến trúc thực tế của project - từ discovery, hydration, code generation, đến transpilation engine và rule system. Bạn có thể attach thẳng vào CV hoặc GitHub repo mà không cần chỉnh sửa thêm gì đáng kể. Nếu muốn bổ sung badge (build status, Python version, license), tôi có thể thêm vào phần đầu.

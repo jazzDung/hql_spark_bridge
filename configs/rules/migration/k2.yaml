@@ -1,0 +1,25 @@
+
+source: k2
+
+default_model: 3b
+
+
+column_rules:
+    non_original_fields:
+        name: ["etl_timestamp", "start_dt", "end_dt", "part_id"]
+
+temp_table_rules:
+    backup_table:
+        temp_table_name_suffix: _bk
+        action: skip
+    history_table:
+        temp_table_name_suffix: _bf
+        action: skip
+    new_write_table:
+        temp_table_name_suffix: _nw
+        action: skip
+    unchange_table:
+        temp_table_name_suffix: _od
+        action: skip
+
+

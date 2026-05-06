@@ -1,0 +1,165 @@
+##    File Name     : com_{{ target.table_name.lower() }}
+##    File Type		: DML
+##    Purpose       : [Model 5B] Insert overwrite impacted partition(s) by delete and re-insert updated records based on date range.
+##    Logs          : 20251219		Developer1			<UserStory/Task number> Create script
+##                  : 20251220 		Developer2			<UserStory/Task number> <changes description>
+
+import os
+import sys
+sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
+
+from etl_common_function import run_etl, set_parameter, drop_partition_day
+from pyspark.sql.functions import current_timestamp, lit
+from datetime import datetime, timedelta
+
+# spark session
+spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source_name, table_name)
+batch_date = today_date
+last_date = yesterday_date
+batch_yyyymm = batch_date[:-2]
+
+
+# set parameter, call parameter by params["<parameter name>"]
+params = set_parameter(spark)
+
+
+
+## 1.0 Create temp table(s)
+## 1.1 Create temp table to store updated complete data set for impacted partitions
+spark.sql(rf"""
+DROP TABLE IF EXISTS ${com_schema}.temp_{{ target.table_name.lower() }}_updated;
+CREATE TABLE ${com_schema}.temp_{{ target.table_name.lower() }}_updated (
+    {% for col in columns if not col.is_partition %}
+    {{ ", " if not loop.first else "" }}{{ col.name }} {{ TypeResolver.get_datatype(col.data_type.upper(), dialect='hive') }}
+    {% endfor %}
+    , record_status VARCHAR(10)
+    , record_created_date TIMESTAMP
+    , record_updated_date TIMESTAMP
+    , etl_timestamp STRING COMMENT 'etl_processing_time'
+)
+stored as parquet
+tblproperties(
+   'parquet.compression'='SNAPPY'
+    ,'external.table.purge'='true'
+);
+""")
+
+
+## 1.2 Create temp table to store impacted partitions
+spark.sql(rf"""
+DROP TABLE IF EXISTS ${com_schema}.temp_{{ target.table_name.lower() }}_partitions;
+""")
+
+spark.sql(rf"""
+CREATE TABLE ${com_schema}.temp_{{ target.table_name.lower() }}_partitions (
+    {% for p_key in target.partition_keys %}
+    {{ ", " if not loop.first else "" }}{{ p_key }} STRING
+    {% endfor %}
+)
+stored as parquet
+tblproperties(
+   'parquet.compression'='SNAPPY'
+    ,'external.table.purge'='true'
+);
+""")
+
+
+## 2.0 Populate latest complete dataset to temp table - only for impacted partitions
+## 2.1 Identify impacted partition(s) from RAW and load partition value(s) to temp table
+
+spark.sql(rf"""
+INSERT INTO TABLE ${com_schema}.temp_{{ target.table_name.lower() }}_partitions
+SELECT DISTINCT
+    {% for p_key in target.partition_keys %}
+    {{ ", " if not loop.first else "" }}{{ p_key }}
+    {% endfor %}
+FROM ${raw_schema}.{{ target.table_name.lower() }}
+WHERE etl_dt = '${batch_date}';
+""")
+
+
+## 2.2 Insert existing unchanged records from COM_T to temp table
+
+spark.sql(rf"""
+INSERT INTO TABLE ${com_schema}.temp_{{ target.table_name.lower() }}_updated
+SELECT
+    {% for col in columns if not col.is_partition %}
+    {{ ", " if not loop.first else "" }}{{ col.get_select_expression('raw') }}
+    {% endfor %}
+    {% for p_key in target.partition_keys %}
+    , {{ p_key }}
+    {% endfor %}
+FROM ${com_schema}.{{ target.table_name.lower() }} com_t
+INNER JOIN ${com_schema}.temp_{{ target.table_name.lower() }}_partitions p -- to filter COM_T only for impacted partition(s)
+    {%- for p_key in target.partition_keys %}
+    {{ "AND " if not loop.first else "ON " }}com_t.{{ p_key }} = p.{{ p_key }}
+    {% endfor %}
+WHERE NOT EXISTS ( -- get unchanged records based on date column (date range) and partition column(s)
+    SELECT 1 FROM ${raw_schema}.{{ target.table_name.lower() }} r
+    WHERE
+        r.etl_dt = '${batch_date}'
+        {% for p_key in target.partition_keys %}
+        AND r.{{ p_key }} = com_t.{{ p_key }}
+        {% endfor %}
+        {% for d_key in target.date_keys %}
+        AND r.{{ d_key }} = com_t.{{ d_key }}
+        {% endfor %}
+);
+""")
+
+
+## 2.3 Insert latest records from RAW to temp table
+
+/************** this is section to write all transformation logic for data from RAW ***************/
+/************** once all transformation completed, load the cleaned records temp table ***************/
+
+##Below shows sample of simple transformation logic that can be writen in single query, and directly load to temp table
+
+spark.sql(rf"""
+INSERT INTO TABLE ${com_schema}.temp_{{ target.table_name.lower() }}_updated
+SELECT
+    {% for col in columns if not col.is_partition %}
+    {{ ", " if not loop.first else "" }}{{ col.name }}
+    {% endfor %}
+    , 'A' as record_status
+    , CURRENT_TIMESTAMP() record_created_date
+    , CURRENT_TIMESTAMP() record_updated_date
+    {% for p_key in target.partition_keys %}
+    , {{ p_key }}
+    {% endfor %}
+FROM ${raw_schema}.{{ target.table_name.lower() }}
+WHERE etl_dt = '${batch_date}'
+;
+""")
+
+
+## 3.0 Insert overwrite COM_T impacted partition(s) with updated data set from temp table
+
+spark.sql(rf"""
+INSERT OVERWRITE TABLE ${com_schema}.{{ target.table_name.lower() }} PARTITION (
+    {% for p_key in target.partition_keys %}
+    {{ ", " if not loop.first else "" }}{{ p_key }}
+    {% endfor %}
+)
+SELECT
+    {% for col in columns if not col.is_partition %}
+    {{ ", " if not loop.first else "" }}{{ col.name }}
+    {% endfor %}
+    , record_status
+    , record_created_date
+    , record_updated_date
+    , '${batch_date}' as etl_dt
+    , '${batch_timestamp}' as etl_timestamp
+    {% for p_key in target.partition_keys %}
+    , {{ p_key }}
+    {% endfor %}
+FROM ${com_schema}.temp_{{ target.table_name.lower() }}_updated;
+""")
+
+
+## Collect table statistics
+spark.sql(rf"""
+ANALYZE TABLE ${com_schema}.{{ target.table_name.lower() }} COMPUTE STATISTICS;
+""")
+
+

@@ -1,0 +1,68 @@
+pipeline_id: com_r_k2_cif_alias
+layer: com
+model_type: 3
+source_name: k2
+target_table_name: t_k2_cif_alias
+columns:
+- name: cifaliasid
+  type: STRING
+  remark: null
+- name: cifid
+  type: STRING
+  remark: null
+- name: aliastype
+  type: STRING
+  remark: null
+- name: aliasvalue
+  type: STRING
+  remark: null
+- name: effectivefrom
+  type: TIMESTAMP
+  remark: null
+- name: effectiveto
+  type: TIMESTAMP
+  remark: null
+- name: updateuser
+  type: BIGINT
+  remark: null
+- name: updatets
+  type: TIMESTAMP
+  remark: null
+- name: etl_timestamp
+  type: STRING
+  remark: non_original_field
+- name: start_dt
+  type: STRING
+  remark: non_original_field
+- name: end_dt
+  type: STRING
+  remark: non_original_field
+- name: id_mark
+  type: STRING
+  remark: null
+key: cifaliasid
+key_detection_strategy: auto
+pre_processing:
+- name: r_k2_cif_alias_bk
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_r_k2_cif_alias/processing_steps/cif_alias/r_k2_cif_alias_bk.sql
+  action: skip
+- name: r_k2_cif_alias_bf
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_r_k2_cif_alias/processing_steps/cif_alias/r_k2_cif_alias_bf.sql
+  action: skip
+- name: r_k2_cif_alias_nw
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_r_k2_cif_alias/processing_steps/cif_alias/r_k2_cif_alias_nw.sql
+  action: skip
+- name: r_k2_cif_alias_od
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_r_k2_cif_alias/processing_steps/cif_alias/r_k2_cif_alias_od.sql
+  action: skip
+delta_columns:
+- cifid
+- aliastype
+- aliasvalue
+- effectivefrom
+- effectiveto
+- updateuser
+- updatets
+- id_mark
+applied_source_rule: k2
+ddl_source: C:/Users/dungp/projects/hql_spark_bridge/docs/datalake_old/ddl/com_r_k2_cif_alias.sql

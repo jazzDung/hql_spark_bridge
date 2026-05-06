@@ -1,0 +1,20 @@
+pipeline_id: "com_t_mhbos_m_client"
+layer: "com"
+model_type: "scd1" # Tự nhận diện nhờ lệnh INSERT OVERWRITE + NOT EXISTS ở cuối[cite: 5, 6]
+
+# Tự động liệt kê các bảng tạm đã bóc được
+pre_processing:
+  - name: "com_temp_t_mhbos_m_client_all"
+    file: "docs/reference/logic/com_temp_t_mhbos_m_client_all.sql"
+  - name: "com_temp_t_mhbos_m_client_primary_identification_no"
+    file: "docs/reference/logic/com_temp_t_mhbos_m_client_primary_identification_no.sql"
+  - name: "com_temp_t_mhbos_m_client_primary_identification_type"
+    file: "docs/reference/logic/com_temp_t_mhbos_m_client_primary_identification_type.sql"
+  - name: "com_temp_t_mhbos_m_client_secondary_identification_no"
+    file: "docs/reference/logic/com_temp_t_mhbos_m_client_secondary_identification_no.sql"
+  - name: "com_temp_t_mhbos_m_client_secondary_identification_type"
+    file: "docs/reference/logic/com_temp_t_mhbos_m_client_secondary_identification_type.sql"
+
+target:
+  table_name: "t_mhbos_m_client"
+  transformation_model: "3" # Map tự động vào Model 3

@@ -1,0 +1,158 @@
+"1":
+  - name: dl_record_status
+    type: VARCHAR(10)
+    comment: A=Active
+  - name: dl_record_created_date
+    type: TIMESTAMP
+    comment: First insert time
+  - name: dl_record_updated_date
+    type: TIMESTAMP
+    comment: Last update time
+  - name: hash_value
+    type: STRING
+    comment: MD5 of business columns
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+
+"2a":
+  - name: dl_record_status
+    type: VARCHAR(10)
+    comment: A=Active
+  - name: dl_record_created_date
+    type: TIMESTAMP
+    comment: First insert time
+  - name: dl_record_updated_date
+    type: TIMESTAMP
+    comment: Last update time
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+
+"2b":
+  - name: dl_record_status
+    type: VARCHAR(10)
+    comment: A=Active
+  - name: dl_record_created_date
+    type: TIMESTAMP
+    comment: First insert time
+  - name: dl_record_updated_date
+    type: TIMESTAMP
+    comment: Last update time
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+
+"3a":
+  - name: dl_record_status
+    type: VARCHAR(10)
+    comment: A=Active
+  - name: dl_record_created_date
+    type: TIMESTAMP
+    comment: First insert time
+  - name: dl_record_updated_date
+    type: TIMESTAMP
+    comment: Last update time
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+
+"3b":
+  - name: dl_record_status
+    type: VARCHAR(10)
+    comment: A=Active
+  - name: dl_record_created_date
+    type: TIMESTAMP
+    comment: First insert time
+  - name: dl_record_updated_date
+    type: TIMESTAMP
+    comment: Last update time
+  - name: hash_value
+    type: STRING
+    comment: MD5 of business columns
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+
+"4":
+  - name: dl_record_status
+    type: VARCHAR(10)
+    comment: A=Active
+  - name: dl_record_created_date
+    type: TIMESTAMP
+    comment: First insert time
+  - name: dl_record_updated_date
+    type: TIMESTAMP
+    comment: Last update time
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+
+"5a":
+  - name: dl_record_status
+    type: VARCHAR(10)
+    comment: A=Active
+  - name: dl_record_created_date
+    type: TIMESTAMP
+    comment: First insert time
+  - name: dl_record_updated_date
+    type: TIMESTAMP
+    comment: Last update time
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+
+"5b":
+  - name: dl_record_status
+    type: VARCHAR(10)
+    comment: A=Active
+  - name: dl_record_created_date
+    type: TIMESTAMP
+    comment: First insert time
+  - name: dl_record_updated_date
+    type: TIMESTAMP
+    comment: Last update time
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+
+"6":
+  - name: dl_record_status
+    type: VARCHAR(10)
+    comment: A=Active
+  - name: dl_record_created_date
+    type: TIMESTAMP
+    comment: First insert time
+  - name: dl_record_updated_date
+    type: TIMESTAMP
+    comment: Last update time
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp

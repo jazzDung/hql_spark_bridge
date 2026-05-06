@@ -4,12 +4,13 @@ import yaml
 import os
 from pyspark.sql.types import *
 from pathlib import Path
+from src.paths import *
 
 class DDLParser:
-    def __init__(self, config_path: Path):
+    def __init__(self, config_path: Path = None):
         if config_path is None:
             # src/core/ddl_parser.py -> src/core -> src -> project_root
-            project_root = Path(__file__).resolve().parents[2]
+            project_root = PROJECT_ROOT
             config_path = project_root / "configs" / "rules" / "data_type.yaml"
 
         self.config_path = config_path
@@ -55,11 +56,19 @@ class DDLParser:
         try:
             # Parse SQL statement into AST
             # sqlglot automatically handles comments and non-standard formatting
-            parsed = sqlglot.parse(ddl_content, read="hive")
+            parsed_nodes = sqlglot.parse(ddl_content, read="hive")
+
+            # Tìm node CREATE đầu tiên trong list
+            create_node = next((node for node in parsed_nodes if isinstance(node, exp.Create)), None)
+
+            if not create_node:
+                raise ValueError("Không tìm thấy lệnh CREATE trong nội dung DDL")
 
             # 1. Extract table name (Database.Table)
-            table_parts = parsed.this
-            db = table_parts.args.get('db', exp.Identifier(this="default", quoted=False)).this
+            table_parts = create_node.this
+
+            db_node = table_parts.args.get('db')
+            db = db_node.this if db_node else "default"
             table = table_parts.this.this
             full_table_name = f"{db}.{table}"
 
@@ -67,11 +76,13 @@ class DDLParser:
             schema_fields = []
 
             # schema.this returns a list of ColumnDef objects
-            for column_def in parsed.args['schema'].expressions:
-                col_name = column_def.this.this  # Column name
-                spark_type = self._map_to_spark_type(column_def)
+            schema_node = create_node.this.expressions
+            if schema_node:
+                for column_def in schema_node:
+                    col_name = column_def.this.this  # Column name
+                    spark_type = self._map_to_spark_type(column_def)
 
-                schema_fields.append(StructField(col_name, spark_type, True))
+                    schema_fields.append(StructField(col_name, spark_type, True))
 
             return full_table_name, StructType(schema_fields)
 
