@@ -34,9 +34,9 @@ CREATE TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated (
     {% for col in original_columns %}
     {{ ", " if not loop.first else "" }}{{ col.name }} {{ col.type }}
     {% endfor %}
-    ,record_status       VARCHAR(10)
-    ,record_created_date TIMESTAMP
-    ,record_updated_date TIMESTAMP
+    ,dl_record_status       VARCHAR(10)
+    ,dl_record_created_date TIMESTAMP
+    ,dl_record_updated_date TIMESTAMP
 )
 stored as parquet
 tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
@@ -49,9 +49,9 @@ SELECT
     {% for col in original_columns %}
     {{ ", " if not loop.first else "" }}{{ col.name }}
     {% endfor %}
-    ,'A' AS record_status
-    ,record_created_date
-    ,record_updated_date
+    ,'A' AS dl_record_status
+    ,dl_record_created_date
+    ,dl_record_updated_date
 FROM {params["com_schema"]}.{{ target_table_name }} com_t
 WHERE NOT EXISTS (
     SELECT 1 FROM {params["raw_schema"]}.{{ source_name }}_{{ base_table }} r
@@ -67,10 +67,10 @@ SELECT
     {% for col in original_columns %}
     {{ ", " if not loop.first else "" }}r.{{ col.name }}
     {% endfor %}
-    ,'A' AS record_status
-    ,CASE WHEN com_t.{{ key }} IS NOT NULL THEN com_t.record_created_date
-          ELSE current_timestamp() END AS record_created_date
-    ,current_timestamp() AS record_updated_date
+    ,'A' AS dl_record_status
+    ,CASE WHEN com_t.{{ key }} IS NOT NULL THEN com_t.dl_record_created_date
+          ELSE current_timestamp() END AS dl_record_created_date
+    ,current_timestamp() AS dl_record_updated_date
 FROM {params["raw_schema"]}.{{ source_name }}_{{ base_table }} r
 LEFT JOIN {params["com_schema"]}.{{ target_table_name }} com_t
     ON r.{{ key }} = com_t.{{ key }}
@@ -84,9 +84,9 @@ SELECT
     {% for col in original_columns %}
     {{ ", " if not loop.first else "" }}{{ col.name }}
     {% endfor %}
-    ,record_status
-    ,record_created_date
-    ,record_updated_date
+    ,dl_record_status
+    ,dl_record_created_date
+    ,dl_record_updated_date
     ,'{batch_date}'       AS etl_dt
     ,current_timestamp()  AS etl_timestamp
 FROM {params["com_schema"]}.temp_{{ target_table_name }}_updated

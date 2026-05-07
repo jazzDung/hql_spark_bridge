@@ -1,0 +1,21 @@
+-- Purpose:    DDL/COM STATUS
+-- Generated:  {{ generated_at }}
+-- Source:     {{ pipeline_id }}
+
+DROP TABLE IF EXISTS {{ com_schema }}.{{ target_table_name }};
+
+CREATE TABLE {{ com_schema }}.{{ target_table_name }}(
+    {% for col in columns if col.remark != "non_original_field" %}
+    {{ ", " if not loop.first else "" }}{{ col.name }} {{ col.type }} comment ''
+    {% endfor %}
+    -- Standard fields (Model {{ model_type }})
+    {% for field in extra_fields %}
+    , {{ field.name }} {{ field.type }} comment '{{ field.comment }}'
+    {% endfor %}
+)
+comment ''
+stored as parquet
+tblproperties(
+    'parquet.compression'='SNAPPY'
+    ,'external.table.purge'='true'
+);

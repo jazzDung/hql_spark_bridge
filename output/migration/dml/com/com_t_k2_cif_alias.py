@@ -32,9 +32,9 @@ CREATE TABLE {params["com_schema"]}.temp_t_k2_cif_alias_updated (
     updateuser BIGINT,
     updatets TIMESTAMP,
     id_mark STRING
-    ,record_status       VARCHAR(10)
-    ,record_created_date TIMESTAMP
-    ,record_updated_date TIMESTAMP
+    ,dl_record_status       VARCHAR(10)
+    ,dl_record_created_date TIMESTAMP
+    ,dl_record_updated_date TIMESTAMP
 )
 stored as parquet
 tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
@@ -53,9 +53,9 @@ SELECT
     updateuser,
     updatets,
     id_mark
-    ,'A' AS record_status
-    ,record_created_date
-    ,record_updated_date
+    ,'A' AS dl_record_status
+    ,dl_record_created_date
+    ,dl_record_updated_date
 FROM {params["com_schema"]}.t_k2_cif_alias com
 WHERE NOT EXISTS (
     SELECT 1 FROM {params["raw_schema"]}.k2_cif_alias r
@@ -77,10 +77,10 @@ SELECT
     r.updateuser,
     r.updatets,
     r.id_mark
-    ,'A' AS record_status
-    ,CASE WHEN com.cifaliasid IS NOT NULL THEN com.record_created_date
-          ELSE current_timestamp() END AS record_created_date
-    ,current_timestamp() AS record_updated_date
+    ,'A' AS dl_record_status
+    ,CASE WHEN com.cifaliasid IS NOT NULL THEN com.dl_record_created_date
+          ELSE current_timestamp() END AS dl_record_created_date
+    ,current_timestamp() AS dl_record_updated_date
 FROM {params["raw_schema"]}.k2_cif_alias r
 LEFT JOIN {params["com_schema"]}.t_k2_cif_alias com
     ON r.cifaliasid = com.cifaliasid
@@ -111,9 +111,9 @@ SELECT
     updateuser,
     updatets,
     id_mark
-    ,record_status
-    ,record_created_date
-    ,record_updated_date
+    ,dl_record_status
+    ,dl_record_created_date
+    ,dl_record_updated_date
     ,md5(concat_ws('|'
         , nvl(cast(cifid AS STRING), '')
         , nvl(cast(aliastype AS STRING), '')

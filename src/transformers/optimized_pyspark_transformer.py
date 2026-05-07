@@ -62,6 +62,7 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
                 continue
 
             if is_rule_triggered(rule, node, context):
+                print(f"Rule {name} triggered for {type(node)}")
                 action_type = rule.get("action", {}).get("type")
                 handler = action_handlers.get(action_type)
                 
@@ -86,6 +87,21 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
             if optimization_result:
                 if optimization_result.get("type") == "skip":
                     continue
+
+                if optimization_result.get("type") == "generate_jdbc_read":
+                    temp_table_create_node = optimization_result.get("temp_table_create_node")
+                    # print(f"temp_table_create_node: {temp_table_create_node}")
+                    if temp_table_create_node:
+                        temp_context = SqlConversionContext(
+                            original_file_path=context.original_file_path,
+                            raw_sql_content=node.sql(),
+                            source_name=context.source_name,
+                            table_name=context.table_name,
+                            ast_nodes=[temp_table_create_node]
+                        )
+                        fallback_model = self.fallback_transformer.transform(temp_context)
+                        optimized_blocks.extend(q for q in fallback_model.transformed_queries)
+
                 optimized_blocks.append(optimization_result)
             else:
                 temp_context = SqlConversionContext(

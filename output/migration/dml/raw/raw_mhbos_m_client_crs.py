@@ -1,7 +1,14 @@
-{% if header_comments %}
-{{ header_comments }}
+"""
+Purpose:    RAW-DML,Load the data file into the target table's same-day partition
+Author:     zjj
+Usage:      python $ETL_HOME/script/main.py yyyymmdd raw_mhbos_m_client_crs
+CreateDate: 20230809
+FileType:   DML
+Logs:
+1.for hive 3.x on cdp 7.1.5
+0.1 set parameter
+"""
 
-{% endif %}
 import os
 import sys
 sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
@@ -10,8 +17,8 @@ from etl_common_function import run_etl, set_parameter, drop_partition_day
 from pyspark.sql.functions import current_timestamp, lit
 from datetime import datetime
 
-source_name = "{{ source_name }}"
-table_name = "{{ table_name }}"
+source_name = "mhbos"
+table_name = "m_client_crs"
 hive_table_name = source_name + "_" + table_name
 partition_col = "etl_dt"
 
@@ -29,9 +36,30 @@ params = set_parameter(spark)
 
 
 
-{% for block in optimized_blocks %}
-{% if block.type == 'generate_jdbc_read' %}
-# -- JDBC Read Optimization cho bảng {{ block.source_db_table }} --
+spark.sql(rf"""
+/* 1.1 drop external table partition */
+DROP TABLE IF EXISTS {params["raw_schema"]}.mhbos_m_client_crs_et
+""")
+
+spark.sql(rf"""
+CREATE TABLE IF NOT EXISTS {params["raw_schema"]}.mhbos_m_client_crs_et (
+  client_no STRING, /* */
+  controlling_name STRING, /* */
+  country_tax_residence STRING, /* */
+  tax_identification_no STRING, /* */
+  reason STRING, /* */
+  reason_remarks STRING, /* */
+  entity_type STRING, /* */
+  crs_tax_type STRING /* */
+)
+STORED AS PARQUET
+TBLPROPERTIES (
+  'PARQUET.COMPRESSION'='SNAPPY',
+  'EXTERNAL.TABLE.PURGE'='TRUE'
+)
+""")
+
+# -- JDBC Read Optimization cho bảng dbo.m_client_crs --
 jdbc_url = (
     f"jdbc:sqlserver://{os.environ['MSSQL_HOST']}:{os.environ.get('MSSQL_PORT', '1433')};"
     f"databaseName={os.environ['MSSQL_DB']};encrypt=true;trustServerCertificate=true"
@@ -40,7 +68,16 @@ user = os.environ["MSSQL_USER"]
 password = os.environ["MSSQL_PASSWORD"]
 
 query = """
-{{ block.query }}
+SELECT client_no
+,controlling_name
+,country_tax_residence
+,tax_identification_no
+,reason
+,reason_remarks
+,entity_type
+,crs_tax_type
+FROM dbo.m_client_crs (nolock) 
+WHERE 1=1
 """
 
 # Read from MSSQL
@@ -61,7 +98,7 @@ df = (
 
 
 # Write directly to Hive
-et_table = f"{params['raw_schema']}.{{ source_name }}_{{ table_name }}_et"
+et_table = f"{params['raw_schema']}.mhbos_m_client_crs_et"
 target_cols = spark.table(et_table).columns
 df = df.select(*target_cols)
 
@@ -73,17 +110,23 @@ df = df.select(*target_cols)
 
 
 # add queries here
-{% elif block.type == 'query' %}
-spark.sql(rf"""
-{{ block.content | comment_formatting }}
-""")
-{% elif block.type == 'comment' %}
-"""
-{{ block.content | comment_formatting }}
-"""
-{% endif %}
 
-{% endfor %}
+spark.sql(rf"""
+/* 2.2 insert data to target table */
+INSERT INTO {params["raw_schema"]}.mhbos_m_client_crs PARTITION(etl_dt = '{batch_date}')
+SELECT
+  client_no, /* */
+  controlling_name, /* */
+  country_tax_residence, /* */
+  tax_identification_no, /* */
+  reason, /* */
+  reason_remarks, /* */
+  entity_type, /* */
+  crs_tax_type, /* */
+  CURRENT_TIMESTAMP() AS etl_timestamp /* ETL_processing time */
+FROM {params["raw_schema"]}.mhbos_m_client_crs_et
+""")
+
 
 # Stop Spark when done
 spark.stop()

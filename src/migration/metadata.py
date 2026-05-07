@@ -5,6 +5,7 @@ from typing import Optional
 import yaml
 import re
 
+from paths import DATALAKE_SCRIPT_DIR
 from src.migration.decomposer import DecomposedScript
 from src.core.ddl_parser import DDLParser
 
@@ -29,7 +30,8 @@ def resolve_ddl_path(dml_path: Path) -> Optional[Path]:
     candidates = [
         # dml_path.parent / dml_path.name,              # same file (multi-statement)
         # dml_path.parent / "ddl" / dml_path.name,      # sibling dir
-        dml_path.parent.parent / "ddl" / dml_path.name, # parent's sibling dir
+        # dml_path.parent.parent / "ddl" / dml_path.name, # parent's sibling dir
+        DATALAKE_SCRIPT_DIR /"ddl" / "com"  / dml_path.name, # parent's sibling dir
     ]
 
     # print(candidates)

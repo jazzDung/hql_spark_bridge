@@ -9,6 +9,7 @@ enabled: true
 parameters:
   source: mhbos
 
+
 rules:
   drop_partition:
     enabled: true
@@ -17,22 +18,20 @@ rules:
     action:
       type: "skip"
 
-  drop_external_table:
-    enabled: true
-    trigger:
-      node_type: "Drop"
-      table_name_suffix:
-        - "_et"
-    action:
-      type: "skip"
+#  drop_external_table:
+#    enabled: true
+#    trigger:
+#      node_type: "Drop"
+#      table_name_suffix:
+#        - "_et"
+#    action:
+#      type: "skip"
 
   create_external_table:
     enabled: true
     # Condition to trigger the rule
     trigger:
       node_type: "Create"
-      table_name_suffix:
-        - "_et"
       table_properties:
         - "STORED AS TEXTFILE"
 
@@ -42,7 +41,6 @@ rules:
 
       # Parameters for the generate_jdbc_read action
       parameters:
-        source: ext
         # Name of the table in the source database
         schema: dbo
         port: 1433
@@ -54,9 +52,9 @@ rules:
         default_query_template: "SELECT\n    {columns}\nFROM {source_db_table} (NOLOCK)\nWHERE 1 = 1"
 
 
-  insert_into_raw_table:
-    enabled: true
-    trigger:
-      node_type: "Insert"
-    action:
-      type: "skip"
+#  insert_into_raw_table:
+#    enabled: true
+#    trigger:
+#      node_type: "Insert"
+#    action:
+#      type: "skip"

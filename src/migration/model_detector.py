@@ -15,14 +15,16 @@ MODEL_DETECTION_RULES = [
         "model": "3",
         "description": "Model 3 — Delta-detect via hash/updated date, no partition",
         "required_patterns": [
-            [
-                r"UNION\s+ALL",
-                r"NOT\s+EXISTS\s*\(\s*SELECT\s+1\s+FROM\s+today_accounts",
-            ]
-            , [
-                r"INSERT\s+INTO\s+TABLE.*?WHERE\s+NOT\s+EXISTS",
-                r"record_updated_date|hash_value|updatets",
-            ]
+            # [
+            #     r"UNION\s+ALL",
+            #     r"NOT\s+EXISTS\s*\(\s*SELECT\s+1\s+FROM\s+today_accounts",
+            # ]
+            # , [
+            #     r"INSERT\s+INTO\s+TABLE.*?WHERE\s+NOT\s+EXISTS",
+            #     r"record_updated_date|hash_value|updatets",
+            # ]
+            r"INSERT\s+INTO\s+TABLE.*?WHERE\s+NOT\s+EXISTS",
+            r"record_updated_date|hash_value|updatets",
         ],
         "excluded_patterns": []
     },

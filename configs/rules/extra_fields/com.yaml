@@ -3,10 +3,10 @@
     type: VARCHAR(10)
     comment: A=Active
   - name: dl_record_created_date
-    type: TIMESTAMP
+    type: DATE
     comment: First insert time
   - name: dl_record_updated_date
-    type: TIMESTAMP
+    type: DATE
     comment: Last update time
   - name: hash_value
     type: STRING
@@ -23,10 +23,10 @@
     type: VARCHAR(10)
     comment: A=Active
   - name: dl_record_created_date
-    type: TIMESTAMP
+    type: DATE
     comment: First insert time
   - name: dl_record_updated_date
-    type: TIMESTAMP
+    type: DATE
     comment: Last update time
   - name: etl_dt
     type: STRING
@@ -40,10 +40,10 @@
     type: VARCHAR(10)
     comment: A=Active
   - name: dl_record_created_date
-    type: TIMESTAMP
+    type: DATE
     comment: First insert time
   - name: dl_record_updated_date
-    type: TIMESTAMP
+    type: DATE
     comment: Last update time
   - name: etl_dt
     type: STRING
@@ -57,10 +57,10 @@
     type: VARCHAR(10)
     comment: A=Active
   - name: dl_record_created_date
-    type: TIMESTAMP
+    type: DATE
     comment: First insert time
   - name: dl_record_updated_date
-    type: TIMESTAMP
+    type: DATE
     comment: Last update time
   - name: etl_dt
     type: STRING
@@ -74,10 +74,10 @@
     type: VARCHAR(10)
     comment: A=Active
   - name: dl_record_created_date
-    type: TIMESTAMP
+    type: DATE
     comment: First insert time
   - name: dl_record_updated_date
-    type: TIMESTAMP
+    type: DATE
     comment: Last update time
   - name: hash_value
     type: STRING
@@ -94,10 +94,10 @@
     type: VARCHAR(10)
     comment: A=Active
   - name: dl_record_created_date
-    type: TIMESTAMP
+    type: DATE
     comment: First insert time
   - name: dl_record_updated_date
-    type: TIMESTAMP
+    type: DATE
     comment: Last update time
   - name: etl_dt
     type: STRING
@@ -111,10 +111,10 @@
     type: VARCHAR(10)
     comment: A=Active
   - name: dl_record_created_date
-    type: TIMESTAMP
+    type: DATE
     comment: First insert time
   - name: dl_record_updated_date
-    type: TIMESTAMP
+    type: DATE
     comment: Last update time
   - name: etl_dt
     type: STRING
@@ -128,10 +128,10 @@
     type: VARCHAR(10)
     comment: A=Active
   - name: dl_record_created_date
-    type: TIMESTAMP
+    type: DATE
     comment: First insert time
   - name: dl_record_updated_date
-    type: TIMESTAMP
+    type: DATE
     comment: Last update time
   - name: etl_dt
     type: STRING
@@ -145,10 +145,10 @@
     type: VARCHAR(10)
     comment: A=Active
   - name: dl_record_created_date
-    type: TIMESTAMP
+    type: DATE
     comment: First insert time
   - name: dl_record_updated_date
-    type: TIMESTAMP
+    type: DATE
     comment: Last update time
   - name: etl_dt
     type: STRING

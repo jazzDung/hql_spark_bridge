@@ -54,6 +54,43 @@ def handle_skip_action(
     return {"type": "skip"}
 
 
+def normalize_hive_create_properties(create_expr: exp.Create) -> exp.Create:
+    """
+    Remove all existing CREATE properties and replace them with:
+
+    STORED AS PARQUET
+    TBLPROPERTIES(
+        'PARQUET.COMPRESSION'='SNAPPY',
+        'EXTERNAL.TABLE.PURGE'='TRUE'
+    )
+    """
+
+    new_properties = exp.Properties(
+        expressions=[
+            # STORED AS PARQUET
+            exp.FileFormatProperty(
+                this=exp.Var(this="PARQUET")
+            ),
+
+            # TBLPROPERTIES ('PARQUET.COMPRESSION'='SNAPPY')
+            exp.Property(
+                this=exp.Literal.string("PARQUET.COMPRESSION"),
+                value=exp.Literal.string("SNAPPY"),
+            ),
+
+            # TBLPROPERTIES ('EXTERNAL.TABLE.PURGE'='TRUE')
+            exp.Property(
+                this=exp.Literal.string("EXTERNAL.TABLE.PURGE"),
+                value=exp.Literal.string("TRUE"),
+            ),
+        ]
+    )
+
+    create_expr.set("properties", new_properties)
+
+    return create_expr
+
+
 def handle_generate_jdbc_read_action(
     rule: dict,
     node: exp.Create,
@@ -96,10 +133,11 @@ def handle_generate_jdbc_read_action(
             logging.warning("No default query template provided, using empty query.")
 
     return {
-        "type": "jdbc_read",
+        "type": "generate_jdbc_read",
         "jdbc_url_variable": params.get("jdbc_url_variable"),
         "query": query,
-        "source_db_table": f"{params.get('schema', '')}.{context.table_name}"
+        "source_db_table": f"{params.get('schema', '')}.{context.table_name}",
+        "temp_table_create_node": normalize_hive_create_properties(node)
     }
 
 
@@ -159,6 +197,6 @@ def is_rule_triggered(rule: dict, node: exp.Expression, context: SqlConversionCo
             except:
                 condition_match_result.append(False)
 
-    print(f"condition_match_result for {type(node)}: {condition_match_result}, {all(condition_match_result)}")
+    # print(f"condition_match_result for {type(node)}: {condition_match_result}, {all(condition_match_result)}")
 
     return all(condition_match_result)
