@@ -2,6 +2,7 @@ import yaml
 from pathlib import Path
 from sqlglot import exp
 
+from core.ext_parser import ExtParser
 from paths import *
 from src.context.sql_conversion_context import SqlConversionContext, JinjaRenderModel
 from src.transformers.base_transformer import BaseSqlTransformer
@@ -44,7 +45,8 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
 
         rule_file_path = self.config_root / "rules" / "optimizations" / f"{context.source_name}.yaml"
         if not rule_file_path.exists():
-            return None
+            print(f"Warning: No rule file found for {context.source_name}. Using default rule.")
+            rule_file_path = self.config_root / "rules" / "optimizations" / "default.yaml"
 
         with open(rule_file_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
@@ -81,7 +83,7 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
         formatted_header_comments = format_header_comments(context.header_comments)
 
         for node in context.ast_nodes:
-            print(f"Optimize for {type(node)}")
+            # print(f"Optimize for {type(node)}")
             optimization_result = self._find_and_apply_optimization_rule(node, context)
             
             if optimization_result:
@@ -102,17 +104,18 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
                         fallback_model = self.fallback_transformer.transform(temp_context)
                         optimized_blocks.extend(q for q in fallback_model.transformed_queries)
 
-                optimized_blocks.append(optimization_result)
-            else:
-                temp_context = SqlConversionContext(
-                    original_file_path=context.original_file_path,
-                    raw_sql_content=node.sql(),
-                    source_name=context.source_name,
-                    table_name=context.table_name,
-                    ast_nodes=[node]
-                )
-                fallback_model = self.fallback_transformer.transform(temp_context)
-                optimized_blocks.extend(q for q in fallback_model.transformed_queries)
+                    optimized_blocks.append(optimization_result)
+                    continue
+
+            temp_context = SqlConversionContext(
+                original_file_path=context.original_file_path,
+                raw_sql_content=node.sql(),
+                source_name=context.source_name,
+                table_name=context.table_name,
+                ast_nodes=[node]
+            )
+            fallback_model = self.fallback_transformer.transform(temp_context)
+            optimized_blocks.extend(q for q in fallback_model.transformed_queries)
 
         render_model = JinjaRenderModel(
             source_name=context.source_name,

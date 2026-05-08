@@ -15,6 +15,7 @@ CONFIGS_DIR = PROJECT_ROOT / "configs"
 # Define specific configuration file paths for easy access
 DIRECTORY_CONFIG_PATH = CONFIGS_DIR / "directory" / "directory.yaml"
 VARIABLE_CONFIG_PATH = CONFIGS_DIR / "rules" / "variable.yaml"
+EXT_VARIABLE_CONFIG_PATH = CONFIGS_DIR / "rules" / "ext_variable.yaml"
 
 # RULES_GENERAL_CONFIG = CONFIGS_DIR / "rules" / "optimizations" / "general.yaml"
 
@@ -24,7 +25,7 @@ with open(DIRECTORY_CONFIG_PATH, 'r', encoding='utf-8') as f:
     directory_paths = yaml.safe_load(f)
 
 DATALAKE_SCRIPT_DIR = Path(directory_paths['datalake_root'])
-
+EXT_CONFIG_PATH = DATALAKE_SCRIPT_DIR / "etc" / "ext_config.conf"
 
 # --- Template Paths ---
 # Define the path to the Jinja templates directory

@@ -2,6 +2,9 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 import sqlglot.expressions as exp
 
+from context.ext_context import ExtContext
+
+
 @dataclass
 class SqlConversionContext:
     """
@@ -24,6 +27,9 @@ class SqlConversionContext:
     
     # Safe container for specific configurations loaded from YAML (if needed)
     config_rules: Dict[str, Any] = field(default_factory=dict)
+
+    # Additional ext config if it's raw file
+    ext_context: ExtContext = None
 
 @dataclass
 class JinjaRenderModel:

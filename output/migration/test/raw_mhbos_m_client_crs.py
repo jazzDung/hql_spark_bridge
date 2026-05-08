@@ -67,7 +67,7 @@ jdbc_url = (
 user = os.environ["MSSQL_USER"]
 password = os.environ["MSSQL_PASSWORD"]
 
-query = rf"""
+query = """
 SELECT client_no
 ,controlling_name
 ,country_tax_residence

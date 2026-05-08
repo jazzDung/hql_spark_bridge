@@ -50,6 +50,8 @@ last_date:
   prod: "DATE_FORMAT(DATE_SUB(CURRENT_DATE(), 1), 'yyyyMMdd')"
 batch_yyyymm:
   pyspark: batch_yyyymm
+itl_data_path:
+  pyspark: itl_data_path
 
 
 # 2. File Format Mapping: Maps Hive file formats to Spark equivalents

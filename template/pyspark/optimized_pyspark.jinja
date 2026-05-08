@@ -39,7 +39,7 @@ jdbc_url = (
 user = os.environ["MSSQL_USER"]
 password = os.environ["MSSQL_PASSWORD"]
 
-query = """
+query = rf"""
 {{ block.query }}
 """
 

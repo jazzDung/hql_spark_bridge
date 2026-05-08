@@ -115,8 +115,9 @@ def handle_generate_jdbc_read_action(
         if not ext_file_path.exists():
             raise FileNotFoundError(f"External XML file not found at: {ext_file_path}")
 
-        parsed_ext = ExtParser.parse_ext(ext_file_path)
-        query = parsed_ext.query
+        parser = ExtParser()
+        parsed_ext = parser.parse_ext(ext_file_path)
+        query = parsed_ext.ext_query_to_pyspark()
 
     except Exception as e:
         print(f"Error processing external XML file: {e}")
@@ -195,6 +196,12 @@ def is_rule_triggered(rule: dict, node: exp.Expression, context: SqlConversionCo
                 else:
                     condition_match_result.append(False)
             except:
+                condition_match_result.append(False)
+
+        if condition == "read_from_text_file":
+            if context.ext_context.read_from_text_file is trigger["read_from_text_file"]:
+                condition_match_result.append(True)
+            else:
                 condition_match_result.append(False)
 
     # print(f"condition_match_result for {type(node)}: {condition_match_result}, {all(condition_match_result)}")

@@ -42,7 +42,7 @@ DROP TABLE IF EXISTS {params["raw_schema"]}.LMSKIBB2_TBL_ACCOUNT_ET
 """)
 
 spark.sql(rf"""
-CREATE EXTERNAL TABLE IF NOT EXISTS {params["raw_schema"]}.LMSKIBB2_TBL_ACCOUNT_ET (
+CREATE TABLE IF NOT EXISTS {params["raw_schema"]}.LMSKIBB2_TBL_ACCOUNT_ET (
   RECORD_ID INT,
   FUNCTION_ID INT,
   ACCOUNT_ID INT,
@@ -80,6 +80,11 @@ CREATE EXTERNAL TABLE IF NOT EXISTS {params["raw_schema"]}.LMSKIBB2_TBL_ACCOUNT_
   SYSTEM_UPDATED_DATETIME TIMESTAMP,
   ENTITY_ID INT
 )
+STORED AS PARQUET
+TBLPROPERTIES (
+  'PARQUET.COMPRESSION'='SNAPPY',
+  'EXTERNAL.TABLE.PURGE'='TRUE'
+)
 """)
 
 # -- JDBC Read Optimization cho bảng dbo.tbl_account --
@@ -90,7 +95,7 @@ jdbc_url = (
 user = os.environ["MSSQL_USER"]
 password = os.environ["MSSQL_PASSWORD"]
 
-query = """
+query = rf"""
 SELECT 
 Record_Id
 , Function_Id
@@ -128,9 +133,9 @@ Record_Id
 , System_Remarks
 , System_Updated_Datetime
 , Entity_Id
-FROM ${db_schema}.tbl_Account (nolock)
-where Last_Action_Datetime >= CONVERT(datetime, '${start_timestamp}', 126)
-or System_Updated_Datetime >= CONVERT(datetime, '${start_timestamp}', 126)
+FROM dbo.tbl_Account (nolock)
+where Last_Action_Datetime >= CONVERT(datetime, '{ext_start_time}', 126)
+or System_Updated_Datetime >= CONVERT(datetime, '{ext_start_time}', 126)
 ;
 """
 
@@ -147,19 +152,19 @@ df = (
     .load()
 )
 
-df = df.withColumn("etl_timestamp", current_timestamp().cast("string"))
-df = df.withColumn("etl_dt", lit(batch_date))
+# df = df.withColumn("etl_timestamp", current_timestamp().cast("string"))
+# df = df.withColumn("etl_dt", lit(batch_date))
 
 
 # Write directly to Hive
-target_table = f"{params['raw_schema']}.{hive_table_name}_et"
-target_cols = spark.table(target_table).columns
+et_table = f"{params['raw_schema']}.lmskibb2_tbl_account_et"
+target_cols = spark.table(et_table).columns
 df = df.select(*target_cols)
 
 (
     df.write
     .mode("overwrite")
-    .insertInto(f"{params['raw_schema']}.{hive_table_name}")
+    .insertInto(et_table)
 )
 
 
