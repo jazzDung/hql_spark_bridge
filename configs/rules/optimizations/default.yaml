@@ -7,7 +7,7 @@ enabled: true
 
 # Parameters for the generate_jdbc_read action
 parameters:
-  source: mhbos
+  source: default
 
 
 rules:
@@ -26,6 +26,20 @@ rules:
 #        - "_et"
 #    action:
 #      type: "skip"
+
+  replace_external_table_file_path:
+    enabled: true
+    # Condition to trigger the rule
+    trigger:
+      node_type: "Create"
+      table_properties:
+        - "STORED AS TEXTFILE"
+      read_from_text_file: true
+
+    # Action
+    action:
+      type: "replace_external_table_file_path"
+
 
   create_external_table:
     enabled: true

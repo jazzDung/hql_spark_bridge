@@ -1,5 +1,7 @@
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
+
 
 @dataclass
 class ExtContext:
@@ -8,10 +10,17 @@ class ExtContext:
     """
     source: str = None
     query: str = None
+    original_file_path: str = None
+    raw_reference_file_path: str = field(init=False)
     read_from_text_file: bool = False
     output_file_path: str = None
     variable_mapping: dict = None
     source_db_config: dict = None
+
+    def __post_init__(self):
+        # Logic được thực thi ngay sau khi các biến có init=True đã được nạp
+        if self.original_file_path is not None:
+            self.raw_reference_file_path = f"${{itl_data_path}}/{self.source}/{Path(self.original_file_path).name}"
 
     def ext_query_to_pyspark(self) -> str:
 

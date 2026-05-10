@@ -56,7 +56,7 @@ CREATE EXTERNAL TABLE IF NOT EXISTS {params["raw_schema"]}.fra_connected_parties
 )
 ROW FORMAT DELIMITED FIELDS TERMINATED BY '|' LINES TERMINATED BY '\n'
 STORED AS TEXTFILE
-LOCATION '{itl_data_path}/fra_connected_parties_i.{batch_date}.dat'
+LOCATION '{itl_data_path}/fra/ConnectedParties_Data_{batch_date}.TXT'
 TBLPROPERTIES (
   'skip.header.line.count'='1'
 )

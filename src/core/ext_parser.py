@@ -5,10 +5,10 @@ from pathlib import Path
 import sqlglot
 import yaml
 from context.ext_context import ExtContext
-from paths import EXT_VARIABLE_CONFIG_PATH, EXT_CONFIG_PATH
+from paths import EXT_VARIABLE_CONFIG_PATH, EXT_CONFIG_PATH, FILE_CONVERT_CONFIG_PATH
 import configparser
 
-from utils.file_utils import parse_file_name
+from utils.file_utils import parse_file_name, read_conf_to_dict
 
 
 class ExtParser:
@@ -16,7 +16,7 @@ class ExtParser:
     Parses Pentaho Kettle XML files to extract specific information.
     """
 
-    def __init__(self, variable_mapping: dict = None, source_db_config: dict = None):
+    def __init__(self, variable_mapping: dict = None, source_db_config: dict = None, file_convert_config: dict = None):
         """
         Receives mapping rules from the variable.yaml file
         Example: {'raw_schema': 'params["raw_schema"]', 'batch_date': 'batch_date'}
@@ -40,6 +40,11 @@ class ExtParser:
         else:
             self.source_db_config = source_db_config
 
+        if file_convert_config is None:
+            self.file_convert_config = read_conf_to_dict(FILE_CONVERT_CONFIG_PATH)
+        else:
+            self.file_convert_config = file_convert_config
+
     def parse_ext(self, file_path: Path) -> ExtContext:
         """
         Parses the given Pentaho Kettle XML file and extracts the SQL query
@@ -55,6 +60,7 @@ class ExtParser:
 
         layer, sub_layer, source_name, base_table = parse_file_name(file_path)
         source_db_config = self.source_db_config.get(source_name, {})
+        original_file_path = self.file_convert_config.get(f"{source_name}_{base_table}")
         read_from_text_file = f"{source_name}_{base_table}" in self.source_db_config['excute_exception']
 
 
@@ -64,6 +70,7 @@ class ExtParser:
                 return ExtContext(
                     source=source_name,
                     read_from_text_file=True,
+                    original_file_path=original_file_path,
                     query=None,
                     output_file_path=None,
                     variable_mapping=self.variable_mapping,

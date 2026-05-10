@@ -8,7 +8,7 @@ from src.context.sql_conversion_context import SqlConversionContext, JinjaRender
 from src.transformers.base_transformer import BaseSqlTransformer
 from src.transformers.basic_pyspark_transformer import BasicPySparkTransformer
 from src.transformers.utils import format_header_comments, handle_skip_action, \
-    handle_generate_jdbc_read_action, is_rule_triggered
+    handle_generate_jdbc_read_action, is_rule_triggered, handle_replace_external_table_file_path_action
 
 
 class OptimizedPySparkTransformer(BaseSqlTransformer):
@@ -57,6 +57,7 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
         action_handlers = {
             "skip": handle_skip_action,
             "generate_jdbc_read": handle_generate_jdbc_read_action,
+            "replace_external_table_file_path": handle_replace_external_table_file_path_action,
         }
 
         for name, rule in config["rules"].items():
@@ -90,16 +91,29 @@ class OptimizedPySparkTransformer(BaseSqlTransformer):
                 if optimization_result.get("type") == "skip":
                     continue
 
+                if optimization_result.get("type") == "replace_external_table_file_path":
+                    external_table_create_node = optimization_result.get("external_table_create_node")
+                    temp_context = SqlConversionContext(
+                        original_file_path=context.original_file_path,
+                        raw_sql_content=node.sql(),
+                        source_name=context.source_name,
+                        table_name=context.table_name,
+                        ast_nodes=[external_table_create_node]
+                    )
+                    fallback_model = self.fallback_transformer.transform(temp_context)
+                    optimized_blocks.extend(q for q in fallback_model.transformed_queries)
+                    continue
+
                 if optimization_result.get("type") == "generate_jdbc_read":
-                    temp_table_create_node = optimization_result.get("temp_table_create_node")
-                    # print(f"temp_table_create_node: {temp_table_create_node}")
-                    if temp_table_create_node:
+                    external_table_create_node = optimization_result.get("external_table_create_node")
+                    # print(f"external_table_create_node: {external_table_create_node}")
+                    if external_table_create_node:
                         temp_context = SqlConversionContext(
                             original_file_path=context.original_file_path,
                             raw_sql_content=node.sql(),
                             source_name=context.source_name,
                             table_name=context.table_name,
-                            ast_nodes=[temp_table_create_node]
+                            ast_nodes=[external_table_create_node]
                         )
                         fallback_model = self.fallback_transformer.transform(temp_context)
                         optimized_blocks.extend(q for q in fallback_model.transformed_queries)

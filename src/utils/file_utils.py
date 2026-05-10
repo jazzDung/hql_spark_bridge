@@ -39,3 +39,22 @@ def parse_file_name(file_path: str | Path):
         base_table = parts[2] if len(parts) >= 2 else base_name
 
     return layer, sub_layer, source_name, base_table
+
+
+def read_conf_to_dict(file_path):
+    conf_dict = {}
+    with open(file_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            # Xóa khoảng trắng 2 đầu
+            line = line.strip()
+
+            # Bỏ qua dòng trống hoặc dòng bắt đầu bằng '#' (nếu có comment)
+            if not line or line.startswith('#'):
+                continue
+
+            # Tách key và value theo dấu '=' đầu tiên
+            if '=' in line:
+                key, value = line.split('=', 1)
+                conf_dict[key.strip()] = value.strip()
+
+    return conf_dict

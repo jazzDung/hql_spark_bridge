@@ -90,6 +90,30 @@ def normalize_hive_create_properties(create_expr: exp.Create) -> exp.Create:
 
     return create_expr
 
+def handle_replace_external_table_file_path_action(
+    rule: dict,
+    node: exp.Create,
+    context: SqlConversionContext,
+) -> dict:
+
+    raw_reference_file_path = context.ext_context.raw_reference_file_path
+
+
+    def update_location(node):
+        if isinstance(node, exp.LocationProperty) and raw_reference_file_path is not None:
+            return exp.LocationProperty(this=exp.Literal.string(raw_reference_file_path))
+        return node
+
+    # {itl_data_path}/fra_connected_parties_i.{batch_date}.dat', is_string=True)),
+    # {params["itl_data_path"]}/{batch_date}/ConnectedParties_Data_{batch_date}.TXT
+
+    return {
+        "type": "replace_external_table_file_path",
+        "file_name": Path(raw_reference_file_path).name,
+        "external_table_create_node": node.transform(update_location)
+    }
+
+
 
 def handle_generate_jdbc_read_action(
     rule: dict,
@@ -138,7 +162,7 @@ def handle_generate_jdbc_read_action(
         "jdbc_url_variable": params.get("jdbc_url_variable"),
         "query": query,
         "source_db_table": f"{params.get('schema', '')}.{context.table_name}",
-        "temp_table_create_node": normalize_hive_create_properties(node)
+        "external_table_create_node": normalize_hive_create_properties(node)
     }
 
 

@@ -2,11 +2,13 @@
 import os
 from pathlib import Path
 import yaml
+import getpass
 
 # Define the project root directory.
 # This is determined by going up two levels from the current file's location (src/paths.py -> src -> project_root).
 # Using .resolve() makes it an absolute path, ensuring it works regardless of the current working directory.
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+USERNAME = getpass.getuser()
 
 # --- Configuration Paths ---
 # Define the path to the main configuration directory.
@@ -22,10 +24,13 @@ EXT_VARIABLE_CONFIG_PATH = CONFIGS_DIR / "rules" / "ext_variable.yaml"
 
 # 2. Load Datalake repo path configuration from YAML
 with open(DIRECTORY_CONFIG_PATH, 'r', encoding='utf-8') as f:
-    directory_paths = yaml.safe_load(f)
+    directory_paths = yaml.safe_load(f).get(USERNAME, None)
+    if directory_paths is None:
+        directory_paths = yaml.safe_load(f).get("default", None)
 
 DATALAKE_SCRIPT_DIR = Path(directory_paths['datalake_root'])
 EXT_CONFIG_PATH = DATALAKE_SCRIPT_DIR / "etc" / "ext_config.conf"
+FILE_CONVERT_CONFIG_PATH = DATALAKE_SCRIPT_DIR / "docker" / "execution_engine" / "script" / "ext" / "fileconvert" / "fileconvert.conf"
 
 # --- Template Paths ---
 # Define the path to the Jinja templates directory

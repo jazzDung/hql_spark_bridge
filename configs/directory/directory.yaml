@@ -1,2 +1,6 @@
-datalake_root: C:\Users\ext_giadung\projects\datalake-script
-
+default:
+    datalake_root: C:\Users\ext_giadung\projects\datalake-script
+dungp:
+    datalake_root: C:\Users\dungp\projects\datalake-script
+ext_giadung:
+    datalake_root: C:\Users\ext_giadung\projects\datalake-script
