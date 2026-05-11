@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_email_clean
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_email_clean;
 
 /* 2.13 Create a temporary table temp_t_mhbos_m_client_email_clean to store the cleaned email information. */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_email_clean (
@@ -15,9 +15,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_email_clean (
   `email_8` STRING,
   `email_9` STRING,
   `email_10` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_email_clean /* 2.13.1 ddl-insert-sundexin */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_email_clean /* 2.13.1 ddl-insert-sundexin */;
 
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_email_clean
 SELECT
@@ -41,4 +41,4 @@ FROM (
     mmce.email AS source_email,
     REPLACE(LOWER(mmce.email), ' ', '') AS email
   FROM ${com_schema}.temp_t_mhbos_m_client_all AS mmce
-) AS t
+) AS t;

@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_2_1
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_2_1;
 
 /* create temporary table temp_t_mhbos_m_client_nominees_info_2_1 */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_2_1 (
@@ -12,9 +12,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_2_1
   `noms_ind` STRING,
   `nominees_type` STRING,
   `replace_field_length` INT
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_nominees_info_2_1 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_2_1 */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_nominees_info_2_1 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_2_1 */;
 
 /* Insert the processed data into the temporary table temp_t_mhbos_m_client_nominees_info_2_1 */
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_nominees_info_2_1
@@ -141,4 +141,4 @@ SELECT
     LENGTH(kenanga_noms_list_110),
     LENGTH(kenanga_noms_list_111)
   ) AS replace_field_length
-FROM ${com_schema}.temp_t_mhbos_m_client_nominees_info_1 AS t /* where noms_ind = 'Y' */
+FROM ${com_schema}.temp_t_mhbos_m_client_nominees_info_1 AS t /* where noms_ind = 'Y' */;

@@ -1,5 +1,5 @@
 -- Purpose:    DDL/COM STATUS
--- Generated:  2026-05-06 08:42:13
+-- Generated:  2026-05-10 10:45:21
 -- Source:     com_m_mhbos_m_client
 
 DROP TABLE IF EXISTS ${com_schema}.m_mhbos_m_client;
@@ -281,8 +281,8 @@ CREATE TABLE ${com_schema}.m_mhbos_m_client(
     , type_of_account STRING comment ''
     -- Standard fields (Model 3a)
     , dl_record_status VARCHAR(10) comment 'A=Active'
-    , dl_record_created_date TIMESTAMP comment 'First insert time'
-    , dl_record_updated_date TIMESTAMP comment 'Last update time'
+    , dl_record_created_date DATE comment 'First insert time'
+    , dl_record_updated_date DATE comment 'Last update time'
     , etl_dt STRING comment 'Batch run date'
     , etl_timestamp STRING comment 'ETL processing timestamp'
 )

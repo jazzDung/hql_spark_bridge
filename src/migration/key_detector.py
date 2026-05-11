@@ -23,6 +23,8 @@ class KeyDetector:
             if result:
                 logging.info(f"Key detected via [{strategy_name}]: {result}")
                 return result
+
+        return "client_no"
         raise KeyDetectionError("All key detection strategies exhausted.")
 
     def _detect_from_source_rule(self, base_table: str, source_rules: dict) -> Optional[str]:

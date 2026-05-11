@@ -1,5 +1,5 @@
 /* 1.2 Drop all temporary tables at the start of the program */
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_all
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_all;
 
 /* 2.1 Create a temporary table temp_com_mhbos_m_client_all to store the current vaild data */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_all (
@@ -245,9 +245,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_all (
   `type_of_account` STRING, /* 20250806 */
   `einvoice_email` STRING, /* 20250903 */
   `state_code` STRING /* 20251013 */
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_all /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_all /* 2.1.1 ddl-insert-sundexin */;
 
 WITH filtered_clients AS (
   SELECT DISTINCT
@@ -519,4 +519,4 @@ FROM latest_clients AS mmc
 LEFT JOIN ${com_schema}.t_mhbos_m_client_ext AS mmce
   ON mmc.client_no = mmce.client_no AND mmce.part_id = '${batch_date}'
 WHERE
-  mmc.rn = 1
+  mmc.rn = 1;

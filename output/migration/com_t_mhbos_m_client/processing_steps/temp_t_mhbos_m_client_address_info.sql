@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_address_info
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_address_info;
 
 /* 2.15 Create a temporary table temp_t_mhbos_m_client_address_info to store the cleaned cityinformation. */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_address_info (
@@ -20,9 +20,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_address_info (
   `perm_city` STRING,
   `perm_state` STRING,
   `perm_country` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_address_info /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_address_info /* 2.1.1 ddl-insert-sundexin */;
 
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_address_info
 SELECT
@@ -72,4 +72,4 @@ LEFT JOIN ${com_schema}.t_ref_pub_cd_map AS mp2
   AND mp2.src_sys_cd = 'mhbos'
   AND mp2.src_tab_en_name = 'r_mhbos_m_client'
   AND mp2.src_field_en_name = 'city'
-  AND mp2.valid_flag = 'Y'
+  AND mp2.valid_flag = 'Y';

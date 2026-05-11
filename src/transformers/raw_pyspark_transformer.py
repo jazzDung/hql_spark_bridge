@@ -11,7 +11,7 @@ from src.transformers.utils import format_header_comments, handle_skip_action, \
     handle_generate_jdbc_read_action, is_rule_triggered, handle_replace_external_table_file_path_action
 
 
-class OptimizedPySparkTransformer(BaseSqlTransformer):
+class RawPySparkTransformer(BaseSqlTransformer):
     """
     Objective 2: Optimize PySpark scripts.
     - Attempt to convert text file reading logic into JDBC reading if a rule exists.

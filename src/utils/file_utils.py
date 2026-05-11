@@ -33,6 +33,10 @@ def parse_file_name(file_path: str | Path):
         sub_layer = None
         source_name = parts[2] if len(parts) >= 2 else "unknown"
         base_table = parts[3] if len(parts) >= 3 else base_name
+    elif layer == "temp":
+        sub_layer = parts[1] if len(parts) >= 3 else "unknown"
+        source_name = parts[2] if len(parts) >= 3 else "unknown"
+        base_table = parts[3] if len(parts) >= 3 else base_name
     else:
         sub_layer = None
         source_name = parts[1] if len(parts) >= 1 else "unknown"

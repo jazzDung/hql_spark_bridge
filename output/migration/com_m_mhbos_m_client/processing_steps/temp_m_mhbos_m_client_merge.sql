@@ -35,11 +35,14 @@ WITH current_date_account AS (
     etl_dt = '${batch_date}'
 ), customer_row_number AS (
   SELECT
-    ROW_NUMBER() OVER (PARTITION BY t.primary_identification_no, t.customer_name ORDER BY IF(NOT mapping.source_owner_id IS NULL, 1, 0) DESC /*
+    ROW_NUMBER() OVER (
+      PARTITION BY t.primary_identification_no, t.customer_name
+      ORDER BY IF(NOT mapping.source_owner_id IS NULL, 1, 0) DESC /*
                 Step 2: Prioritize active records, since when insert to temp_m_mhbos_m_client_new_cust_id
                 We only assign cust_id for active records, closed account will be marked with closed account exception and
                 won't be inserted to mapping / curated tables.
-                 */, IF(date_closed IS NULL, 1, 0) DESC /* Step 3: ORDER BY Account CREATE Date (DESC) AND Account No (DESC). */, GREATEST(COALESCE(t.date_created, '1900-01-01'), COALESCE(t.date_change, '1900-01-01')) DESC, t.client_no DESC) AS rn,
+                 */, IF(date_closed IS NULL, 1, 0) DESC /* Step 3: ORDER BY Account CREATE Date (DESC) AND Account No (DESC). */, GREATEST(COALESCE(t.date_created, '1900-01-01'), COALESCE(t.date_change, '1900-01-01')) DESC, t.client_no DESC
+    ) AS rn,
     t.client_no,
     t.clean_rule_flag,
     t.primary_identification_type,

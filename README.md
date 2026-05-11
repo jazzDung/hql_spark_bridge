@@ -170,7 +170,7 @@ hql_spark_bridge/
 │   ├── transformers/
 │   │   ├── base_transformer.py     # Abstract BaseSqlTransformer
 │   │   ├── basic_pyspark_transformer.py    # Strategy A: SQL-wrapped PySpark
-│   │   ├── optimized_pyspark_transformer.py # Strategy B: Rule-based AST rewrite
+│   │   ├── raw_pyspark_transformer.py # Strategy B: Rule-based AST rewrite
 │   │   └── utils.py                # Shared handlers: skip, generate_jdbc_read, is_rule_triggered
 │   ├── spark_session_builder.py    # SparkSession factory (MSSQL + Postgres JARs)
 │   └── utils/
@@ -278,10 +278,10 @@ Resolves template path automatically from `PipelineConfig.template_path_prefix`:
 
 ```python
 # template/datalake_model_5b/hiveql_ddl/raw.jinja
-ddl_sql = render_template(f'{config.layer}.jinja', context, ddl_template_folder)
+ddl_sql = render_template(f'{config.schema}.jinja', context, ddl_template_folder)
 
 # template/datalake_model_5b/hiveql_dml/raw.jinja
-dml_sql = render_template(f'{config.layer}.jinja', context, dml_template_folder)
+dml_sql = render_template(f'{config.schema}.jinja', context, dml_template_folder)
 ```
 
 

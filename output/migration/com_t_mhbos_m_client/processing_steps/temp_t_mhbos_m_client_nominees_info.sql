@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info;
 
 /* create temporary table temp_t_mhbos_m_client_nominees_info */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info (
@@ -19,9 +19,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info (
   `principal_name` STRING,
   `intermediary_name` STRING,
   `beneficiary_name` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_nominees_info /* trunate temporary table temp_t_mhbos_m_client_nominees_info_5 */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_nominees_info /* trunate temporary table temp_t_mhbos_m_client_nominees_info_5 */;
 
 /* Insert the processed data into the temporary table temp_t_mhbos_m_client_nominees_info */
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_nominees_info
@@ -104,4 +104,4 @@ FROM (
       END
     ) AS cleaned_nominees_name
   FROM ${com_schema}.temp_t_mhbos_m_client_nominees_info_5
-) AS t /* where t.noms_ind = 'Y' */
+) AS t /* where t.noms_ind = 'Y' */;

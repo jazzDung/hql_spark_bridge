@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_address_city
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_address_city;
 
 /* 2.14 Create a temporary table temp_t_mhbos_m_client_address_city to store the cleaned address cityinformation. */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_address_city (
@@ -20,9 +20,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_address_city (
   `perm_city` STRING,
   `perm_state` STRING,
   `perm_country` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_address_city /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_address_city /* 2.1.1 ddl-insert-sundexin */;
 
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_address_city
 SELECT
@@ -172,4 +172,4 @@ FROM (
     ca.perm_state_code,
     ca.perm_country
   FROM ${com_schema}.temp_t_mhbos_m_client_all AS ca
-) AS addr
+) AS addr;

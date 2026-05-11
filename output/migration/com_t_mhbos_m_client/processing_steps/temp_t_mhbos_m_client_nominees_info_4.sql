@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_4
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_4;
 
 /* create temporary table temp_t_mhbos_m_client_nominees_info_4 */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_4 (
@@ -14,9 +14,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_4 (
   `pledged_securities_flag` STRING,
   `remove_kenanga_nominees_name` STRING,
   `remove_pledged_name` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_nominees_info_4 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_4 */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_nominees_info_4 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_4 */;
 
 /* Insert the processed data into the temporary table temp_t_mhbos_m_client_nominees_info_4 */
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_nominees_info_4
@@ -211,4 +211,4 @@ SELECT
   ) AS remove_pledged_name
 FROM ${com_schema}.temp_t_mhbos_m_client_nominees_info_3 AS t
 LEFT JOIN ${com_schema}.temp_t_mhbos_m_client_nominees_info_4_1 AS t1
-  ON t.client_no = t1.client_no /* where t.noms_ind = 'Y' */
+  ON t.client_no = t1.client_no /* where t.noms_ind = 'Y' */;

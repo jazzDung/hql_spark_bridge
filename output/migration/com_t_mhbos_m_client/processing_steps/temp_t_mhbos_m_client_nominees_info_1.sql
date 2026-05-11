@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_1
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_1;
 
 /* 2.16 Detect the Kenanga nominees name from account_full_name and remove them */ /* create temporary table temp_t_mhbos_m_client_nominees_info_1 */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_1 (
@@ -122,9 +122,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_1 (
   `kenanga_noms_list_111` STRING,
   `noms_ind` STRING,
   `noms` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_nominees_info_1 /* truncate temporary table */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_nominees_info_1 /* truncate temporary table */;
 
 /* Insert the processed data into the temporary table temp_t_mhbos_m_client_nominees_info_1 */
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_nominees_info_1
@@ -282,4 +282,4 @@ FROM (
   FROM ${com_schema}.temp_t_mhbos_m_client_all AS cn
   LEFT JOIN ${com_schema}.t_mhbos_m_mcd_client_addr AS mmca
     ON cn.client_no = mmca.client_no AND mmca.part_id = '${batch_date}'
-) AS t1
+) AS t1;

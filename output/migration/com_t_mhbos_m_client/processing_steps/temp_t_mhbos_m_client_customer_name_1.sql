@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_customer_name_1
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_customer_name_1;
 
 /* 2.9 Create a temporary table temp_mhbos_m_client_customer_name_1 to store the cleaned customer name. */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_customer_name_1 (
@@ -17,9 +17,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_customer_name_1 (
   `client_name1_flag` STRING,
   `client_name2_flag` STRING,
   `client_name3_flag` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_customer_name_1 /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_customer_name_1 /* 2.1.1 ddl-insert-sundexin */;
 
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_customer_name_1
 SELECT
@@ -142,4 +142,4 @@ SELECT
       */ AS client_name3_flag /* 20250620 */
 FROM ${com_schema}.temp_t_mhbos_m_client_all AS mmca
 LEFT JOIN ${com_schema}.temp_t_mhbos_m_client_primary_identification_type AS tmmcpit
-  ON mmca.client_no = tmmcpit.client_no
+  ON mmca.client_no = tmmcpit.client_no;

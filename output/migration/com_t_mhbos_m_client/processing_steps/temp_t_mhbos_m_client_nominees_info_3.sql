@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_3
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_3;
 
 /* create temporary table temp_t_mhbos_m_client_nominees_info_3 */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_3 (
@@ -54,9 +54,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_3 (
   `pledged_name_list_37` STRING, /* add_20240321 */
   `pledged_name_list_38` STRING, /* add_20240518 */
   `pledged_name_list_40` STRING /* add_20240828 */
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_nominees_info_3 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_3 */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_nominees_info_3 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_3 */;
 
 /* Insert the processed data into the temporary table temp_t_mhbos_m_client_nominees_info_3 */
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_nominees_info_3
@@ -117,4 +117,4 @@ SELECT
   REPLACE(t.remove_kenanga_nominees_name, 'PLEGED SECURITIES A/C', '') AS pledged_name_list_37, /* add_20240321 */
   REPLACE(t.remove_kenanga_nominees_name, 'PLEDEGD SECURITIES ACCOUNT', '') AS pledged_name_list_38, /* add_20240518 */
   REPLACE(t.remove_kenanga_nominees_name, 'PLGD SEC ACC', '') AS pledged_name_list_40 /* add_20240828 */
-FROM ${com_schema}.temp_t_mhbos_m_client_nominees_info_2 AS t /* where t.noms_ind = 'Y' */
+FROM ${com_schema}.temp_t_mhbos_m_client_nominees_info_2 AS t /* where t.noms_ind = 'Y' */;

@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_dob_info
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_dob_info;
 
 /* 2.7 Create a temporary table temp_mhbos_m_client_dob_info to store the cleaned date of birth. */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_dob_info (
@@ -10,9 +10,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_dob_info (
   `source_date_of_birth` TIMESTAMP,
   `date_of_birth` STRING,
   `date_of_birth_flag` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_dob_info /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_dob_info /* 2.1.1 ddl-insert-sundexin */;
 
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_dob_info
 SELECT
@@ -49,4 +49,4 @@ SELECT
 FROM ${com_schema}.temp_t_mhbos_m_client_identification_info AS id
 CROSS JOIN ${com_schema}.temp_t_mhbos_m_client_all AS mmce
 WHERE
-  id.client_no = mmce.client_no
+  id.client_no = mmce.client_no;

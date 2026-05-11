@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_identification_info
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_identification_info;
 
 /* 2.6 Create a temporary table temp_mhbos_m_client_identification_info to store the cleaned identification information. */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_identification_info (
@@ -16,9 +16,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_identification_in
   `primary_identification_no_flag` STRING,
   `secondary_identification_no` STRING,
   `secondary_identification_no_flag` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_identification_info /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_identification_info /* 2.1.1 ddl-insert-sundexin */;
 
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_identification_info
 SELECT
@@ -294,4 +294,4 @@ LEFT JOIN ${com_schema}.temp_t_mhbos_m_client_primary_identification_type AS p_t
 LEFT JOIN ${com_schema}.temp_t_mhbos_m_client_secondary_identification_no AS s_no
   ON p_no.client_no = s_no.client_no
 LEFT JOIN ${com_schema}.temp_t_mhbos_m_client_secondary_identification_type AS s_type
-  ON p_no.client_no = s_type.client_no
+  ON p_no.client_no = s_type.client_no;

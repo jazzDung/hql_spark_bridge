@@ -2,26 +2,33 @@ import os
 from pathlib import Path
 from typing import Dict, Any
 from datetime import datetime
+import sqlglot
 
+from src.core.parser import HiveScriptParser
 from src.jinja.environment import render_template
 from src.migration.ddl_enricher import DdlEnricher
 from src.paths import PROJECT_ROOT
+from src.context.sql_conversion_context import SqlConversionContext
+from src.transformers.com_pyspark_transformer import ComPySparkTransformer
 
 class PySparkGenerator:
     def __init__(self, source_rules: Dict[str, Any], output_mode: str = "simple"):
         self.output_mode = output_mode
         self.source_rules = source_rules
         self.template_dir = PROJECT_ROOT / "template" / "migration"
+        self.transformer = ComPySparkTransformer()
 
     def generate(self, pipeline_config: Dict[str, Any], output_root: Path):
         # 1. Generate DDL
-        self._generate_ddl(pipeline_config, output_root)
+        ddl_context = self._generate_ddl(pipeline_config, output_root)
 
         # 2. Generate DML
         if self.output_mode == "simple":
-            self._generate_simple_dml(pipeline_config, output_root)
+            dml_context = self._generate_simple_dml(pipeline_config, output_root)
         else:
-            self._generate_complex_dml(pipeline_config, output_root)
+            dml_context = self._generate_complex_dml(pipeline_config, output_root)
+
+        return ddl_context, dml_context
 
     def _generate_ddl(self, pipeline_config: Dict[str, Any], output_root: Path):
         enricher = DdlEnricher(source_rules=self.source_rules)
@@ -46,6 +53,8 @@ class PySparkGenerator:
         except Exception as e:
             print(f"Error rendering DDL template {template_name}: {e}")
 
+        return ddl_context
+
     def _generate_simple_dml(self, pipeline_config: Dict[str, Any], output_root: Path):
         model_type = pipeline_config.get("model_type", "3")
         template_name = f"model_{model_type}/com_t_dml.jinja"
@@ -55,6 +64,12 @@ class PySparkGenerator:
             if col.get("remark") != "non_original_field"
         ]
         
+        # Extract base_table from target_table_name
+        # e.g., t_k2_cif_alias -> cif_alias
+        target_table_name = pipeline_config["target_table_name"]
+        source_name = pipeline_config["source_name"]
+        base_table = target_table_name.replace(f"t_{source_name}_", "")
+
         # Read pre_processing SQLs
         pre_processing_sqls = []
         for step in pipeline_config.get("pre_processing", []):
@@ -62,13 +77,18 @@ class PySparkGenerator:
                 continue
             step_file = Path(step["file"])
             if step_file.exists():
-                pre_processing_sqls.append(step_file.read_text(encoding="utf-8"))
-
-        # Extract base_table from target_table_name
-        # e.g., t_k2_cif_alias -> cif_alias
-        target_table_name = pipeline_config["target_table_name"]
-        source_name = pipeline_config["source_name"]
-        base_table = target_table_name.replace(f"t_{source_name}_", "")
+                # Create a context for the transformer
+                context = HiveScriptParser.parse_file(str(step_file))
+                
+                # Apply the ComPysparkTransformer
+                jinja_render_model = self.transformer.transform(context)
+                
+                # Extract the transformed queries
+                for query_obj in jinja_render_model.transformed_queries:
+                     if isinstance(query_obj, dict) and query_obj.get('type') == 'query':
+                         pre_processing_sqls.append(query_obj.get('content'))
+                     elif isinstance(query_obj, str): # In case it's just a list of strings
+                         pre_processing_sqls.append(query_obj)
 
 
         dml_context = {
@@ -99,6 +119,8 @@ class PySparkGenerator:
             print(f"Generated DML at {dml_file}")
         except Exception as e:
             print(f"Error rendering DML template {template_name}: {e}")
+
+        return dml_context
 
     def _generate_complex_dml(self, pipeline_config: Dict[str, Any], output_root: Path):
         print("Complex mode is a placeholder and has not been implemented yet.")

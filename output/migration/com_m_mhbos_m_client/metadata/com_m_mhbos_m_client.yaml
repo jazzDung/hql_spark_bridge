@@ -833,23 +833,83 @@ key: cust_id
 key_detection_strategy: auto
 pre_processing:
 - name: temp_m_mhbos_m_client_merge
-  file: C:/Users/ext_giadung/projects/hql_spark_bridge/output/migration/com_m_mhbos_m_client/processing_steps/m_client/temp_m_mhbos_m_client_merge.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_m_mhbos_m_client/processing_steps/m_client/temp_m_mhbos_m_client_merge.sql
   action: include
+  dependencies:
+  - consolidated_id:
+      schema: unknown
+  - t_mhbos_m_client:
+      schema: unknown
+  - current_date_account:
+      schema: unknown
+  - m_customer_id_mapping:
+      schema: unknown
+  - customer_row_number:
+      schema: unknown
 - name: temp_m_mhbos_m_client_match_cust_id
-  file: C:/Users/ext_giadung/projects/hql_spark_bridge/output/migration/com_m_mhbos_m_client/processing_steps/m_client/temp_m_mhbos_m_client_match_cust_id.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_m_mhbos_m_client/processing_steps/m_client/temp_m_mhbos_m_client_match_cust_id.sql
   action: include
+  dependencies:
+  - temp_m_mhbos_m_client_merge:
+      schema: unknown
+  - latest_primary_identification_no:
+      schema: unknown
+  - latest_secondary_identification_no:
+      schema: unknown
+  - latest_source_owner_id:
+      schema: unknown
+  - m_customer_id_mapping:
+      schema: unknown
+  - t_mhbos_m_client:
+      schema: unknown
 - name: temp_m_mhbos_m_client_exception
-  file: C:/Users/ext_giadung/projects/hql_spark_bridge/output/migration/com_m_mhbos_m_client/processing_steps/m_client/temp_m_mhbos_m_client_exception.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_m_mhbos_m_client/processing_steps/m_client/temp_m_mhbos_m_client_exception.sql
   action: include
+  dependencies:
+  - customer_name_exception:
+      schema: unknown
+  - temp_m_mhbos_m_client_merge:
+      schema: unknown
+  - temp_m_mhbos_m_client_match_cust_id:
+      schema: unknown
+  - missing_cust_id:
+      schema: unknown
 - name: temp_m_mhbos_m_client_new_cust_id
-  file: C:/Users/ext_giadung/projects/hql_spark_bridge/output/migration/com_m_mhbos_m_client/processing_steps/m_client/temp_m_mhbos_m_client_new_cust_id.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_m_mhbos_m_client/processing_steps/m_client/temp_m_mhbos_m_client_new_cust_id.sql
   action: include
+  dependencies:
+  - missing_cust_id:
+      schema: unknown
+  - temp_m_mhbos_m_client_merge:
+      schema: unknown
+  - temp_m_mhbos_m_client_match_cust_id:
+      schema: unknown
+  - temp_m_mhbos_m_client_exception:
+      schema: unknown
+  - m_customer_id_mapping:
+      schema: unknown
 - name: temp_m_mhbos_m_client_account_cust_id
-  file: C:/Users/ext_giadung/projects/hql_spark_bridge/output/migration/com_m_mhbos_m_client/processing_steps/m_client/temp_m_mhbos_m_client_account_cust_id.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_m_mhbos_m_client/processing_steps/m_client/temp_m_mhbos_m_client_account_cust_id.sql
   action: include
+  dependencies:
+  - t:
+      schema: unknown
+  - unique_customer_with_cust_id:
+      schema: unknown
+  - t_mhbos_m_client:
+      schema: unknown
+  - temp_m_mhbos_m_client_match_cust_id:
+      schema: unknown
+  - temp_m_mhbos_m_client_new_cust_id:
+      schema: unknown
 - name: m_customer_id_mapping_h
-  file: C:/Users/ext_giadung/projects/hql_spark_bridge/output/migration/com_m_mhbos_m_client/processing_steps/m_client/m_customer_id_mapping_h.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_m_mhbos_m_client/processing_steps/m_client/m_customer_id_mapping_h.sql
   action: include
+  dependencies:
+  - m_customer_id_mapping:
+      schema: unknown
+  - temp_m_mhbos_m_client_account_cust_id:
+      schema: unknown
 delta_columns:
 - client_no
 - clean_rule_flag
@@ -1125,4 +1185,4 @@ delta_columns:
 - brokerage_type_leap_etrade
 - type_of_account
 applied_source_rule: mhbos
-ddl_source: C:/Users/ext_giadung/projects/datalake-script/ddl/com/com_m_mhbos_m_client.sql
+ddl_source: C:/Users/dungp/projects/datalake-script/ddl/com/com_m_mhbos_m_client.sql

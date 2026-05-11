@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_customer_name_2
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_customer_name_2;
 
 /* 2.10 Create a temporary table temp_mhbos_m_client_customer_name_2 to store the second time cleaned customer name. */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_customer_name_2 (
@@ -20,9 +20,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_customer_name_2 (
   `client_name1_flag` STRING,
   `client_name2_flag` STRING,
   `client_name3_flag` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_customer_name_2 /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_customer_name_2 /* 2.1.1 ddl-insert-sundexin */;
 
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_customer_name_2
 SELECT
@@ -118,4 +118,4 @@ FROM (
       END
     ) AS source_customer_name_concatenate
   FROM ${com_schema}.temp_t_mhbos_m_client_customer_name_1 AS cn
-) AS t
+) AS t;

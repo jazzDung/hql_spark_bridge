@@ -2,6 +2,7 @@ import os
 import re
 import sqlglot
 from src.context.sql_conversion_context import SqlConversionContext
+from src.utils.file_utils import parse_file_name
 
 class HiveScriptParser:
     """
@@ -16,6 +17,8 @@ class HiveScriptParser:
             
         with open(file_path, 'r', encoding='utf-8') as f:
             raw_content = f.read()
+
+        layer, sub_layer, source_name, base_table = parse_file_name(file_path)
 
         # Extract Header Comments (consecutive lines starting with -- at the beginning of the file)
         header_lines = []
@@ -67,5 +70,7 @@ class HiveScriptParser:
             header_comments=header_comments,
             source_name=source_name,
             table_name=table_name,
+            layer=layer,
+            sub_layer=sub_layer,
             ast_nodes=[node for node in ast_nodes if node is not None]
         )

@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_gender_info
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_gender_info;
 
 /* 2.8 Create a temporary table temp_mhbos_m_client_gender_info to store the cleaned gender. */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_gender_info (
@@ -10,9 +10,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_gender_info (
   `source_sex` STRING,
   `sex` STRING,
   `sex_flag` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_gender_info /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_gender_info /* 2.1.1 ddl-insert-sundexin */;
 
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_gender_info
 SELECT
@@ -58,4 +58,4 @@ SELECT
   ) AS sex_flag
 FROM ${com_schema}.temp_t_mhbos_m_client_identification_info AS id
 LEFT JOIN ${com_schema}.temp_t_mhbos_m_client_all AS mmca
-  ON id.client_no = mmca.client_no
+  ON id.client_no = mmca.client_no;

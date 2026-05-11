@@ -51,7 +51,8 @@ WITH missing_cust_id /* Step 1: Get customer records that don't have existing cu
     mg.date_change,
     mg.etl_timestamp,
     t0.max_cust_id_number
-  FROM ${com_schema}.temp_m_mhbos_m_client_merge AS mg, (
+  FROM ${com_schema}.temp_m_mhbos_m_client_merge AS mg
+  CROSS JOIN (
     /* Minor readability improvement to max cust_id number logic */
     SELECT
       COALESCE(MAX(CAST(SUBSTRING(cust_id, 4) AS INT)), 0) AS max_cust_id_number
@@ -71,7 +72,9 @@ SELECT
   IF(
     date_closed IS NULL,
     'CUS' || LPAD(
-      max_cust_id_number + ROW_NUMBER() OVER (ORDER BY GREATEST(COALESCE(date_created, '1900-01-01'), COALESCE(date_change, '1900-01-01')), client_no),
+      max_cust_id_number + ROW_NUMBER() OVER (
+        ORDER BY GREATEST(COALESCE(date_created, '1900-01-01'), COALESCE(date_change, '1900-01-01')), client_no
+      ),
       8,
       0
     ),

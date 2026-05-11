@@ -106,11 +106,12 @@ class MetadataProcessor:
                     action = rule.get("action", "include")
                     break
             
-            step_file_path = output_root / decomposed.pipeline_id / "processing_steps" / decomposed.base_table / f"{temp_block.name}.sql"
+            step_file_path = output_root / decomposed.pipeline_id / "processing_steps" / f"{temp_block.name}.sql"
             pre_processing.append({
                 "name": temp_block.name,
                 "file": str(step_file_path.as_posix()),
-                "action": action
+                "action": action,
+                "dependencies": temp_block.dependencies
             })
 
         # 6. Calculate Delta columns
@@ -123,7 +124,7 @@ class MetadataProcessor:
 
         pipeline_config = {
             "pipeline_id": decomposed.pipeline_id,
-            "layer": decomposed.layer,
+            "layer": decomposed.schema,
             "model_type": model_type,
             "source_name": decomposed.source_name,
             "target_table_name": target_table_name,

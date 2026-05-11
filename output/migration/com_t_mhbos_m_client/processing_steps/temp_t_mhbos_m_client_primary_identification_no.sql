@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_primary_identification_no
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_primary_identification_no;
 
 /* 2.3 Create a temporary table temp_mhbos_m_client_primary_identification_type to store the cleaned primary identification number. */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_primary_identification_no (
@@ -10,9 +10,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_primary_identific
   `secondary_id_no` STRING,
   `primary_identification_no` STRING,
   `primary_identification_no_flag` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_primary_identification_no /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_primary_identification_no /* 2.1.1 ddl-insert-sundexin */;
 
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_primary_identification_no
 SELECT
@@ -112,4 +112,4 @@ SELECT
       ELSE '1'
     END
   ) AS primary_identification_no_flag
-FROM ${com_schema}.temp_t_mhbos_m_client_all AS mmc
+FROM ${com_schema}.temp_t_mhbos_m_client_all AS mmc;

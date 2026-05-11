@@ -1,7 +1,7 @@
 ##  File Name   : com_m_mhbos_m_client
 ##  File Type   : DML
 ##  Model       : 3a
-##  Generated   : 2026-05-06 08:42:13
+##  Generated   : 2026-05-10 10:45:21
 ##  Source      : com_m_mhbos_m_client (migrated from Datalake Old)
 
 import os

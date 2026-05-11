@@ -14,10 +14,12 @@ class SqlConversionContext:
     # Basic file information
     original_file_path: str
     raw_sql_content: str
-    
+
     # Extracted metadata (e.g., from filename or LOCATION)
     source_name: str
     table_name: str
+    layer:  str
+    sub_layer: str
 
     # Stores header comments (file info like Purpose, Author...)
     header_comments: str = ""

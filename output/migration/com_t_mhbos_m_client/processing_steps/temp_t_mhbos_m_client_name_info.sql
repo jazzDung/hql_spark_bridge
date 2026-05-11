@@ -1,7 +1,7 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_name_info
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_name_info;
 
 /* create temporary table temp_t_mhbos_m_client_name_info 				Add 20240321 */
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_name_info
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_name_info;
 
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_name_info (
   `client_no` STRING,
@@ -25,9 +25,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_name_info (
   `principal_name` STRING,
   `org_beneficiary_name` STRING,
   `beneficiary_name` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_name_info /* trunate temporary table temp_t_mhbos_m_client_name_info */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_name_info /* trunate temporary table temp_t_mhbos_m_client_name_info */;
 
 /* Insert the processed data into the temporary table temp_t_mhbos_m_client_nominees_info		add 20240321 */
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_name_info
@@ -180,4 +180,4 @@ FROM (
     ON t1.primary_identification_no = l5.primary_id_no AND l5.source_system = 'MHBOS'
 ) AS t2
 LEFT JOIN ${com_schema}.r_lookup_custname_primaryidno AS l1
-  ON t2.customer_name = l1.cust_name AND l1.source_system = 'MHBOS'
+  ON t2.customer_name = l1.cust_name AND l1.source_system = 'MHBOS';

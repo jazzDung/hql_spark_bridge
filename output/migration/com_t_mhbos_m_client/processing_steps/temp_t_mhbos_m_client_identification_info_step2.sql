@@ -1,5 +1,5 @@
 /* 3.2.2 step2 */
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_identification_info_step2
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_identification_info_step2;
 
 CREATE TABLE ${com_schema}.temp_t_mhbos_m_client_identification_info_step2 AS
 SELECT
@@ -61,4 +61,4 @@ LEFT JOIN ${com_schema}.temp_t_mhbos_m_client_address_info AS ad
 LEFT JOIN ${com_schema}.temp_t_mhbos_m_client_nominees_info AS nom
   ON step1.client_no = nom.client_no
 LEFT JOIN ${com_schema}.temp_t_mhbos_m_client_name_info AS mn
-  ON step1.client_no = mn.client_no
+  ON step1.client_no = mn.client_no;

@@ -1,6 +1,6 @@
 pipeline_id: com_t_mhbos_m_client
 layer: com
-model_type: '3a'
+model_type: 3a
 source_name: mhbos
 target_table_name: t_mhbos_m_client
 columns:
@@ -832,102 +832,231 @@ columns:
 - name: einvoice_email
   type: STRING
   remark: null
-key: client_no
+key: user_id
 key_detection_strategy: auto
 pre_processing:
 - name: temp_t_mhbos_m_client_all
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_all.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_all.sql
   action: include
+  dependencies:
+  - t_mhbos_m_client_ext:
+      schema: com
+  - r_mhbos_m_client:
+      schema: com
+  - r_mhbos_m_client_ext:
+      schema: com
 - name: temp_t_mhbos_m_client_primary_identification_type
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_primary_identification_type.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_primary_identification_type.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_all:
+      schema: com
 - name: temp_t_mhbos_m_client_primary_identification_no
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_primary_identification_no.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_primary_identification_no.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_all:
+      schema: com
 - name: temp_t_mhbos_m_client_secondary_identification_type
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_secondary_identification_type.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_secondary_identification_type.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_all:
+      schema: com
 - name: temp_t_mhbos_m_client_secondary_identification_no
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_secondary_identification_no.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_secondary_identification_no.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_all:
+      schema: com
 - name: temp_t_mhbos_m_client_identification_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_identification_info.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_identification_info.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_primary_identification_no:
+      schema: com
+  - temp_t_mhbos_m_client_primary_identification_type:
+      schema: com
+  - temp_t_mhbos_m_client_secondary_identification_no:
+      schema: com
+  - temp_t_mhbos_m_client_secondary_identification_type:
+      schema: com
 - name: temp_t_mhbos_m_client_dob_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_dob_info.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_dob_info.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_identification_info:
+      schema: com
+  - temp_t_mhbos_m_client_all:
+      schema: com
 - name: temp_t_mhbos_m_client_gender_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_gender_info.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_gender_info.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_identification_info:
+      schema: com
+  - temp_t_mhbos_m_client_all:
+      schema: com
 - name: temp_t_mhbos_m_client_customer_name_1
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_customer_name_1.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_customer_name_1.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_all:
+      schema: com
+  - temp_t_mhbos_m_client_primary_identification_type:
+      schema: com
 - name: temp_t_mhbos_m_client_customer_name_2
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_customer_name_2.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_customer_name_2.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_customer_name_1:
+      schema: com
 - name: temp_t_mhbos_m_client_race_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_race_info.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_race_info.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_all:
+      schema: com
+  - temp_t_mhbos_m_client_customer_name_2:
+      schema: com
 - name: temp_t_mhbos_m_client_telephone_number_clean
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_telephone_number_clean.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_telephone_number_clean.sql
   action: include
+  dependencies: []
 - name: temp_t_mhbos_m_client_telephone_number_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_telephone_number_info.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_telephone_number_info.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_telephone_clean:
+      schema: com
 - name: temp_t_mhbos_m_client_email_clean
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_email_clean.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_email_clean.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_all:
+      schema: com
 - name: temp_t_mhbos_m_client_email_info_1
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_email_info_1.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_email_info_1.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_email_clean:
+      schema: com
 - name: temp_t_mhbos_m_client_email_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_email_info.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_email_info.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_email_info_1:
+      schema: com
 - name: temp_t_mhbos_m_client_address_city
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_address_city.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_address_city.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_all:
+      schema: com
 - name: temp_t_mhbos_m_client_address_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_address_info.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_address_info.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_address_city:
+      schema: com
+  - t_ref_pub_cd_map:
+      schema: com
 - name: temp_t_mhbos_m_client_nominees_info_1
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_nominees_info_1.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_nominees_info_1.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_all:
+      schema: com
+  - t_mhbos_m_mcd_client_addr:
+      schema: com
 - name: temp_t_mhbos_m_client_nominees_info_2_1
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_nominees_info_2_1.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_nominees_info_2_1.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_nominees_info_1:
+      schema: com
 - name: temp_t_mhbos_m_client_nominees_info_2
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_nominees_info_2.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_nominees_info_2.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_nominees_info_1:
+      schema: com
+  - temp_t_mhbos_m_client_nominees_info_2_1:
+      schema: com
 - name: temp_t_mhbos_m_client_nominees_info_3
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_nominees_info_3.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_nominees_info_3.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_nominees_info_2:
+      schema: com
 - name: temp_t_mhbos_m_client_nominees_info_4_1
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_nominees_info_4_1.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_nominees_info_4_1.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_nominees_info_3:
+      schema: com
 - name: temp_t_mhbos_m_client_nominees_info_4
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_nominees_info_4.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_nominees_info_4.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_nominees_info_3:
+      schema: com
+  - temp_t_mhbos_m_client_nominees_info_4_1:
+      schema: com
 - name: temp_t_mhbos_m_client_nominees_info_5
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_nominees_info_5.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_nominees_info_5.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_nominees_info_4:
+      schema: com
 - name: temp_t_mhbos_m_client_nominees_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_nominees_info.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_nominees_info.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_nominees_info_5:
+      schema: com
 - name: temp_t_mhbos_m_client_name_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_name_info.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_name_info.sql
   action: include
+  dependencies:
+  - r_lookup_custname_primaryidno:
+      schema: com
+  - r_lookup_clientno_custname:
+      schema: com
+  - r_lookup_custname_custname:
+      schema: com
+  - r_lookup_primaryidno_newcustname:
+      schema: com
+  - temp_t_mhbos_m_client_all:
+      schema: com
+  - temp_t_mhbos_m_client_customer_name_2:
+      schema: com
+  - temp_t_mhbos_m_client_nominees_info:
+      schema: com
+  - temp_t_mhbos_m_client_identification_info:
+      schema: com
 - name: temp_t_mhbos_m_client
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_all:
+      schema: com
+  - temp_t_mhbos_m_client_identification_info_step2:
+      schema: com
 - name: temp_t_mhbos_m_client_telephone_clean
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_telephone_clean.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_telephone_clean.sql
   action: include
+  dependencies:
+  - temp_t_mhbos_m_client_all:
+      schema: com
 - name: temp_t_mhbos_m_client_identification_info_step1
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_identification_info_step1.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_identification_info_step1.sql
   action: include
+  dependencies: []
 - name: temp_t_mhbos_m_client_identification_info_step2
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/m_client/temp_t_mhbos_m_client_identification_info_step2.sql
+  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_identification_info_step2.sql
   action: include
+  dependencies: []
 delta_columns:
 - client_no
 - clean_rule_flag
@@ -1204,4 +1333,4 @@ delta_columns:
 - type_of_account
 - einvoice_email
 applied_source_rule: mhbos
-ddl_source: C:/Users/dungp/projects/hql_spark_bridge/docs/datalake_old/ddl/com_t_mhbos_m_client.sql
+ddl_source: C:/Users/dungp/projects/datalake-script/ddl/com/com_t_mhbos_m_client.sql

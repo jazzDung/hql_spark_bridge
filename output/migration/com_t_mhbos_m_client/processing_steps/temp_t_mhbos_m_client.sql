@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client;
 
 /* 3.0.1 create temp_t_mhbos_m_client table */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client (
@@ -278,7 +278,7 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client (
   perm_country VARCHAR(3) COMMENT '',
   type_of_account STRING COMMENT '',
   einvoice_email STRING COMMENT ''
-)
+);
 
 /* 3.0.2 insert into temp_t_mhbos_m_client */
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client
@@ -561,4 +561,4 @@ SELECT
   step2.einvoice_email /* 20250903 einvoice_email */
 FROM ${com_schema}.temp_t_mhbos_m_client_all AS mmca
 LEFT JOIN ${com_schema}.temp_t_mhbos_m_client_identification_info_step2 AS step2
-  ON mmca.client_no = step2.client_no
+  ON mmca.client_no = step2.client_no;

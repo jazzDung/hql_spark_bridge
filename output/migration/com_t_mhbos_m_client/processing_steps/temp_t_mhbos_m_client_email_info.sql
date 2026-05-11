@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_email_info
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_email_info;
 
 /* 2.13 Create a temporary table temp_t_mhbos_m_client_email_info to store the cleaned email information. */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_email_info (
@@ -16,9 +16,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_email_info (
   `email_9` STRING,
   `email_10` STRING,
   `email_flag` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_email_info /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_email_info /* 2.1.1 ddl-insert-sundexin */;
 
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_email_info
 SELECT
@@ -46,4 +46,4 @@ SELECT
   ) AS email_flag
 FROM ${com_schema}.temp_t_mhbos_m_client_email_info_1 AS t
 WHERE
-  1 = 1
+  1 = 1;

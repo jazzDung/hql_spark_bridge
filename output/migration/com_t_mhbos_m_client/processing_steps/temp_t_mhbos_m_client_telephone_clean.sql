@@ -9,9 +9,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_telephone_clean (
   `fax_no` STRING,
   `tel_no_home` STRING,
   `tel_no_office` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_telephone_clean /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_telephone_clean /* 2.1.1 ddl-insert-sundexin */;
 
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_telephone_clean /* modify 20250502 */
 SELECT
@@ -122,4 +122,4 @@ FROM (
   FROM ${com_schema}.temp_t_mhbos_m_client_all AS mmca
 ) AS t
 WHERE
-  1 = 1
+  1 = 1;

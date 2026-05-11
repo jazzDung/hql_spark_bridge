@@ -46,7 +46,10 @@ WITH latest_primary_identification_no /* latest mapping based ON primary_identif
     COALESCE(t.primary_identification_no, mapping.primary_identification_no) AS primary_identification_no,
     COALESCE(t.customer_name, mapping.customer_name) AS customer_name,
     mapping.cust_id,
-    ROW_NUMBER() OVER (PARTITION BY COALESCE(t.primary_identification_no, mapping.primary_identification_no), COALESCE(t.customer_name, mapping.customer_name) ORDER BY mapping.cust_id, mapping.priority_level) AS rn
+    ROW_NUMBER() OVER (
+      PARTITION BY COALESCE(t.primary_identification_no, mapping.primary_identification_no), COALESCE(t.customer_name, mapping.customer_name)
+      ORDER BY mapping.cust_id, mapping.priority_level
+    ) AS rn
   FROM ${com_schema}.m_customer_id_mapping AS mapping
   LEFT JOIN ${com_schema}.t_mhbos_m_client AS t
     ON mapping.source_owner_id = t.client_no AND t.etl_dt = '${batch_date}'
@@ -63,10 +66,13 @@ WITH latest_primary_identification_no /* latest mapping based ON primary_identif
     ) AS secondary_identification_no,
     COALESCE(t.customer_name, mapping.customer_name) AS customer_name,
     mapping.cust_id,
-    ROW_NUMBER() OVER (PARTITION BY COALESCE(
-      NULLIF(TRIM(COALESCE(t.secondary_identification_no, '')), ''),
-      NULLIF(TRIM(COALESCE(mapping.secondary_identification_no, '')), '')
-    ), COALESCE(t.customer_name, mapping.customer_name) ORDER BY mapping.cust_id, mapping.priority_level) AS rn
+    ROW_NUMBER() OVER (
+      PARTITION BY COALESCE(
+        NULLIF(TRIM(COALESCE(t.secondary_identification_no, '')), ''),
+        NULLIF(TRIM(COALESCE(mapping.secondary_identification_no, '')), '')
+      ), COALESCE(t.customer_name, mapping.customer_name)
+      ORDER BY mapping.cust_id, mapping.priority_level
+    ) AS rn
   FROM ${com_schema}.m_customer_id_mapping AS mapping
   LEFT JOIN ${com_schema}.t_mhbos_m_client AS t
     ON mapping.source_owner_id = t.client_no AND t.etl_dt = '${batch_date}'

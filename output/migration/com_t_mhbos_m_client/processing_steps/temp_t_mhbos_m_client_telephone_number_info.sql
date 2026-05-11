@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_telephone_number_info
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_telephone_number_info;
 
 /* 2.12 Create a temporary table temp_mhbos_m_client_telephone_number_info to store the cleaned telephone number information. */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_telephone_number_info (
@@ -15,9 +15,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_telephone_number_
   `fax_no_flag` STRING,
   `tel_no_home_flag` STRING,
   `tel_no_office_flag` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_telephone_number_info /* 2.12.1 ddl-insert-sundexin */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_telephone_number_info /* 2.12.1 ddl-insert-sundexin */;
 
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_telephone_number_info /* modify 20250502 removed flag logic */
 SELECT
@@ -34,4 +34,4 @@ SELECT
   '0' AS fax_no_flag, /*  (case when t.fax_no rlike '^[0-9+]+$' then '0' */ /*        when t.fax_no like '%(0)%' then '0' */ /*        when t.fax_no rlike '^[0-9+]+\/[0-9]+$' then '0' */ /*      when nvl(trim(t.fax_no), '') = '' then '0' */ /*        else '1' end) as fax_no_flag, */
   '0' AS tel_no_home_flag, /*  (case when t.tel_no_home rlike '^[0-9+]+$' then '0' */ /*        when t.tel_no_home like '%(0)%' then '0' */ /*        when t.tel_no_home rlike '^[0-9+]+\/[0-9]+$' then '0' */ /*      when nvl(trim(t.tel_no_home), '') = '' then '0' */ /*        else '1' end) as tel_no_home_flag, */
   '0' AS tel_no_office_flag /*  (case when t.tel_no_office rlike '^[0-9+]+$' then '0' */ /*        when t.tel_no_office like '%(0)%' then '0' */ /*        when t.tel_no_office rlike '^[0-9+]+\/[0-9]+$' then '0' */ /*      when nvl(trim(t.tel_no_office), '') = '' then '0' */ /*        else '1' end) as tel_no_office_flag */
-FROM ${com_schema}.temp_t_mhbos_m_client_telephone_clean AS t
+FROM ${com_schema}.temp_t_mhbos_m_client_telephone_clean AS t;

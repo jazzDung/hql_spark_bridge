@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_secondary_identification_type
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_secondary_identification_type;
 
 /* 2.4 Create a temporary table temp_mhbos_m_client_secondary_identification_type to store the cleaned secondary identification type. */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_secondary_identification_type (
@@ -10,9 +10,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_secondary_identif
   `secondary_id_no` STRING,
   `secondary_identification_type` STRING,
   `secondary_identification_type_flag` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_secondary_identification_type /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_secondary_identification_type /* 2.1.1 ddl-insert-sundexin */;
 
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_secondary_identification_type
 SELECT
@@ -102,4 +102,4 @@ SELECT
              else '0'
          end)
         */ AS secondary_identification_type_flag /* 20250620 */
-FROM ${com_schema}.temp_t_mhbos_m_client_all AS mmc
+FROM ${com_schema}.temp_t_mhbos_m_client_all AS mmc;

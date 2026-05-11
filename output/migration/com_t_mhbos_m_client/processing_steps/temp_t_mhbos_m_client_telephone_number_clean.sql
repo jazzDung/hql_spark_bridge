@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_telephone_number_clean
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_telephone_number_clean;

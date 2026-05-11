@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_4_1
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_4_1;
 
 /* create temporary table temp_t_mhbos_m_client_nominees_info_4_1 */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_4_1 (
@@ -12,9 +12,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_4_1
   `noms_ind` STRING,
   `nominees_type` STRING,
   `remove_pledged_name_length` INT
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_nominees_info_4_1 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_4_1 */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_nominees_info_4_1 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_4_1 */;
 
 /* Insert the processed data into the temporary table temp_t_mhbos_m_client_nominees_info_4_1 */
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_nominees_info_4_1
@@ -72,4 +72,4 @@ SELECT
     LENGTH(pledged_name_list_41) /* add_20240828         */,
     LENGTH(pledged_name_list_42) /* add_20250620                     */
   ) AS remove_pledged_name_length
-FROM ${com_schema}.temp_t_mhbos_m_client_nominees_info_3 AS t /* where t.noms_ind = 'Y' */
+FROM ${com_schema}.temp_t_mhbos_m_client_nominees_info_3 AS t /* where t.noms_ind = 'Y' */;

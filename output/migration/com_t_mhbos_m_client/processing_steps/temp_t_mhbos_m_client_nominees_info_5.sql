@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_5
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_5;
 
 /* create temporary table temp_t_mhbos_m_client_nominees_info_5 */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_5 (
@@ -16,9 +16,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_nominees_info_5 (
   `remove_pledged_name` STRING,
   `replace_dsal_handling` STRING,
   `cleaned_nominees_name` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_nominees_info_5 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_5 */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_nominees_info_5 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_5 */;
 
 /* Insert the processed data into the temporary table temp_t_mhbos_m_client_nominees_info_5 */
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_nominees_info_5
@@ -51,4 +51,4 @@ SELECT
       'FOR'
     )
   ) AS cleaned_nominees_name
-FROM ${com_schema}.temp_t_mhbos_m_client_nominees_info_4 AS t /* where t.noms_ind = 'Y' */
+FROM ${com_schema}.temp_t_mhbos_m_client_nominees_info_4 AS t /* where t.noms_ind = 'Y' */;

@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_race_info
+DROP TABLE IF EXISTS ${com_schema}.temp_t_mhbos_m_client_race_info;
 
 /* 2.11 Create a temporary table temp_mhbos_m_client_race_info to store the cleaned race information. */
 CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_race_info (
@@ -6,9 +6,9 @@ CREATE TABLE IF NOT EXISTS ${com_schema}.temp_t_mhbos_m_client_race_info (
   `source_race` STRING,
   `race` STRING,
   `race_flag` STRING
-)
+);
 
-TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_race_info /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   ${com_schema}.temp_t_mhbos_m_client_race_info /* 2.1.1 ddl-insert-sundexin */;
 
 INSERT INTO ${com_schema}.temp_t_mhbos_m_client_race_info
 SELECT
@@ -42,4 +42,4 @@ SELECT
   '0' AS race_flag
 FROM ${com_schema}.temp_t_mhbos_m_client_all AS mmca
 LEFT JOIN ${com_schema}.temp_t_mhbos_m_client_customer_name_2 AS cn2
-  ON mmca.client_no = cn2.client_no
+  ON mmca.client_no = cn2.client_no;
