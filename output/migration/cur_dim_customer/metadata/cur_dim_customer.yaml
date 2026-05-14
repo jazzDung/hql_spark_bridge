@@ -1,0 +1,390 @@
+pipeline_id: cur_dim_customer
+layer: cur
+model_type: 3a
+source_name: dim
+target_table_name: None_dim_customer
+columns:
+- name: customer_id
+  type: VARCHAR(20)
+  remark: null
+- name: customer_type
+  type: VARCHAR(10)
+  remark: null
+- name: customer_title
+  type: VARCHAR(20)
+  remark: null
+- name: customer_name
+  type: VARCHAR(250)
+  remark: null
+- name: customer_primary_identification_no_type
+  type: VARCHAR(20)
+  remark: null
+- name: customer_primary_identification_no
+  type: VARCHAR(20)
+  remark: null
+- name: customer_primary_identification_no_expiry_date
+  type: DATE
+  remark: null
+- name: customer_secondary_identification_no_type
+  type: VARCHAR(20)
+  remark: null
+- name: customer_secondary_identification_no
+  type: VARCHAR(20)
+  remark: null
+- name: customer_secondary_identification_no_expiry_date
+  type: DATE
+  remark: null
+- name: customer_nationality
+  type: VARCHAR(2)
+  remark: null
+- name: customer_country_of_residence
+  type: VARCHAR(2)
+  remark: null
+- name: customer_country_of_birth
+  type: VARCHAR(2)
+  remark: null
+- name: customer_date_of_birth
+  type: DATE
+  remark: null
+- name: customer_bumiputra_status
+  type: VARCHAR(1)
+  remark: null
+- name: customer_race
+  type: VARCHAR(20)
+  remark: null
+- name: customer_gender
+  type: VARCHAR(10)
+  remark: null
+- name: customer_marital_status
+  type: VARCHAR(20)
+  remark: null
+- name: customer_company_contact_person
+  type: VARCHAR(100)
+  remark: null
+- name: customer_company_ownership
+  type: VARCHAR(5)
+  remark: null
+- name: customer_company_country_of_registration
+  type: VARCHAR(2)
+  remark: null
+- name: customer_company_type_of_business
+  type: VARCHAR(200)
+  remark: null
+- name: customer_company_date_of_incorporation
+  type: DATE
+  remark: null
+- name: customer_company_website
+  type: VARCHAR(100)
+  remark: null
+- name: customer_company_type_of_organization
+  type: VARCHAR(100)
+  remark: null
+- name: pdpa_flag
+  type: VARCHAR(1)
+  remark: null
+- name: connected_party_flag
+  type: VARCHAR(1)
+  remark: null
+- name: politically_exposed_person_flag
+  type: VARCHAR(3)
+  remark: null
+- name: cross_selling_consent_flag
+  type: VARCHAR(4)
+  remark: null
+- name: dcf_flag
+  type: VARCHAR(5)
+  remark: null
+- name: multi_trading_account_flag
+  type: VARCHAR(6)
+  remark: null
+- name: fatca_flag
+  type: VARCHAR(7)
+  remark: null
+- name: crs_flag
+  type: VARCHAR(8)
+  remark: null
+- name: customer_company_personnel_designation
+  type: VARCHAR(150)
+  remark: null
+- name: customer_residency_status
+  type: VARCHAR(1)
+  remark: null
+- name: auto_einvoice_indicator
+  type: VARCHAR(1)
+  remark: null
+- name: sst_registration_no
+  type: VARCHAR(20)
+  remark: null
+- name: customer_company_country_of_business
+  type: VARCHAR(2)
+  remark: null
+- name: vulnerable_flag
+  type: VARCHAR(1)
+  remark: null
+- name: etl_timestamp
+  type: STRING
+  remark: non_original_field
+key: customer_id
+key_detection_strategy: auto
+pre_processing:
+- name: TEMP_DIM_CUSTOMER_MHBOS
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_MHBOS.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_CUSTOMER_MHBOS:
+      schema: cur
+  - M_MHBOS_M_CLIENT:
+      schema: com
+  - T_MHBOS_M_CLIENT_EXT:
+      schema: com
+  - DIM_DECLARATION:
+      schema: cur
+  - DIM_FATCA:
+      schema: cur
+  - R_MHBOS_M_CLIENT_CRS:
+      schema: com
+  - R_K2_ACCOUNT:
+      schema: com
+  - R_K2_CIF_ACCOUNT:
+      schema: com
+  - R_K2_CIF_EXT:
+      schema: com
+  - REF_COUNTRY:
+      schema: cur
+  - R_K2_CIF_ALIAS:
+      schema: com
+  - R_K2_RULE_VALUE:
+      schema: com
+- name: TEMP_DIM_CUSTOMER_GUAVA_COMPANY
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_GUAVA_COMPANY.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_CUSTOMER_GUAVA_COMPANY:
+      schema: cur
+  - M_GUAVA_COMPANY:
+      schema: com
+  - T_GUAVA_BRANCH:
+      schema: com
+  - REF_COUNTRY:
+      schema: cur
+  - R_K2_ACCOUNT:
+      schema: com
+  - R_K2_CIF_ACCOUNT:
+      schema: com
+  - R_K2_RULE_VALUE:
+      schema: com
+- name: TEMP_DIM_CUSTOMER_GUAVA_CUSTOMER
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_GUAVA_CUSTOMER.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_CUSTOMER_GUAVA_CUSTOMER:
+      schema: cur
+  - M_GUAVA_CUSTOMER:
+      schema: com
+  - REF_COUNTRY:
+      schema: cur
+- name: TEMP_DIM_CUSTOMER_M21
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_M21.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_CUSTOMER_M21:
+      schema: cur
+  - M_M21_CUSTOMER:
+      schema: com
+  - T_M21_STATEMENTRECIPIENT:
+      schema: com
+  - DIM_DECLARATION:
+      schema: cur
+  - DIM_FATCA:
+      schema: cur
+  - DIM_CRS:
+      schema: cur
+- name: TEMP_DIM_CUSTOMER_M21_A
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_M21_A.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_CUSTOMER_M21_A:
+      schema: cur
+  - M_M21_A_CUSTOMER:
+      schema: com
+  - REF_COUNTRY:
+      schema: cur
+- name: TEMP_DIM_CUSTOMER_M21_O
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_M21_O.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_CUSTOMER_M21_O:
+      schema: cur
+  - M_M21_O_CUSTOMER:
+      schema: com
+  - REF_COUNTRY:
+      schema: cur
+- name: TEMP_DIM_CUSTOMER_TOMS_ECORPORATE_CIF
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_TOMS_ECORPORATE_CIF.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_CUSTOMER_TOMS_ECORPORATE_CIF:
+      schema: cur
+  - M_TOMS_ECORPORATE_CIF:
+      schema: com
+  - REF_LOOKUP:
+      schema: cur
+- name: TEMP_DIM_CUSTOMER_TOMS_ERETAIL_CIF
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_TOMS_ERETAIL_CIF.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_CUSTOMER_TOMS_ERETAIL_CIF:
+      schema: cur
+  - M_TOMS_ERETAIL_CIF:
+      schema: com
+- name: TEMP_DIM_CUSTOMER_TOMS_MERGE
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_TOMS_MERGE.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_CUSTOMER_TOMS_MERGE:
+      schema: cur
+  - TEMP_DIM_CUSTOMER_TOMS_ECORPORATE_CIF:
+      schema: cur
+  - TEMP_DIM_CUSTOMER_TOMS_ERETAIL_CIF:
+      schema: cur
+- name: TEMP_DIM_CUSTOMER_KDI_CLIENTREPORT
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_KDI_CLIENTREPORT.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_CUSTOMER_KDI_CLIENTREPORT:
+      schema: cur
+  - M_KDI_CLIENTREPORT:
+      schema: com
+  - REF_COUNTRY:
+      schema: cur
+- name: TEMP_DIM_CUSTOMER_SBL
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_SBL.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_CUSTOMER_SBL:
+      schema: cur
+  - M_SBL_TBL_EINVOICING_CLIENTDATA:
+      schema: com
+  - t_sblkibb_tbl_account:
+      schema: com
+  - t_sblkibb_tbl_counterparty:
+      schema: com
+  - t_sblkibb_tbl_title:
+      schema: com
+  - t_sblkibb_tbl_country:
+      schema: com
+  - t_sblkibb_tbl_bumistatus:
+      schema: com
+  - t_sblkibb_tbl_race:
+      schema: com
+  - t_sblkibb_tbl_maritalstatus:
+      schema: com
+  - t_sblkibb_tbl_typeofbusiness:
+      schema: com
+  - t_sblkibb_tbl_residencystatus:
+      schema: com
+- name: TEMP_DIM_CUSTOMER_LMS_CLIENTDATA
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_LMS_CLIENTDATA.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_CUSTOMER_LMS_CLIENTDATA:
+      schema: cur
+  - M_LMS_TBL_EINVOICING_CLIENTDATA:
+      schema: com
+- name: TEMP_DIM_CUSTOMER_LMS_COUNTERPARTY
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_LMS_COUNTERPARTY.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_CUSTOMER_LMS_COUNTERPARTY:
+      schema: cur
+  - M_LMSKIBB2_TBL_COUNTERPARTY:
+      schema: com
+- name: TEMP_DIM_CUSTOMER_MERGE
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_MERGE.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_CUSTOMER_MERGE:
+      schema: cur
+  - TEMP_DIM_CUSTOMER_LMS_CLIENTDATA:
+      schema: cur
+  - TEMP_DIM_CUSTOMER_LMS_COUNTERPARTY:
+      schema: cur
+  - TEMP_DIM_CUSTOMER_SBL:
+      schema: cur
+  - TEMP_DIM_CUSTOMER_KDI_CLIENTREPORT:
+      schema: cur
+  - TEMP_DIM_CUSTOMER_TOMS_MERGE:
+      schema: cur
+  - TEMP_DIM_CUSTOMER_GUAVA_CUSTOMER:
+      schema: cur
+  - TEMP_DIM_CUSTOMER_GUAVA_COMPANY:
+      schema: cur
+  - TEMP_DIM_CUSTOMER_M21_O:
+      schema: cur
+  - TEMP_DIM_CUSTOMER_M21_A:
+      schema: cur
+  - TEMP_DIM_CUSTOMER_MHBOS:
+      schema: cur
+  - TEMP_DIM_CUSTOMER_M21:
+      schema: cur
+- name: DIM_CUSTOMER
+  file: output/migration/cur_dim_customer/processing_steps/cur_DIM_CUSTOMER.sql
+  action: include
+  dependencies:
+  - DIM_CUSTOMER:
+      schema: cur
+  - TEMP_DIM_CUSTOMER_MERGE:
+      schema: cur
+- name: TEMP_DIM_CUSTOMER_M21A
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_M21A.sql
+  action: include
+  dependencies: []
+- name: TEMP_DIM_CUSTOMER_M21O
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_M21O.sql
+  action: include
+  dependencies: []
+- name: TEMP_DIM_CUSTOMER_TOMS_ECORPORATE
+  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_TOMS_ECORPORATE.sql
+  action: include
+  dependencies: []
+delta_columns:
+- customer_type
+- customer_title
+- customer_name
+- customer_primary_identification_no_type
+- customer_primary_identification_no
+- customer_primary_identification_no_expiry_date
+- customer_secondary_identification_no_type
+- customer_secondary_identification_no
+- customer_secondary_identification_no_expiry_date
+- customer_nationality
+- customer_country_of_residence
+- customer_country_of_birth
+- customer_date_of_birth
+- customer_bumiputra_status
+- customer_race
+- customer_gender
+- customer_marital_status
+- customer_company_contact_person
+- customer_company_ownership
+- customer_company_country_of_registration
+- customer_company_type_of_business
+- customer_company_date_of_incorporation
+- customer_company_website
+- customer_company_type_of_organization
+- pdpa_flag
+- connected_party_flag
+- politically_exposed_person_flag
+- cross_selling_consent_flag
+- dcf_flag
+- multi_trading_account_flag
+- fatca_flag
+- crs_flag
+- customer_company_personnel_designation
+- customer_residency_status
+- auto_einvoice_indicator
+- sst_registration_no
+- customer_company_country_of_business
+- vulnerable_flag
+applied_source_rule: default
+ddl_source: C:/Users/ext_giadung/projects/datalake-script/ddl/cur/cur_dim_customer.sql

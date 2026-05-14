@@ -10,16 +10,16 @@ column_rules:
 
 temp_table_rules:
     backup_table:
-        temp_table_name_suffix: _bk
+        suffix: _bk
         action: skip
     history_table:
-        temp_table_name_suffix: _bf
+        suffix: _bf
         action: skip
     new_write_table:
-        temp_table_name_suffix: _nw
+        suffix: _nw
         action: skip
     unchange_table:
-        temp_table_name_suffix: _od
+        suffix: _od
         action: skip
 
 

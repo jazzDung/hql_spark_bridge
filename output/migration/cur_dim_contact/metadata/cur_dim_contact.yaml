@@ -1,0 +1,170 @@
+pipeline_id: cur_dim_contact
+layer: cur
+model_type: 3a
+source_name: dim
+target_table_name: None_dim_contact
+columns:
+- name: owner_id
+  type: VARCHAR(50)
+  remark: null
+- name: contact_owner_type
+  type: VARCHAR(20)
+  remark: null
+- name: contact_type
+  type: VARCHAR(10)
+  remark: null
+- name: contact_value
+  type: VARCHAR(150)
+  remark: null
+- name: contact_name
+  type: VARCHAR(100)
+  remark: null
+- name: contact_create_date
+  type: DATE
+  remark: null
+- name: contact_update_date
+  type: DATE
+  remark: null
+- name: line_of_business
+  type: VARCHAR(20)
+  remark: null
+- name: source_name
+  type: VARCHAR(10)
+  remark: null
+- name: source_record_id
+  type: VARCHAR(50)
+  remark: null
+- name: sequence_no
+  type: INT
+  remark: null
+- name: etl_timestamp
+  type: STRING
+  remark: non_original_field
+key: owner_id
+key_detection_strategy: auto
+pre_processing:
+- name: TEMP_DIM_ACCOUNT_CONTACT_TOMS_ECORPORATE
+  file: output/migration/cur_dim_contact/processing_steps/cur_TEMP_DIM_ACCOUNT_CONTACT_TOMS_ECORPORATE.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_ACCOUNT_CONTACT_TOMS_ECORPORATE:
+      schema: cur
+  - T_TOMS_ECORPORATE_ACCOUNT:
+      schema: com
+- name: TEMP_DIM_ACCOUNT_CONTACT
+  file: output/migration/cur_dim_contact/processing_steps/cur_TEMP_DIM_ACCOUNT_CONTACT.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_ACCOUNT_CONTACT:
+      schema: cur
+  - T_MHBOS_M_CLIENT:
+      schema: com
+  - TEMP_DIM_ACCOUNT_CONTACT_GUAVA:
+      schema: cur
+  - TEMP_DIM_ACCOUNT_CONTACT_M21:
+      schema: cur
+  - TEMP_DIM_ACCOUNT_CONTACT_TOMS_ECORPORATE:
+      schema: cur
+  - T_TOMS_ECORPORATE_ACCOUNT:
+      schema: com
+  - T_TOMS_ERETAIL_ACCOUNT:
+      schema: com
+  - T_KDI_CLIENTREPORT:
+      schema: com
+  - T_rak_CUSTOMER:
+      schema: com
+  - T_SBL_TBL_EINVOICING_CLIENTDATA:
+      schema: com
+  - DIM_CONTACT:
+      schema: cur
+  - T_LMSKIBB2_TBL_FACILITY:
+      schema: com
+  - T_LMSKIBB2_TBL_COUNTERPARTY:
+      schema: com
+  - T_LMS_TBL_EINVOICING_CLIENTDATA:
+      schema: com
+- name: TEMP_DIM_TRADER_CONTACT
+  file: output/migration/cur_dim_contact/processing_steps/cur_TEMP_DIM_TRADER_CONTACT.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_TRADER_CONTACT:
+      schema: cur
+  - T_MHBOS_M_TRADER:
+      schema: com
+  - T_M21_ACCOUNTEXECUTIVE:
+      schema: com
+  - T_TOMS_EAGENTDETAILS:
+      schema: com
+  - T_MHBOS_M_TRADER_CMSRL:
+      schema: com
+- name: TEMP_DIM_BRANCH_CONTACT
+  file: output/migration/cur_dim_contact/processing_steps/cur_TEMP_DIM_BRANCH_CONTACT.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_BRANCH_CONTACT:
+      schema: cur
+  - T_MHBOS_M_BRANCH:
+      schema: com
+- name: TEMP_DIM_ACCOUNT_CONTACT_GUAVA
+  file: output/migration/cur_dim_contact/processing_steps/cur_TEMP_DIM_ACCOUNT_CONTACT_GUAVA.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_ACCOUNT_CONTACT_GUAVA:
+      schema: cur
+  - T_GUAVA_CUSTOMER:
+      schema: com
+  - T_GUAVA_COMPANY:
+      schema: com
+  - T_GUAVA_BRANCH_CONTACT:
+      schema: com
+- name: TEMP_DIM_ACCOUNT_CONTACT_M21
+  file: output/migration/cur_dim_contact/processing_steps/cur_TEMP_DIM_ACCOUNT_CONTACT_M21.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_ACCOUNT_CONTACT_M21:
+      schema: cur
+  - T_M21_CUSTOMER:
+      schema: com
+  - T_M21_A_CUSTOMER:
+      schema: com
+  - T_M21_O_CUSTOMER:
+      schema: com
+- name: TEMP_DIM_CUSTOMER_CONTACT
+  file: output/migration/cur_dim_contact/processing_steps/cur_TEMP_DIM_CUSTOMER_CONTACT.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_CUSTOMER_CONTACT:
+      schema: cur
+  - DIM_CUSTOMER:
+      schema: cur
+  - DIM_ACCOUNT:
+      schema: cur
+  - TEMP_DIM_ACCOUNT_CONTACT:
+      schema: cur
+- name: DIM_CONTACT
+  file: output/migration/cur_dim_contact/processing_steps/cur_DIM_CONTACT.sql
+  action: include
+  dependencies:
+  - DIM_CONTACT:
+      schema: cur
+  - TEMP_DIM_CUSTOMER_CONTACT:
+      schema: cur
+  - TEMP_DIM_BRANCH_CONTACT:
+      schema: cur
+  - TEMP_DIM_ACCOUNT_CONTACT:
+      schema: cur
+  - TEMP_DIM_TRADER_CONTACT:
+      schema: cur
+delta_columns:
+- contact_owner_type
+- contact_type
+- contact_value
+- contact_name
+- contact_create_date
+- contact_update_date
+- line_of_business
+- source_name
+- source_record_id
+- sequence_no
+applied_source_rule: default
+ddl_source: C:/Users/ext_giadung/projects/datalake-script/ddl/cur/cur_dim_contact.sql

@@ -95,6 +95,8 @@ class RawPySparkTransformer(BaseSqlTransformer):
                     external_table_create_node = optimization_result.get("external_table_create_node")
                     temp_context = SqlConversionContext(
                         original_file_path=context.original_file_path,
+                        layer=context.layer,
+                        sub_layer=context.sub_layer,
                         raw_sql_content=node.sql(),
                         source_name=context.source_name,
                         table_name=context.table_name,
@@ -110,6 +112,8 @@ class RawPySparkTransformer(BaseSqlTransformer):
                     if external_table_create_node:
                         temp_context = SqlConversionContext(
                             original_file_path=context.original_file_path,
+                            layer=context.layer,
+                            sub_layer=context.sub_layer,
                             raw_sql_content=node.sql(),
                             source_name=context.source_name,
                             table_name=context.table_name,
@@ -123,6 +127,8 @@ class RawPySparkTransformer(BaseSqlTransformer):
 
             temp_context = SqlConversionContext(
                 original_file_path=context.original_file_path,
+                layer=context.layer,
+                sub_layer=context.sub_layer,
                 raw_sql_content=node.sql(),
                 source_name=context.source_name,
                 table_name=context.table_name,

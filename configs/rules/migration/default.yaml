@@ -1,0 +1,14 @@
+
+source: default
+
+default_model: 3a
+
+default_key:
+    - client_no
+
+column_rules:
+    non_original_fields:
+        name: ["etl_timestamp", "start_dt", "end_dt", "part_id", "etl_dt"]
+
+
+#temp_table_rules: []

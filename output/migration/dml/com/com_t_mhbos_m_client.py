@@ -1,7 +1,7 @@
 ##  File Name   : com_t_mhbos_m_client
 ##  File Type   : DML
 ##  Model       : 3a
-##  Generated   : 2026-05-10 22:39:51
+##  Generated   : 2026-05-13 09:38:32
 ##  Source      : com_t_mhbos_m_client (migrated from Datalake Old)
 
 import os
@@ -272,7 +272,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_all /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_all
 """)
 
 spark.sql(f"""
@@ -536,11 +536,11 @@ WITH filtered_clients AS (
       mmce.perm_addr3,
       mmce.perm_addr4,
       mmce.perm_postcode,
-      mmce.perm_city, /* 20250715 */
-      mmce.perm_state_code, /* 20250715 */
-      mmce.perm_country, /* 20250715 */
-      mmc.type_of_account, /* 20250806 */
-      mmce.einvoice_email, /* 20250903 */
+      mmce.perm_city /* 20250715 */,
+      mmce.perm_state_code /* 20250715 */,
+      mmce.perm_country /* 20250715 */,
+      mmc.type_of_account /* 20250806 */,
+      mmce.einvoice_email /* 20250903 */,
       mmce.state_code /* 20251013 */
     FROM latest_clients AS mmc
     LEFT JOIN {params["com_schema"]}.t_mhbos_m_client_ext AS mmce
@@ -566,7 +566,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_primary_identification_type /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_primary_identification_type
 """)
 
 spark.sql(f"""
@@ -679,7 +679,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_primary_identification_no /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_primary_identification_no
 """)
 
 spark.sql(f"""
@@ -803,7 +803,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_secondary_identification_type /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_secondary_identification_type
 """)
 
 spark.sql(f"""
@@ -917,7 +917,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_secondary_identification_no /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_secondary_identification_no
 """)
 
 spark.sql(f"""
@@ -1035,7 +1035,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_identification_info /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_identification_info
 """)
 
 spark.sql(f"""
@@ -1066,94 +1066,7 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_identification_info
                 INT(SUBSTRING(p_no.primary_identification_no, 5, 2)) >= 1
                 AND INT(SUBSTRING(p_no.primary_identification_no, 5, 2)) <= 31
               )
-              AND SUBSTRING(p_no.primary_identification_no, 7, 2) /* At 7th and 8th digit referring to the Place of Birth */ IN (
-                '01',
-                '21',
-                '22',
-                '23',
-                '24',
-                '02',
-                '25',
-                '26',
-                '27',
-                '03',
-                '28',
-                '29',
-                '04',
-                '30',
-                '05',
-                '31',
-                '59',
-                '06',
-                '32',
-                '33',
-                '07',
-                '34',
-                '35',
-                '08',
-                '36',
-                '37',
-                '38',
-                '39',
-                '09',
-                '40',
-                '10',
-                '41',
-                '42',
-                '43',
-                '44',
-                '11',
-                '45',
-                '46',
-                '12',
-                '47',
-                '48',
-                '49',
-                '13',
-                '50',
-                '51',
-                '52',
-                '53',
-                '14',
-                '54',
-                '55',
-                '56',
-                '57',
-                '15',
-                '58',
-                '16',
-                '60',
-                '61',
-                '62',
-                '63',
-                '64',
-                '65',
-                '66',
-                '67',
-                '68',
-                '71',
-                '72',
-                '74',
-                '75',
-                '76',
-                '77',
-                '78',
-                '79',
-                '82',
-                '83',
-                '84',
-                '85',
-                '86',
-                '87',
-                '88',
-                '89',
-                '90',
-                '91',
-                '92',
-                '93',
-                '98',
-                '99'
-              )
+              AND SUBSTRING(p_no.primary_identification_no, 7, 2) /* At 7th and 8th digit referring to the Place of Birth */ IN ('01', '21', '22', '23', '24', '02', '25', '26', '27', '03', '28', '29', '04', '30', '05', '31', '59', '06', '32', '33', '07', '34', '35', '08', '36', '37', '38', '39', '09', '40', '10', '41', '42', '43', '44', '11', '45', '46', '12', '47', '48', '49', '13', '50', '51', '52', '53', '14', '54', '55', '56', '57', '15', '58', '16', '60', '61', '62', '63', '64', '65', '66', '67', '68', '71', '72', '74', '75', '76', '77', '78', '79', '82', '83', '84', '85', '86', '87', '88', '89', '90', '91', '92', '93', '98', '99')
               THEN p_no.primary_identification_no
               ELSE '@[' || p_no.primary_identification_no || ']'
             END
@@ -1176,94 +1089,7 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_identification_info
                 INT(SUBSTRING(p_no.primary_identification_no, 5, 2)) >= 1
                 AND INT(SUBSTRING(p_no.primary_identification_no, 5, 2)) <= 31
               )
-              AND SUBSTRING(p_no.primary_identification_no, 7, 2) /* At 7th and 8th digit referring to the Place of Birth */ IN (
-                '01',
-                '21',
-                '22',
-                '23',
-                '24',
-                '02',
-                '25',
-                '26',
-                '27',
-                '03',
-                '28',
-                '29',
-                '04',
-                '30',
-                '05',
-                '31',
-                '59',
-                '06',
-                '32',
-                '33',
-                '07',
-                '34',
-                '35',
-                '08',
-                '36',
-                '37',
-                '38',
-                '39',
-                '09',
-                '40',
-                '10',
-                '41',
-                '42',
-                '43',
-                '44',
-                '11',
-                '45',
-                '46',
-                '12',
-                '47',
-                '48',
-                '49',
-                '13',
-                '50',
-                '51',
-                '52',
-                '53',
-                '14',
-                '54',
-                '55',
-                '56',
-                '57',
-                '15',
-                '58',
-                '16',
-                '60',
-                '61',
-                '62',
-                '63',
-                '64',
-                '65',
-                '66',
-                '67',
-                '68',
-                '71',
-                '72',
-                '74',
-                '75',
-                '76',
-                '77',
-                '78',
-                '79',
-                '82',
-                '83',
-                '84',
-                '85',
-                '86',
-                '87',
-                '88',
-                '89',
-                '90',
-                '91',
-                '92',
-                '93',
-                '98',
-                '99'
-              )
+              AND SUBSTRING(p_no.primary_identification_no, 7, 2) /* At 7th and 8th digit referring to the Place of Birth */ IN ('01', '21', '22', '23', '24', '02', '25', '26', '27', '03', '28', '29', '04', '30', '05', '31', '59', '06', '32', '33', '07', '34', '35', '08', '36', '37', '38', '39', '09', '40', '10', '41', '42', '43', '44', '11', '45', '46', '12', '47', '48', '49', '13', '50', '51', '52', '53', '14', '54', '55', '56', '57', '15', '58', '16', '60', '61', '62', '63', '64', '65', '66', '67', '68', '71', '72', '74', '75', '76', '77', '78', '79', '82', '83', '84', '85', '86', '87', '88', '89', '90', '91', '92', '93', '98', '99')
               THEN '0'
               ELSE '1'
             END
@@ -1335,7 +1161,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_dob_info /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_dob_info
 """)
 
 spark.sql(f"""
@@ -1351,10 +1177,10 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_dob_info
         CASE
           WHEN id.primary_identification_type = '1' AND id.primary_identification_no_flag = '0'
           THEN DATE_FORMAT(
-            FROM_UNIXTIME(
+            CAST(FROM_UNIXTIME(
               UNIX_TIMESTAMP(SUBSTRING(id.primary_identification_no, 1, 6), 'yymmdd'),
               'yyyy-mm-dd'
-            ),
+            ) AS TIMESTAMP),
             'yyyy-MM-dd'
           )
           WHEN NOT mmce.date_of_birth IS NULL
@@ -1371,8 +1197,7 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_dob_info
           ELSE '0'
         END
       ) AS date_of_birth_flag
-    FROM {params["com_schema"]}.temp_t_mhbos_m_client_identification_info AS id
-    CROSS JOIN {params["com_schema"]}.temp_t_mhbos_m_client_all AS mmce
+    FROM {params["com_schema"]}.temp_t_mhbos_m_client_identification_info AS id, {params["com_schema"]}.temp_t_mhbos_m_client_all AS mmce
     WHERE
       id.client_no = mmce.client_no
 """)
@@ -1396,7 +1221,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_gender_info /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_gender_info
 """)
 
 spark.sql(f"""
@@ -1473,7 +1298,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_customer_name_1 /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_customer_name_1
 """)
 
 spark.sql(f"""
@@ -1630,7 +1455,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_customer_name_2 /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_customer_name_2
 """)
 
 spark.sql(f"""
@@ -1746,7 +1571,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_race_info /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_race_info
 """)
 
 spark.sql(f"""
@@ -1813,7 +1638,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_telephone_number_info /* 2.12.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_telephone_number_info
 """)
 
 spark.sql(f"""
@@ -1859,7 +1684,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_email_clean /* 2.13.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_email_clean
 """)
 
 spark.sql(f"""
@@ -1922,7 +1747,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_email_info_1 /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_email_info_1
 """)
 
 spark.sql(f"""
@@ -2311,7 +2136,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_email_info /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_email_info
 """)
 
 spark.sql(f"""
@@ -2373,7 +2198,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_address_city /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_address_city
 """)
 
 spark.sql(f"""
@@ -2411,8 +2236,8 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_address_city
       addr.postcode,
       addr.mailing_addr,
       REGEXP_EXTRACT(
-        UPPER(addr.mailing_addr),
-        '\\b(?:.*\\b)((BATU PAHAT)|(JOHOR BAHRU)|(KLUANG)|(KOTA TINGGI)|(MERSING)|(MUAR)|(PONTIAN)|(SEGAMAT)|(LEDANG)|(KULAI)|(TANGKAK)|(BALING)|(SERDANG)|(ALOR SETAR)|(SUNGAI PETANI)|(JITRA)|(KULIM)|(KUAH)|(KUALA NERANG)|(PENDANG)|(POKOK SENA)|(SIK)|(YAM)|(BACHOK)|(GUA MUSANG)|(JELI)|(KOTA BHARU)|(KUALA KRAI)|(MACHANG)|(PASIR MAS)|(PASIR PUTEH)|(TANAH MERAH)|(TUMPAT)|(ALOR GAJAH)|(JASIN)|(AYER KEROH)|(KUALA KLAWANG)|(BANDAR SERI JEMPOL)|(KUALA PILAH)|(PORT DICKSON)|(REMBAU)|(SEREMBAN)|(TAMPIN)|(BENTONG)|(BANDAR BERA)|(TANAH RATA)|(JERANTUT)|(KUANTAN)|(KUALA LIPIS)|(MARAN)|(PEKAN)|(RAUB)|(KUALA ROMPIN)|(TEMERLOH)|(BUKIT MERTAJAM)|(KEPALA BATAS)|(GEORGE TOWN)|(SUNGAI JAWI)|(BALIK PULAU)|(TAPAH)|(TELUK INTAN)|(GERIK)|(KAMPAR)|(PARIT BUNTAR)|(BATU GAJAH)|(KUALA KANGSAR)|(SERI MANJUNG)|(TAIPING)|(SERI ISKANDAR)|(BAGAN DATUK)|(BEAUFORT)|(BELURAN)|(KENINGAU)|(KOTA KINABATANGAN)|(KOTA BELUD)|(KOTA KINABALU)|(KOTA MARUDU)|(KUALA PENYU)|(KUDAT)|(KUNAK)|(LAHAD DATU)|(NABAWAN)|(PAPAR)|(DONGGONGON)|(PITAS)|(PUTATAN)|(RANAU)|(SANDAKAN)|(SEMPORNA)|(SIPITANG)|(TAMBUNAN)|(TAWAU)|(TELUPID)|(TENOM)|(TONGOD)|(TUARAN)|(ASAJAYA)|(BAU)|(BELAGA)|(BELUGU)|(BETONG)|(BINTULU)|(DALAT)|(MATU)|(JULAU)|(KABONG)|(KANOWIT)|(KAPIT)|(KUCHING)|(LAWAS)|(LIMBANG)|(LUBOK ANTU)|(LUNDU)|(MARUDI)|(MATU)|(BINTANGOR)|(MIRI)|(MUKAH)|(PAKAN)|(PUSA)|(KOTA SAMAHARAN)|(SARATOK)|(SARIKEI)|(SEBAUH)|(SELANGAU)|(SERIAN)|(SIBU)|(SIMUNJAN)|(SONG)|(SIMANGGANG)|(SUBIS)|(BELAWAI)|(TATAU)|(TEBEDU)|(LONG LAMA)|(BANDAR BARU SELAYANG)|(BANDAR BARU BANGI)|(KUALA KUBU BAHRU)|(KLANG)|(TELUK DATOK)|(KUALA SELANGOR)|(SUBANG)|(SABAK)|(SALAK TINGGI)|(KAMPUNG RAJA)|(KUALA DUNGUN)|(KUALA BERANG)|(CHUKAI)|(KUALA NERUS)|(KUALA TERENGGANU)|(MARANG)|(BANDAR PERMAISURI)|(KUALA LUMPUR)|(PUTRAJAYA)|(LABUAN))\\b'
+        REGEXP_REPLACE(UPPER(addr.mailing_addr), '[^A-Z ]', ' '),
+        '\\b(BATU PAHAT|JOHOR BAHRU|KLUANG|KOTA TINGGI|MERSING|MUAR|PONTIAN|SEGAMAT|LEDANG|KULAI|TANGKAK|BALING|SERDANG|ALOR SETAR|SUNGAI PETANI|JITRA|KULIM|KUAH|KUALA NERANG|PENDANG|POKOK SENA|SIK|YAM|BACHOK|GUA MUSANG|JELI|KOTA BHARU|KUALA KRAI|MACHANG|PASIR MAS|PASIR PUTEH|TANAH MERAH|TUMPAT|ALOR GAJAH|JASIN|AYER KEROH|KUALA KLAWANG|BANDAR SERI JEMPOL|KUALA PILAH|PORT DICKSON|REMBAU|SEREMBAN|TAMPIN|BENTONG|BANDAR BERA|TANAH RATA|JERANTUT|KUANTAN|KUALA LIPIS|MARAN|PEKAN|RAUB|KUALA ROMPIN|TEMERLOH|BUKIT MERTAJAM|KEPALA BATAS|GEORGE TOWN|SUNGAI JAWI|BALIK PULAU|TAPAH|TELUK INTAN|GERIK|KAMPAR|PARIT BUNTAR|BATU GAJAH|KUALA KANGSAR|SERI MANJUNG|TAIPING|SERI ISKANDAR|BAGAN DATUK|BEAUFORT|BELURAN|KENINGAU|KOTA KINABATANGAN|KOTA BELUD|KOTA KINABALU|KOTA MARUDU|KUALA PENYU|KUDAT|KUNAK|LAHAD DATU|NABAWAN|PAPAR|DONGGONGON|PITAS|PUTATAN|RANAU|SANDAKAN|SEMPORNA|SIPITANG|TAMBUNAN|TAWAU|TELUPID|TENOM|TONGOD|TUARAN|ASAJAYA|BAU|BELAGA|BELUGU|BETONG|BINTULU|DALAT|MATU|JULAU|KABONG|KANOWIT|KAPIT|KUCHING|LAWAS|LIMBANG|LUBOK ANTU|LUNDU|MARUDI|BINTANGOR|MIRI|MUKAH|PAKAN|PUSA|KOTA SAMARAHAN|SARATOK|SARIKEI|SEBAUH|SELANGAU|SERIAN|SIBU|SIMUNJAN|SONG|SIMANGGANG|SUBIS|BELAWAI|TATAU|TEBEDU|LONG LAMA|BANDAR BARU SELAYANG|BANDAR BARU BANGI|KUALA KUBU BAHRU|KLANG|TELUK DATOK|KUALA SELANGOR|SUBANG|SABAK|SALAK TINGGI|KAMPUNG RAJA|KUALA DUNGUN|KUALA BERANG|CHUKAI|KUALA NERUS|KUALA TERENGGANU|MARANG|BANDAR PERMAISURI|KUALA LUMPUR|PUTRAJAYA|LABUAN|AYER ITAM|BAGAN SERAI|CHEMOR|CHERAS|GELUGOR|GEORGETOWN|GOMBAK|GURUN|IPOH|JERAM|KAJANG|KUALA KEDAH|LENGGONG|MELAKA|NILAI|PETALING JAYA|PUCHONG|SELAYANG|SELEKOH|SERI KEMBANGAN|SHAH ALAM|SINGAPORE|SKUDAI|SUNGAI BULOH|YONG PENG|TANJONG KARANG|BATU CAVES|BAYAN LEPAS|BANTING|CYBERJAYA|ULU TIRAM|MASAI|PASIR GUDANG|KEMAMAN|TOKYO|ANGELES CITY|ARAU|BANDAR SERI BEGAWAN|BANGKOK|BERLIN|BIDOR|BUTTERWORTH|CANBERRA|CHICAGO|DUBAI|DUNGUN|GEMAS|HANOI|HONG KONG|ISKANDAR PUTERI|JEDDAH|JENGKA|KANGAR|KARAK|KLUANG|KUALA KLAWANG|KUALA KURAU|KUALA PERLIS|KUALA TERENGGANU|LANGKAWI|LONDON|LOS ANGELES|LUMUT|LUNAS|MADRID|MELBOURNE|MENTAKAB|NEW YORK|NIBONG TEBAL|PADANG BESAR|PADANG SERAI|PAKA|PANTAI REMIS|PARIS|PASIR GUDANG|PERTH|RANTAU PANJANG|PUSING|REMBAU|ROME|SABAK BERNAM|SELAMA|SETAPAK|SLIM RIVER|SITIAWAN|SHANGHAI|SUNGAI SIPUT|SYDNEY|TANJONG MALIM|TORONTO|TRIANG|VANCOUVER|WASHINGTON DC|YAN)\\b'
       ) AS city,
       addr.state_code AS state, /*	   regexp_extract(upper(addr.mailing_addr), '\\b(?:.*\\b)((JOHOR)|(KEDAH)|(KELANTAN)|(MELAKA)|(MALACCA)|(NEGERI SEMBILAN)|(PAHANG)|(PENANG)|(PERAK)|(SABAH)|(SARAWAK)|(SELANGOR)|(TERENGGANU)|(WILAYAH PERSEKUTUAN)|( W\\.*P\\.* )|( W\\.*P\.*$)|(^W\\.*P\\.* ))\\b', 1) as state, */ /* 20251013 */
       COALESCE(addr.perm_addr1, addr.perm_addr2, addr.perm_addr3, addr.perm_addr4, '') AS perm_addr1,
@@ -2456,7 +2281,7 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_address_city
         THEN addr.perm_city
         ELSE REGEXP_EXTRACT(
           UPPER(addr.registered_addr),
-          '\\b(?:.*\\b)((BATU PAHAT)|(JOHOR BAHRU)|(KLUANG)|(KOTA TINGGI)|(MERSING)|(MUAR)|(PONTIAN)|(SEGAMAT)|(LEDANG)|(KULAI)|(TANGKAK)|(BALING)|(SERDANG)|(ALOR SETAR)|(SUNGAI PETANI)|(JITRA)|(KULIM)|(KUAH)|(KUALA NERANG)|(PENDANG)|(POKOK SENA)|(SIK)|(YAM)|(BACHOK)|(GUA MUSANG)|(JELI)|(KOTA BHARU)|(KUALA KRAI)|(MACHANG)|(PASIR MAS)|(PASIR PUTEH)|(TANAH MERAH)|(TUMPAT)|(ALOR GAJAH)|(JASIN)|(AYER KEROH)|(KUALA KLAWANG)|(BANDAR SERI JEMPOL)|(KUALA PILAH)|(PORT DICKSON)|(REMBAU)|(SEREMBAN)|(TAMPIN)|(BENTONG)|(BANDAR BERA)|(TANAH RATA)|(JERANTUT)|(KUANTAN)|(KUALA LIPIS)|(MARAN)|(PEKAN)|(RAUB)|(KUALA ROMPIN)|(TEMERLOH)|(BUKIT MERTAJAM)|(KEPALA BATAS)|(GEORGE TOWN)|(SUNGAI JAWI)|(BALIK PULAU)|(TAPAH)|(TELUK INTAN)|(GERIK)|(KAMPAR)|(PARIT BUNTAR)|(BATU GAJAH)|(KUALA KANGSAR)|(SERI MANJUNG)|(TAIPING)|(SERI ISKANDAR)|(BAGAN DATUK)|(BEAUFORT)|(BELURAN)|(KENINGAU)|(KOTA KINABATANGAN)|(KOTA BELUD)|(KOTA KINABALU)|(KOTA MARUDU)|(KUALA PENYU)|(KUDAT)|(KUNAK)|(LAHAD DATU)|(NABAWAN)|(PAPAR)|(DONGGONGON)|(PITAS)|(PUTATAN)|(RANAU)|(SANDAKAN)|(SEMPORNA)|(SIPITANG)|(TAMBUNAN)|(TAWAU)|(TELUPID)|(TENOM)|(TONGOD)|(TUARAN)|(ASAJAYA)|(BAU)|(BELAGA)|(BELUGU)|(BETONG)|(BINTULU)|(DALAT)|(MATU)|(JULAU)|(KABONG)|(KANOWIT)|(KAPIT)|(KUCHING)|(LAWAS)|(LIMBANG)|(LUBOK ANTU)|(LUNDU)|(MARUDI)|(MATU)|(BINTANGOR)|(MIRI)|(MUKAH)|(PAKAN)|(PUSA)|(KOTA SAMAHARAN)|(SARATOK)|(SARIKEI)|(SEBAUH)|(SELANGAU)|(SERIAN)|(SIBU)|(SIMUNJAN)|(SONG)|(SIMANGGANG)|(SUBIS)|(BELAWAI)|(TATAU)|(TEBEDU)|(LONG LAMA)|(BANDAR BARU SELAYANG)|(BANDAR BARU BANGI)|(KUALA KUBU BAHRU)|(KLANG)|(TELUK DATOK)|(KUALA SELANGOR)|(SUBANG)|(SABAK)|(SALAK TINGGI)|(KAMPUNG RAJA)|(KUALA DUNGUN)|(KUALA BERANG)|(CHUKAI)|(KUALA NERUS)|(KUALA TERENGGANU)|(MARANG)|(BANDAR PERMAISURI)|(KUALA LUMPUR)|(PUTRAJAYA)|(LABUAN))\\b'
+          '\\b(BATU PAHAT|JOHOR BAHRU|KLUANG|KOTA TINGGI|MERSING|MUAR|PONTIAN|SEGAMAT|LEDANG|KULAI|TANGKAK|BALING|SERDANG|ALOR SETAR|SUNGAI PETANI|JITRA|KULIM|KUAH|KUALA NERANG|PENDANG|POKOK SENA|SIK|YAM|BACHOK|GUA MUSANG|JELI|KOTA BHARU|KUALA KRAI|MACHANG|PASIR MAS|PASIR PUTEH|TANAH MERAH|TUMPAT|ALOR GAJAH|JASIN|AYER KEROH|KUALA KLAWANG|BANDAR SERI JEMPOL|KUALA PILAH|PORT DICKSON|REMBAU|SEREMBAN|TAMPIN|BENTONG|BANDAR BERA|TANAH RATA|JERANTUT|KUANTAN|KUALA LIPIS|MARAN|PEKAN|RAUB|KUALA ROMPIN|TEMERLOH|BUKIT MERTAJAM|KEPALA BATAS|GEORGE TOWN|SUNGAI JAWI|BALIK PULAU|TAPAH|TELUK INTAN|GERIK|KAMPAR|PARIT BUNTAR|BATU GAJAH|KUALA KANGSAR|SERI MANJUNG|TAIPING|SERI ISKANDAR|BAGAN DATUK|BEAUFORT|BELURAN|KENINGAU|KOTA KINABATANGAN|KOTA BELUD|KOTA KINABALU|KOTA MARUDU|KUALA PENYU|KUDAT|KUNAK|LAHAD DATU|NABAWAN|PAPAR|DONGGONGON|PITAS|PUTATAN|RANAU|SANDAKAN|SEMPORNA|SIPITANG|TAMBUNAN|TAWAU|TELUPID|TENOM|TONGOD|TUARAN|ASAJAYA|BAU|BELAGA|BELUGU|BETONG|BINTULU|DALAT|MATU|JULAU|KABONG|KANOWIT|KAPIT|KUCHING|LAWAS|LIMBANG|LUBOK ANTU|LUNDU|MARUDI|BINTANGOR|MIRI|MUKAH|PAKAN|PUSA|KOTA SAMARAHAN|SARATOK|SARIKEI|SEBAUH|SELANGAU|SERIAN|SIBU|SIMUNJAN|SONG|SIMANGGANG|SUBIS|BELAWAI|TATAU|TEBEDU|LONG LAMA|BANDAR BARU SELAYANG|BANDAR BARU BANGI|KUALA KUBU BAHRU|KLANG|TELUK DATOK|KUALA SELANGOR|SUBANG|SABAK|SALAK TINGGI|KAMPUNG RAJA|KUALA DUNGUN|KUALA BERANG|CHUKAI|KUALA NERUS|KUALA TERENGGANU|MARANG|BANDAR PERMAISURI|KUALA LUMPUR|PUTRAJAYA|LABUAN|AYER ITAM|BAGAN SERAI|CHEMOR|CHERAS|GELUGOR|GEORGETOWN|GOMBAK|GURUN|IPOH|JERAM|KAJANG|KUALA KEDAH|LENGGONG|MELAKA|NILAI|PETALING JAYA|PUCHONG|SELAYANG|SELEKOH|SERI KEMBANGAN|SHAH ALAM|SINGAPORE|SKUDAI|SUNGAI BULOH|YONG PENG|TANJONG KARANG|BATU CAVES|BAYAN LEPAS|BANTING|CYBERJAYA|ULU TIRAM|MASAI|PASIR GUDANG|KEMAMAN|TOKYO|ANGELES CITY|ARAU|BANDAR SERI BEGAWAN|BANGKOK|BERLIN|BIDOR|BUTTERWORTH|CANBERRA|CHICAGO|DUBAI|DUNGUN|GEMAS|HANOI|HONG KONG|ISKANDAR PUTERI|JEDDAH|JENGKA|KANGAR|KARAK|KLUANG|KUALA KLAWANG|KUALA KURAU|KUALA PERLIS|KUALA TERENGGANU|LANGKAWI|LONDON|LOS ANGELES|LUMUT|LUNAS|MADRID|MELBOURNE|MENTAKAB|NEW YORK|NIBONG TEBAL|PADANG BESAR|PADANG SERAI|PAKA|PANTAI REMIS|PARIS|PASIR GUDANG|PERTH|RANTAU PANJANG|PUSING|REMBAU|ROME|SABAK BERNAM|SELAMA|SETAPAK|SLIM RIVER|SITIAWAN|SHANGHAI|SUNGAI SIPUT|SYDNEY|TANJONG MALIM|TORONTO|TRIANG|VANCOUVER|WASHINGTON DC|YAN)\\b'
         )
       END AS perm_city, /* 20250715 */
       addr.perm_state_code AS perm_state, /*	     case when nvl(trim(addr.perm_state_code),'') <> '' then addr.perm_state_code else regexp_extract(upper(addr.registered_addr), '\\b(?:.*\\b)((JOHOR)|(KEDAH)|(KELANTAN)|(MELAKA)|(MALACCA)|(NEGERI SEMBILAN)|(PAHANG)|(PENANG)|(PERAK)|(SABAH)|(SARAWAK)|(SELANGOR)|(TERENGGANU)|(WILAYAH PERSEKUTUAN)|( W\\.*P\\.* )|( W\\.*P\.*$)|(^W\\.*P\\.* ))\\b', 1) end as perm_state, -- 20250715 */ /* 20251013 */
@@ -2557,7 +2382,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_address_info /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_address_info
 """)
 
 spark.sql(f"""
@@ -2743,7 +2568,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_1 /* truncate temporary table */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_1
 """)
 
 spark.sql(f"""
@@ -2928,7 +2753,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_2_1 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_2_1 */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_2_1
 """)
 
 spark.sql(f"""
@@ -3081,7 +2906,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_2 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_2 */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_2
 """)
 
 spark.sql(f"""
@@ -3392,7 +3217,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_3 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_3 */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_3
 """)
 
 spark.sql(f"""
@@ -3479,7 +3304,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_4_1 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_4_1 */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_4_1
 """)
 
 spark.sql(f"""
@@ -3565,7 +3390,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_4 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_4 */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_4
 """)
 
 spark.sql(f"""
@@ -3790,7 +3615,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_5 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_5 */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_5
 """)
 
 spark.sql(f"""
@@ -3856,7 +3681,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info /* trunate temporary table temp_t_mhbos_m_client_nominees_info_5 */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info
 """)
 
 spark.sql(f"""
@@ -3980,7 +3805,7 @@ CREATE TABLE IF NOT EXISTS {params["com_schema"]}.temp_t_mhbos_m_client_name_inf
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_name_info /* trunate temporary table temp_t_mhbos_m_client_name_info */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_name_info
 """)
 
 spark.sql(f"""
@@ -4064,11 +3889,11 @@ spark.sql(f"""
             ELSE REGEXP_REPLACE(t1.customer_name, '^(SMT\\s+|INTRADAY A/C\\s+)', '')
           END
         ) AS customer_name,
-        t1.primary_identification_type, /* added 20250313 */
+        t1.primary_identification_type /* added 20250313 */,
         t1.primary_identification_no AS org_primary_identification_no,
         t1.primary_identification_no,
-        t1.secondary_identification_type, /* added 20250620 */
-        t1.secondary_identification_no, /* added 20250620 */
+        t1.secondary_identification_type /* added 20250620 */,
+        t1.secondary_identification_no /* added 20250620 */,
         t1.principal_name AS org_principal_name,
         TRIM(
           CASE
@@ -4111,10 +3936,10 @@ spark.sql(f"""
             THEN '@[]'
             ELSE cn.customer_name
           END AS customer_name,
-          id.primary_identification_type, /* added 20250313 */
+          id.primary_identification_type /* added 20250313 */,
           id.primary_identification_no,
-          id.secondary_identification_type, /* added 20250620 */
-          id.secondary_identification_no, /* added 20250620 */
+          id.secondary_identification_type /* added 20250620 */,
+          id.secondary_identification_no /* added 20250620 */,
           nom.principal_name,
           nom.beneficiary_name
         FROM {params["com_schema"]}.temp_t_mhbos_m_client_all AS mmca
@@ -4701,8 +4526,8 @@ spark.sql(f"""
       mmca.brokerage_type_leap_normal,
       mmca.brokerage_type_leap_etrade,
       CURRENT_TIMESTAMP() AS etl_timestamp,
-      step2.perm_country, /* added new field 20250715 */
-      mmca.type_of_account, /* added new field 20250806 */
+      step2.perm_country /* added new field 20250715 */,
+      mmca.type_of_account /* added new field 20250806 */,
       step2.einvoice_email /* 20250903 einvoice_email */
     FROM {params["com_schema"]}.temp_t_mhbos_m_client_all AS mmca
     LEFT JOIN {params["com_schema"]}.temp_t_mhbos_m_client_identification_info_step2 AS step2
@@ -4725,7 +4550,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_telephone_clean /* 2.1.1 ddl-insert-sundexin */
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_telephone_clean
 """)
 
 spark.sql(f"""
@@ -4864,7 +4689,7 @@ CREATE TABLE {params["com_schema"]}.temp_t_mhbos_m_client_identification_info_st
       tel.tel_no_office,
       dob.date_of_birth,
       tmmcr.race,
-      tmmcei.einvoice_email, /* 20250903 einvoice_email */
+      tmmcei.einvoice_email /* 20250903 einvoice_email */,
       tmmcei.email_1,
       tmmcei.email_2,
       tmmcei.email_3,
@@ -4901,10 +4726,10 @@ CREATE TABLE {params["com_schema"]}.temp_t_mhbos_m_client_identification_info_st
     SELECT
       step1.client_no, /* 2025/09/08: Add customer_name_flag */
       step1.clean_rule_flag || mn.customer_name_flag AS clean_rule_flag,
-      mn.primary_identification_type, /* modify 20250313 */
+      mn.primary_identification_type /* modify 20250313 */,
       mn.primary_identification_no,
-      mn.secondary_identification_type, /* modify from step1. to mn. 20250620 */
-      mn.secondary_identification_no, /* modify from step1. to mn. 20250620 */
+      mn.secondary_identification_type /* modify from step1. to mn. 20250620 */,
+      mn.secondary_identification_no /* modify from step1. to mn. 20250620 */,
       mn.customer_name,
       step1.customer_name_concatenate,
       step1.client_name,
@@ -4942,12 +4767,12 @@ CREATE TABLE {params["com_schema"]}.temp_t_mhbos_m_client_identification_info_st
       ad.perm_postcode,
       ad.perm_city,
       ad.perm_state,
-      ad.perm_country, /* added new field 20250715 */
+      ad.perm_country /* added new field 20250715 */,
       COALESCE(nom.noms_ind, 'N') AS noms_ind,
       nom.cleaned_nominees_name,
-      mn.principal_name, /* modify 20240518 */
+      mn.principal_name /* modify 20240518 */,
       nom.intermediary_name,
-      mn.beneficiary_name, /* modify 20240518 */
+      mn.beneficiary_name /* modify 20240518 */,
       nom.nominees_type,
       nom.pledged_securities_flag,
       step1.einvoice_email /* 20250903 einvoice_email */
@@ -4966,279 +4791,279 @@ spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_t_mhbos_m_client_
 
 spark.sql(f"""
 CREATE TABLE {params["com_schema"]}.temp_t_mhbos_m_client_updated (
-    client_no STRING
-    , clean_rule_flag STRING
-    , primary_identification_type STRING
-    , primary_identification_no STRING
-    , secondary_identification_type STRING
-    , secondary_identification_no STRING
-    , customer_name STRING
-    , customer_name_concatenate STRING
-    , client_name STRING
-    , client_name1 STRING
-    , client_name2 STRING
-    , client_name3 STRING
-    , mobile_no STRING
-    , fax_no STRING
-    , tel_no_home STRING
-    , tel_no_office STRING
+    client_no VARCHAR(9)
+    , clean_rule_flag VARCHAR(60)
+    , primary_identification_type VARCHAR(10)
+    , primary_identification_no VARCHAR(60)
+    , secondary_identification_type VARCHAR(10)
+    , secondary_identification_no VARCHAR(60)
+    , customer_name VARCHAR(250)
+    , customer_name_concatenate VARCHAR(250)
+    , client_name VARCHAR(60)
+    , client_name1 VARCHAR(60)
+    , client_name2 VARCHAR(60)
+    , client_name3 VARCHAR(60)
+    , mobile_no VARCHAR(20)
+    , fax_no VARCHAR(20)
+    , tel_no_home VARCHAR(20)
+    , tel_no_office VARCHAR(20)
     , date_of_birth TIMESTAMP
-    , race STRING
-    , email_1 STRING
-    , email_2 STRING
-    , email_3 STRING
-    , email_4 STRING
-    , email_5 STRING
-    , email_6 STRING
-    , email_7 STRING
-    , email_8 STRING
-    , email_9 STRING
-    , email_10 STRING
-    , sex STRING
-    , addr1 STRING
-    , addr2 STRING
-    , addr3 STRING
-    , addr4 STRING
-    , postcode STRING
-    , city STRING
-    , state STRING
-    , perm_addr1 STRING
-    , perm_addr2 STRING
-    , perm_addr3 STRING
-    , perm_addr4 STRING
-    , perm_postcode STRING
-    , perm_city STRING
-    , perm_state STRING
-    , noms_ind STRING
-    , cleaned_nominees_name STRING
-    , principal_name STRING
-    , intermediary_name STRING
-    , beneficiary_name STRING
-    , nominees_type STRING
-    , pledged_securities_flag STRING
-    , id_type STRING
-    , ic_no_new STRING
-    , ic_no_old STRING
-    , secondary_id_type STRING
-    , secondary_id_no STRING
-    , source_client_name STRING
-    , source_client_name1 STRING
-    , source_client_name2 STRING
-    , source_client_name3 STRING
-    , source_mobile_no STRING
-    , source_fax_no STRING
-    , source_tel_no_home STRING
-    , source_tel_no_office STRING
+    , race VARCHAR(30)
+    , email_1 VARCHAR(300)
+    , email_2 VARCHAR(300)
+    , email_3 VARCHAR(300)
+    , email_4 VARCHAR(300)
+    , email_5 VARCHAR(300)
+    , email_6 VARCHAR(300)
+    , email_7 VARCHAR(300)
+    , email_8 VARCHAR(300)
+    , email_9 VARCHAR(300)
+    , email_10 VARCHAR(300)
+    , sex VARCHAR(10)
+    , addr1 VARCHAR(45)
+    , addr2 VARCHAR(45)
+    , addr3 VARCHAR(45)
+    , addr4 VARCHAR(45)
+    , postcode VARCHAR(6)
+    , city VARCHAR(255)
+    , state VARCHAR(50)
+    , perm_addr1 VARCHAR(45)
+    , perm_addr2 VARCHAR(45)
+    , perm_addr3 VARCHAR(45)
+    , perm_addr4 VARCHAR(45)
+    , perm_postcode VARCHAR(6)
+    , perm_city VARCHAR(255)
+    , perm_state VARCHAR(50)
+    , noms_ind VARCHAR(1)
+    , cleaned_nominees_name VARCHAR(300)
+    , principal_name VARCHAR(300)
+    , intermediary_name VARCHAR(300)
+    , beneficiary_name VARCHAR(300)
+    , nominees_type VARCHAR(10)
+    , pledged_securities_flag VARCHAR(1)
+    , id_type VARCHAR(10)
+    , ic_no_new VARCHAR(15)
+    , ic_no_old VARCHAR(14)
+    , secondary_id_type VARCHAR(2)
+    , secondary_id_no VARCHAR(15)
+    , source_client_name VARCHAR(50)
+    , source_client_name1 VARCHAR(50)
+    , source_client_name2 VARCHAR(50)
+    , source_client_name3 VARCHAR(50)
+    , source_mobile_no VARCHAR(15)
+    , source_fax_no VARCHAR(15)
+    , source_tel_no_home VARCHAR(15)
+    , source_tel_no_office VARCHAR(15)
     , source_date_of_birth TIMESTAMP
-    , source_race STRING
-    , source_email STRING
-    , source_sex STRING
-    , client_group STRING
-    , cds_acc_no STRING
-    , tdr_code STRING
-    , client_type STRING
-    , margin STRING
+    , source_race VARCHAR(20)
+    , source_email VARCHAR(300)
+    , source_sex VARCHAR(10)
+    , client_group VARCHAR(14)
+    , cds_acc_no VARCHAR(9)
+    , tdr_code VARCHAR(5)
+    , client_type VARCHAR(3)
+    , margin VARCHAR(1)
     , last_margin_date TIMESTAMP
-    , int_rate STRING
-    , auto_ded STRING
-    , despatch_mode STRING
-    , copies STRING
-    , prohibit_trade STRING
-    , custody_status STRING
-    , country STRING
-    , margin_limit STRING
-    , margin_pct STRING
-    , rollover_rate STRING
-    , form_completed STRING
+    , int_rate DECIMAL(5, 2)
+    , auto_ded VARCHAR(1)
+    , despatch_mode VARCHAR(2)
+    , copies DECIMAL(2, 0)
+    , prohibit_trade VARCHAR(1)
+    , custody_status VARCHAR(1)
+    , country VARCHAR(3)
+    , margin_limit DECIMAL(9, 0)
+    , margin_pct DECIMAL(5, 2)
+    , rollover_rate DECIMAL(6, 3)
+    , form_completed VARCHAR(1)
     , last_tran_date TIMESTAMP
-    , ytd_bvalue STRING
-    , ytd_svalue STRING
-    , ytd_brokerage STRING
-    , os_led_bal STRING
-    , title STRING
+    , ytd_bvalue DECIMAL(12, 2)
+    , ytd_svalue DECIMAL(12, 2)
+    , ytd_brokerage DECIMAL(11, 2)
+    , os_led_bal DECIMAL(12, 2)
+    , title VARCHAR(20)
     , date_created TIMESTAMP
-    , stop_payt STRING
-    , acc_payee STRING
-    , category STRING
-    , auto_contra STRING
-    , pnl_acc_no STRING
-    , cr_limit STRING
-    , trust_bal STRING
-    , avg_ind STRING
-    , remarks STRING
-    , contact_person STRING
+    , stop_payt VARCHAR(1)
+    , acc_payee VARCHAR(100)
+    , category VARCHAR(1)
+    , auto_contra VARCHAR(1)
+    , pnl_acc_no VARCHAR(18)
+    , cr_limit DECIMAL(9, 0)
+    , trust_bal DECIMAL(12, 2)
+    , avg_ind VARCHAR(8)
+    , remarks VARCHAR(60)
+    , contact_person VARCHAR(40)
     , date_closed TIMESTAMP
-    , grace_period STRING
-    , acct_type STRING
-    , assoc_ind STRING
-    , short_sell_ind STRING
-    , short_name STRING
-    , mesdaq_pctlmt STRING
+    , grace_period DECIMAL(3, 0)
+    , acct_type DECIMAL(2, 0)
+    , assoc_ind VARCHAR(1)
+    , short_sell_ind VARCHAR(1)
+    , short_name VARCHAR(10)
+    , mesdaq_pctlmt DECIMAL(5, 2)
     , date_change TIMESTAMP
-    , resi_code STRING
-    , charge_int STRING
-    , bdebt STRING
-    , assets STRING
-    , liabilities STRING
-    , income STRING
-    , expenses STRING
-    , bdebt_his_ind STRING
-    , rel_ac1 STRING
-    , rel_ac2 STRING
-    , rel_ac3 STRING
-    , rel_ac4 STRING
-    , occupation STRING
-    , margin_int STRING
-    , lst_led_no STRING
-    , cur_led_no STRING
-    , remarks2 STRING
-    , acc_type STRING
-    , mas_accno STRING
-    , legal STRING
-    , sell_limit STRING
-    , brk_rate STRING
-    , brokerage_type STRING
-    , cds_acc_no1 STRING
-    , remarks1 STRING
-    , payment_bank_code STRING
-    , noms STRING
+    , resi_code VARCHAR(5)
+    , charge_int VARCHAR(1)
+    , bdebt VARCHAR(1)
+    , assets DECIMAL(12, 2)
+    , liabilities DECIMAL(12, 2)
+    , income DECIMAL(12, 2)
+    , expenses DECIMAL(12, 2)
+    , bdebt_his_ind VARCHAR(3)
+    , rel_ac1 VARCHAR(9)
+    , rel_ac2 VARCHAR(9)
+    , rel_ac3 VARCHAR(9)
+    , rel_ac4 VARCHAR(9)
+    , occupation VARCHAR(60)
+    , margin_int DECIMAL(12, 2)
+    , lst_led_no DECIMAL(9, 0)
+    , cur_led_no DECIMAL(9, 0)
+    , remarks2 VARCHAR(60)
+    , acc_type VARCHAR(1)
+    , mas_accno VARCHAR(9)
+    , legal VARCHAR(1)
+    , sell_limit DECIMAL(9, 0)
+    , brk_rate DECIMAL(9, 4)
+    , brokerage_type VARCHAR(3)
+    , cds_acc_no1 VARCHAR(9)
+    , remarks1 VARCHAR(60)
+    , payment_bank_code VARCHAR(5)
+    , noms VARCHAR(1)
     , dms_date TIMESTAMP
     , violation_date TIMESTAMP
-    , mcd_branch STRING
-    , home_branch STRING
-    , eaf_code STRING
-    , call_warrant STRING
-    , user_id STRING
-    , credit_int_rate STRING
-    , min_eligible_amt STRING
-    , intraday_flag STRING
-    , intraday_rate STRING
-    , cta_weight STRING
-    , sta_weight STRING
-    , bo_cds_acc_no STRING
-    , ecos_form STRING
-    , custodian_no STRING
-    , prin_acc STRING
-    , armada_type STRING
-    , old_authorisee STRING
-    , etrade_rate STRING
-    , etf STRING
-    , cstamp_client_exempt STRING
-    , main_branch STRING
-    , prev_client_no STRING
-    , web_eds STRING
-    , place STRING
-    , excl_tdr_deduct STRING
-    , excl_auto_susp STRING
-    , trust_flag STRING
-    , mgn_new_int_rate STRING
-    , counter_concentration STRING
-    , auto_trust STRING
-    , margin_pct2 STRING
-    , df_flag STRING
-    , mgn_curr_int_rate STRING
-    , product_type STRING
-    , web_ecos STRING
-    , xeye_clt_grp STRING
+    , mcd_branch VARCHAR(3)
+    , home_branch VARCHAR(3)
+    , eaf_code VARCHAR(1)
+    , call_warrant VARCHAR(1)
+    , user_id VARCHAR(20)
+    , credit_int_rate DECIMAL(5, 2)
+    , min_eligible_amt DECIMAL(18, 4)
+    , intraday_flag VARCHAR(1)
+    , intraday_rate DECIMAL(5, 4)
+    , cta_weight DECIMAL(3, 0)
+    , sta_weight DECIMAL(3, 0)
+    , bo_cds_acc_no VARCHAR(20)
+    , ecos_form VARCHAR(1)
+    , custodian_no VARCHAR(7)
+    , prin_acc VARCHAR(2)
+    , armada_type VARCHAR(8)
+    , old_authorisee VARCHAR(5)
+    , etrade_rate DECIMAL(9, 4)
+    , etf VARCHAR(1)
+    , cstamp_client_exempt VARCHAR(1)
+    , main_branch VARCHAR(3)
+    , prev_client_no VARCHAR(9)
+    , web_eds VARCHAR(1)
+    , place VARCHAR(5)
+    , excl_tdr_deduct VARCHAR(1)
+    , excl_auto_susp VARCHAR(1)
+    , trust_flag VARCHAR(1)
+    , mgn_new_int_rate DECIMAL(5, 2)
+    , counter_concentration DECIMAL(5, 2)
+    , auto_trust VARCHAR(1)
+    , margin_pct2 DECIMAL(5, 2)
+    , df_flag VARCHAR(1)
+    , mgn_curr_int_rate DECIMAL(5, 2)
+    , product_type VARCHAR(1)
+    , web_ecos VARCHAR(1)
+    , xeye_clt_grp VARCHAR(14)
     , bursa_violation_date TIMESTAMP
-    , brokerage_type_etrade STRING
-    , brokerage_type_odd_lot STRING
-    , omnibus STRING
-    , cg_tdr_code STRING
-    , limit_foreign STRING
-    , limit_bursa STRING
-    , brokerage_type_intraday STRING
-    , brokerage_type_intraday_etrade STRING
+    , brokerage_type_etrade VARCHAR(3)
+    , brokerage_type_odd_lot VARCHAR(3)
+    , omnibus VARCHAR(1)
+    , cg_tdr_code VARCHAR(7)
+    , limit_foreign DECIMAL(9, 4)
+    , limit_bursa DECIMAL(9, 4)
+    , brokerage_type_intraday VARCHAR(3)
+    , brokerage_type_intraday_etrade VARCHAR(3)
     , bursa_violation_date1 TIMESTAMP
-    , cif_no STRING
-    , brokerage_type_foreign STRING
-    , soft_copy STRING
-    , exclude_rollover STRING
-    , account_status STRING
-    , w8ben STRING
-    , ic_no_rel1 STRING
-    , ic_no_rel2 STRING
-    , ic_no_rel3 STRING
-    , ic_no_rel4 STRING
-    , ic_no_rel5 STRING
-    , rel1 STRING
-    , rel2 STRING
-    , rel3 STRING
-    , rel4 STRING
-    , rel5 STRING
-    , brokerage_type_etrade_b STRING
-    , brokerage_type_odd_lot_b STRING
-    , brokerage_type_b STRING
-    , brokerage_type_foreign_b STRING
-    , brokerage_type_intraday_b STRING
-    , brokerage_type_intraday_etrade_b STRING
-    , brokerage_type_etrade_s STRING
-    , brokerage_type_odd_lot_s STRING
-    , brokerage_type_s STRING
-    , brokerage_type_foreign_s STRING
-    , brokerage_type_intraday_s STRING
-    , brokerage_type_intraday_etrade_s STRING
-    , no_free_trade STRING
-    , sms STRING
-    , mobile_prefix STRING
-    , foreign_curr_set STRING
-    , num_free_trade STRING
-    , etrader_type STRING
-    , check_limit STRING
-    , auto_margin STRING
-    , margin_client_no STRING
-    , dup_despatch_mode STRING
-    , risk STRING
-    , exclude_trader_limit STRING
+    , cif_no VARCHAR(20)
+    , brokerage_type_foreign VARCHAR(3)
+    , soft_copy VARCHAR(1)
+    , exclude_rollover VARCHAR(1)
+    , account_status VARCHAR(1)
+    , w8ben VARCHAR(1)
+    , ic_no_rel1 VARCHAR(15)
+    , ic_no_rel2 VARCHAR(15)
+    , ic_no_rel3 VARCHAR(15)
+    , ic_no_rel4 VARCHAR(15)
+    , ic_no_rel5 VARCHAR(15)
+    , rel1 VARCHAR(15)
+    , rel2 VARCHAR(15)
+    , rel3 VARCHAR(15)
+    , rel4 VARCHAR(15)
+    , rel5 VARCHAR(15)
+    , brokerage_type_etrade_b VARCHAR(3)
+    , brokerage_type_odd_lot_b VARCHAR(3)
+    , brokerage_type_b VARCHAR(3)
+    , brokerage_type_foreign_b VARCHAR(3)
+    , brokerage_type_intraday_b VARCHAR(3)
+    , brokerage_type_intraday_etrade_b VARCHAR(3)
+    , brokerage_type_etrade_s VARCHAR(3)
+    , brokerage_type_odd_lot_s VARCHAR(3)
+    , brokerage_type_s VARCHAR(3)
+    , brokerage_type_foreign_s VARCHAR(3)
+    , brokerage_type_intraday_s VARCHAR(3)
+    , brokerage_type_intraday_etrade_s VARCHAR(3)
+    , no_free_trade DECIMAL(2, 0)
+    , sms VARCHAR(1)
+    , mobile_prefix VARCHAR(5)
+    , foreign_curr_set VARCHAR(1)
+    , num_free_trade DECIMAL(2, 0)
+    , etrader_type VARCHAR(2)
+    , check_limit VARCHAR(1)
+    , auto_margin VARCHAR(1)
+    , margin_client_no VARCHAR(9)
+    , dup_despatch_mode VARCHAR(1)
+    , risk VARCHAR(1)
+    , exclude_trader_limit VARCHAR(1)
     , sett_mode_date_change TIMESTAMP
-    , pick_up_fee_pct STRING
-    , e_payment STRING
-    , mgn_new_int_rate2 STRING
-    , fund_cost_type STRING
-    , check_share STRING
-    , citibank_changes STRING
-    , citibank_charges STRING
-    , cq_market STRING
-    , exclude_margin_pro_rate STRING
-    , brokerage_type_cash_b STRING
-    , brokerage_type_etrade_cash_b STRING
-    , clt_consent STRING
+    , pick_up_fee_pct DECIMAL(5, 2)
+    , e_payment VARCHAR(1)
+    , mgn_new_int_rate2 DECIMAL(5, 2)
+    , fund_cost_type VARCHAR(1)
+    , check_share VARCHAR(1)
+    , citibank_changes VARCHAR(1)
+    , citibank_charges VARCHAR(1)
+    , cq_market VARCHAR(1)
+    , exclude_margin_pro_rate VARCHAR(1)
+    , brokerage_type_cash_b VARCHAR(3)
+    , brokerage_type_etrade_cash_b VARCHAR(3)
+    , clt_consent VARCHAR(1)
     , consent_start_date TIMESTAMP
-    , portfolio STRING
+    , portfolio VARCHAR(1)
     , expiry_date TIMESTAMP
-    , intraday_auto_contra_option STRING
-    , dcf_limit STRING
-    , brokerage_type_etb STRING
-    , mgn_force_sell_pct STRING
-    , mgn_tenure STRING
+    , intraday_auto_contra_option VARCHAR(1)
+    , dcf_limit DECIMAL(9, 0)
+    , brokerage_type_etb VARCHAR(3)
+    , mgn_force_sell_pct DECIMAL(5, 2)
+    , mgn_tenure DECIMAL(3, 0)
     , mgn_expiry_date TIMESTAMP
-    , loss_gl_acc_no STRING
+    , loss_gl_acc_no VARCHAR(18)
     , portfolio_date TIMESTAMP
-    , day_prior_temp_susp STRING
-    , day_prior_perm_susp STRING
-    , gst_code STRING
-    , match_price_decimal_local STRING
-    , match_price_decimal_foreign STRING
+    , day_prior_temp_susp DECIMAL(4, 0)
+    , day_prior_perm_susp DECIMAL(4, 0)
+    , gst_code VARCHAR(3)
+    , match_price_decimal_local DECIMAL(1, 0)
+    , match_price_decimal_foreign DECIMAL(1, 0)
     , primary_id_expiry_date TIMESTAMP
     , secondary_id_expiry_date TIMESTAMP
-    , mgn_int_tdr_spread_pct STRING
-    , mgn_base_int_rate STRING
-    , mgn_int_tdr_share STRING
-    , islamic_flag STRING
-    , mcd_resident_flag STRING
-    , chq_charges_flag STRING
-    , chq_charges_tdr_pct STRING
-    , brokerage_type_foreign_etrade STRING
-    , brokerage_type_foreign_etrade_b STRING
-    , brokerage_type_foreign_etrade_s STRING
-    , grp_exch_code STRING
-    , bdebt_ras STRING
-    , twse_declaration STRING
-    , joint_acc_amt STRING
-    , high_risk_market STRING
-    , brokerage_type_leap_normal STRING
-    , brokerage_type_leap_etrade STRING
-    , perm_country STRING
+    , mgn_int_tdr_spread_pct DECIMAL(5, 2)
+    , mgn_base_int_rate DECIMAL(5, 2)
+    , mgn_int_tdr_share DECIMAL(5, 2)
+    , islamic_flag VARCHAR(1)
+    , mcd_resident_flag VARCHAR(1)
+    , chq_charges_flag VARCHAR(1)
+    , chq_charges_tdr_pct DECIMAL(9, 2)
+    , brokerage_type_foreign_etrade VARCHAR(3)
+    , brokerage_type_foreign_etrade_b VARCHAR(3)
+    , brokerage_type_foreign_etrade_s VARCHAR(3)
+    , grp_exch_code VARCHAR(5)
+    , bdebt_ras VARCHAR(1)
+    , twse_declaration VARCHAR(1)
+    , joint_acc_amt DECIMAL(12, 2)
+    , high_risk_market VARCHAR(2)
+    , brokerage_type_leap_normal VARCHAR(3)
+    , brokerage_type_leap_etrade VARCHAR(3)
+    , perm_country VARCHAR(3)
     , type_of_account STRING
     , einvoice_email STRING
     , dl_record_status       VARCHAR(10)

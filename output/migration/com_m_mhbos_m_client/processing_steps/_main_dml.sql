@@ -9,10 +9,7 @@ WITH unique_customer AS (
 ), last_updated_account AS (
   SELECT
     *,
-    ROW_NUMBER() OVER (
-      PARTITION BY primary_identification_no, customer_name
-      ORDER BY CASE WHEN type_of_account = 'F' THEN 1 ELSE 0 END /* set account_type = 'F' rows as lower priority */, GREATEST(COALESCE(date_created, '1900-01-01'), COALESCE(date_change, '1900-01-01')) DESC
-    ) AS rn
+    ROW_NUMBER() OVER (PARTITION BY primary_identification_no, customer_name ORDER BY CASE WHEN type_of_account = 'F' THEN 1 ELSE 0 END /* set account_type = 'F' rows as lower priority */, GREATEST(COALESCE(date_created, '1900-01-01'), COALESCE(date_change, '1900-01-01')) DESC) AS rn
   FROM ${com_schema}.t_mhbos_m_client
   WHERE
     etl_dt = '${batch_date}'
@@ -582,4 +579,4 @@ JOIN last_updated_account AS t
   ON cust.primary_identification_no = t.primary_identification_no
   AND cust.customer_name_original = t.customer_name
 WHERE
-  t.rn = 1
+  t.rn = 1;

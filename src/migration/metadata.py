@@ -5,7 +5,7 @@ from typing import Optional
 import yaml
 import re
 
-from paths import DATALAKE_SCRIPT_DIR
+from paths import DATALAKE_SCRIPT_DIR, PROJECT_ROOT
 from src.migration.decomposer import DecomposedScript
 from src.core.ddl_parser import DDLParser
 
@@ -32,6 +32,7 @@ def resolve_ddl_path(dml_path: Path) -> Optional[Path]:
         # dml_path.parent / "ddl" / dml_path.name,      # sibling dir
         # dml_path.parent.parent / "ddl" / dml_path.name, # parent's sibling dir
         DATALAKE_SCRIPT_DIR /"ddl" / "com"  / dml_path.name, # parent's sibling dir
+        DATALAKE_SCRIPT_DIR /"ddl" / "cur"  / dml_path.name, # parent's sibling dir
     ]
 
     # print(candidates)
@@ -40,34 +41,102 @@ def resolve_ddl_path(dml_path: Path) -> Optional[Path]:
             return c
     return None
 
+# class SchemaExtractor:
+#     def __init__(self, source_rules: dict):
+#         self.non_original_fields = set(
+#             source_rules.get("column_rules", {})
+#                         .get("non_original_fields", {})
+#                         .get("name", [])
+#         )
+#         self.ddl_parser = DDLParser() # uses default config
+#
+#     def extract(self, ddl_path: Path) -> list[dict]:
+#         ddl_content = ddl_path.read_text(encoding="utf-8")
+#
+#         # Simple extraction for SOURCE statements removal before passing to parser
+#         ddl_content = re.sub(r'source\s+\S+;', '', ddl_content, flags=re.IGNORECASE)
+#
+#         full_table_name, struct_type = self.ddl_parser.parse_hive_ddl(ddl_content)
+#
+#         result = []
+#         for field in struct_type.fields:
+#             col_name = field.name.lower()
+#             remark = "non_original_field" if col_name in self.non_original_fields else None
+#             # DataType.simpleString() returns strings like "string", "decimal(18,2)"
+#             result.append({
+#                 "name": col_name,
+#                 # "type": field.dataType.simpleString().upper(),
+#                 "type": field.dataType.simpleString().upper(),
+#                 "remark": remark
+#             })
+#
+#
+#         return result
+
+import re
+from pathlib import Path
+from sqlglot import parse_one, exp, parse
+
+
 class SchemaExtractor:
     def __init__(self, source_rules: dict):
         self.non_original_fields = set(
             source_rules.get("column_rules", {})
-                        .get("non_original_fields", {})
-                        .get("name", [])
+            .get("non_original_fields", {})
+            .get("name", [])
         )
-        self.ddl_parser = DDLParser() # uses default config
 
     def extract(self, ddl_path: Path) -> list[dict]:
         ddl_content = ddl_path.read_text(encoding="utf-8")
-        
-        # Simple extraction for SOURCE statements removal before passing to parser
-        ddl_content = re.sub(r'source\s+\S+;', '', ddl_content, flags=re.IGNORECASE)
 
-        full_table_name, struct_type = self.ddl_parser.parse_hive_ddl(ddl_content)
-        
+        # Remove custom SOURCE statements if exists
+        ddl_content = re.sub(
+            r"source\s+\S+;",
+            "",
+            ddl_content,
+            flags=re.IGNORECASE
+        )
+
+        statements = parse(ddl_content, read="hive")
+
+        create_stmt = next(
+            (
+                stmt for stmt in statements
+                if isinstance(stmt, exp.Create)
+            ),
+            None
+        )
+
+        if create_stmt is None:
+            raise ValueError("No CREATE TABLE statement found")
+
+        schema = create_stmt.this
+
+        if not isinstance(schema, exp.Schema):
+            raise ValueError("Unable to parse schema from DDL")
+
         result = []
-        for field in struct_type.fields:
-            col_name = field.name.lower()
-            remark = "non_original_field" if col_name in self.non_original_fields else None
-            # DataType.simpleString() returns strings like "string", "decimal(18,2)"
+
+        for column in schema.expressions:
+            if not isinstance(column, exp.ColumnDef):
+                continue
+
+            col_name = column.name.lower()
+
+            kind = column.args.get("kind")
+            hive_type = kind.sql(dialect="hive").upper() if kind else "STRING"
+
+            remark = (
+                "non_original_field"
+                if col_name in self.non_original_fields
+                else None
+            )
+
             result.append({
                 "name": col_name,
-                "type": field.dataType.simpleString().upper(),
+                "type": hive_type,
                 "remark": remark
             })
-
 
         return result
 
@@ -79,7 +148,11 @@ class MetadataProcessor:
         self.model_detector = ModelDetector()
         self.key_detector = KeyDetector(ai_fallback=ai_fallback)
 
-    def process(self, decomposed: DecomposedScript, input_path: Path, output_root: Path) -> dict:
+    def process(self, decomposed: DecomposedScript, input_path: Path, output_root: Path = None) -> dict:
+
+        if output_root is None:
+            output_root = Path("output/migration")
+
         # 1. Resolve DDL path
         ddl_path = resolve_ddl_path(input_path)
         if not ddl_path:
@@ -102,11 +175,12 @@ class MetadataProcessor:
             action = "include"
             # find matching rule
             for rule_name, rule in temp_table_rules.items():
-                if temp_block.name.endswith(rule.get("suffix", "")):
-                    action = rule.get("action", "include")
-                    break
+                if 'suffix' in rule:
+                    if temp_block.name.endswith(rule.get("suffix", "")):
+                        action = rule.get("action", "include")
+                        break
             
-            step_file_path = output_root / decomposed.pipeline_id / "processing_steps" / f"{temp_block.name}.sql"
+            step_file_path = output_root / decomposed.pipeline_id / "processing_steps" / f"{decomposed.schema}_{temp_block.name}.sql"
             pre_processing.append({
                 "name": temp_block.name,
                 "file": str(step_file_path.as_posix()),

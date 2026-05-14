@@ -570,4 +570,4 @@ SELECT
   perm_country,
   type_of_account,
   einvoice_email
-FROM temp_t_mhbos_m_client;
+FROM ${com_schema}.temp_t_mhbos_m_client;

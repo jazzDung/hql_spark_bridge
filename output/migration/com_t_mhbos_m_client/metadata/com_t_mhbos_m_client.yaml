@@ -5,412 +5,412 @@ source_name: mhbos
 target_table_name: t_mhbos_m_client
 columns:
 - name: client_no
-  type: STRING
+  type: VARCHAR(9)
   remark: null
 - name: clean_rule_flag
-  type: STRING
+  type: VARCHAR(60)
   remark: null
 - name: primary_identification_type
-  type: STRING
+  type: VARCHAR(10)
   remark: null
 - name: primary_identification_no
-  type: STRING
+  type: VARCHAR(60)
   remark: null
 - name: secondary_identification_type
-  type: STRING
+  type: VARCHAR(10)
   remark: null
 - name: secondary_identification_no
-  type: STRING
+  type: VARCHAR(60)
   remark: null
 - name: customer_name
-  type: STRING
+  type: VARCHAR(250)
   remark: null
 - name: customer_name_concatenate
-  type: STRING
+  type: VARCHAR(250)
   remark: null
 - name: client_name
-  type: STRING
+  type: VARCHAR(60)
   remark: null
 - name: client_name1
-  type: STRING
+  type: VARCHAR(60)
   remark: null
 - name: client_name2
-  type: STRING
+  type: VARCHAR(60)
   remark: null
 - name: client_name3
-  type: STRING
+  type: VARCHAR(60)
   remark: null
 - name: mobile_no
-  type: STRING
+  type: VARCHAR(20)
   remark: null
 - name: fax_no
-  type: STRING
+  type: VARCHAR(20)
   remark: null
 - name: tel_no_home
-  type: STRING
+  type: VARCHAR(20)
   remark: null
 - name: tel_no_office
-  type: STRING
+  type: VARCHAR(20)
   remark: null
 - name: date_of_birth
   type: TIMESTAMP
   remark: null
 - name: race
-  type: STRING
+  type: VARCHAR(30)
   remark: null
 - name: email_1
-  type: STRING
+  type: VARCHAR(300)
   remark: null
 - name: email_2
-  type: STRING
+  type: VARCHAR(300)
   remark: null
 - name: email_3
-  type: STRING
+  type: VARCHAR(300)
   remark: null
 - name: email_4
-  type: STRING
+  type: VARCHAR(300)
   remark: null
 - name: email_5
-  type: STRING
+  type: VARCHAR(300)
   remark: null
 - name: email_6
-  type: STRING
+  type: VARCHAR(300)
   remark: null
 - name: email_7
-  type: STRING
+  type: VARCHAR(300)
   remark: null
 - name: email_8
-  type: STRING
+  type: VARCHAR(300)
   remark: null
 - name: email_9
-  type: STRING
+  type: VARCHAR(300)
   remark: null
 - name: email_10
-  type: STRING
+  type: VARCHAR(300)
   remark: null
 - name: sex
-  type: STRING
+  type: VARCHAR(10)
   remark: null
 - name: addr1
-  type: STRING
+  type: VARCHAR(45)
   remark: null
 - name: addr2
-  type: STRING
+  type: VARCHAR(45)
   remark: null
 - name: addr3
-  type: STRING
+  type: VARCHAR(45)
   remark: null
 - name: addr4
-  type: STRING
+  type: VARCHAR(45)
   remark: null
 - name: postcode
-  type: STRING
+  type: VARCHAR(6)
   remark: null
 - name: city
-  type: STRING
+  type: VARCHAR(255)
   remark: null
 - name: state
-  type: STRING
+  type: VARCHAR(50)
   remark: null
 - name: perm_addr1
-  type: STRING
+  type: VARCHAR(45)
   remark: null
 - name: perm_addr2
-  type: STRING
+  type: VARCHAR(45)
   remark: null
 - name: perm_addr3
-  type: STRING
+  type: VARCHAR(45)
   remark: null
 - name: perm_addr4
-  type: STRING
+  type: VARCHAR(45)
   remark: null
 - name: perm_postcode
-  type: STRING
+  type: VARCHAR(6)
   remark: null
 - name: perm_city
-  type: STRING
+  type: VARCHAR(255)
   remark: null
 - name: perm_state
-  type: STRING
+  type: VARCHAR(50)
   remark: null
 - name: noms_ind
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: cleaned_nominees_name
-  type: STRING
+  type: VARCHAR(300)
   remark: null
 - name: principal_name
-  type: STRING
+  type: VARCHAR(300)
   remark: null
 - name: intermediary_name
-  type: STRING
+  type: VARCHAR(300)
   remark: null
 - name: beneficiary_name
-  type: STRING
+  type: VARCHAR(300)
   remark: null
 - name: nominees_type
-  type: STRING
+  type: VARCHAR(10)
   remark: null
 - name: pledged_securities_flag
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: id_type
-  type: STRING
+  type: VARCHAR(10)
   remark: null
 - name: ic_no_new
-  type: STRING
+  type: VARCHAR(15)
   remark: null
 - name: ic_no_old
-  type: STRING
+  type: VARCHAR(14)
   remark: null
 - name: secondary_id_type
-  type: STRING
+  type: VARCHAR(2)
   remark: null
 - name: secondary_id_no
-  type: STRING
+  type: VARCHAR(15)
   remark: null
 - name: source_client_name
-  type: STRING
+  type: VARCHAR(50)
   remark: null
 - name: source_client_name1
-  type: STRING
+  type: VARCHAR(50)
   remark: null
 - name: source_client_name2
-  type: STRING
+  type: VARCHAR(50)
   remark: null
 - name: source_client_name3
-  type: STRING
+  type: VARCHAR(50)
   remark: null
 - name: source_mobile_no
-  type: STRING
+  type: VARCHAR(15)
   remark: null
 - name: source_fax_no
-  type: STRING
+  type: VARCHAR(15)
   remark: null
 - name: source_tel_no_home
-  type: STRING
+  type: VARCHAR(15)
   remark: null
 - name: source_tel_no_office
-  type: STRING
+  type: VARCHAR(15)
   remark: null
 - name: source_date_of_birth
   type: TIMESTAMP
   remark: null
 - name: source_race
-  type: STRING
+  type: VARCHAR(20)
   remark: null
 - name: source_email
-  type: STRING
+  type: VARCHAR(300)
   remark: null
 - name: source_sex
-  type: STRING
+  type: VARCHAR(10)
   remark: null
 - name: client_group
-  type: STRING
+  type: VARCHAR(14)
   remark: null
 - name: cds_acc_no
-  type: STRING
+  type: VARCHAR(9)
   remark: null
 - name: tdr_code
-  type: STRING
+  type: VARCHAR(5)
   remark: null
 - name: client_type
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: margin
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: last_margin_date
   type: TIMESTAMP
   remark: null
 - name: int_rate
-  type: STRING
+  type: DECIMAL(5, 2)
   remark: null
 - name: auto_ded
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: despatch_mode
-  type: STRING
+  type: VARCHAR(2)
   remark: null
 - name: copies
-  type: STRING
+  type: DECIMAL(2, 0)
   remark: null
 - name: prohibit_trade
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: custody_status
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: country
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: margin_limit
-  type: STRING
+  type: DECIMAL(9, 0)
   remark: null
 - name: margin_pct
-  type: STRING
+  type: DECIMAL(5, 2)
   remark: null
 - name: rollover_rate
-  type: STRING
+  type: DECIMAL(6, 3)
   remark: null
 - name: form_completed
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: last_tran_date
   type: TIMESTAMP
   remark: null
 - name: ytd_bvalue
-  type: STRING
+  type: DECIMAL(12, 2)
   remark: null
 - name: ytd_svalue
-  type: STRING
+  type: DECIMAL(12, 2)
   remark: null
 - name: ytd_brokerage
-  type: STRING
+  type: DECIMAL(11, 2)
   remark: null
 - name: os_led_bal
-  type: STRING
+  type: DECIMAL(12, 2)
   remark: null
 - name: title
-  type: STRING
+  type: VARCHAR(20)
   remark: null
 - name: date_created
   type: TIMESTAMP
   remark: null
 - name: stop_payt
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: acc_payee
-  type: STRING
+  type: VARCHAR(100)
   remark: null
 - name: category
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: auto_contra
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: pnl_acc_no
-  type: STRING
+  type: VARCHAR(18)
   remark: null
 - name: cr_limit
-  type: STRING
+  type: DECIMAL(9, 0)
   remark: null
 - name: trust_bal
-  type: STRING
+  type: DECIMAL(12, 2)
   remark: null
 - name: avg_ind
-  type: STRING
+  type: VARCHAR(8)
   remark: null
 - name: remarks
-  type: STRING
+  type: VARCHAR(60)
   remark: null
 - name: contact_person
-  type: STRING
+  type: VARCHAR(40)
   remark: null
 - name: date_closed
   type: TIMESTAMP
   remark: null
 - name: grace_period
-  type: STRING
+  type: DECIMAL(3, 0)
   remark: null
 - name: acct_type
-  type: STRING
+  type: DECIMAL(2, 0)
   remark: null
 - name: assoc_ind
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: short_sell_ind
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: short_name
-  type: STRING
+  type: VARCHAR(10)
   remark: null
 - name: mesdaq_pctlmt
-  type: STRING
+  type: DECIMAL(5, 2)
   remark: null
 - name: date_change
   type: TIMESTAMP
   remark: null
 - name: resi_code
-  type: STRING
+  type: VARCHAR(5)
   remark: null
 - name: charge_int
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: bdebt
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: assets
-  type: STRING
+  type: DECIMAL(12, 2)
   remark: null
 - name: liabilities
-  type: STRING
+  type: DECIMAL(12, 2)
   remark: null
 - name: income
-  type: STRING
+  type: DECIMAL(12, 2)
   remark: null
 - name: expenses
-  type: STRING
+  type: DECIMAL(12, 2)
   remark: null
 - name: bdebt_his_ind
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: rel_ac1
-  type: STRING
+  type: VARCHAR(9)
   remark: null
 - name: rel_ac2
-  type: STRING
+  type: VARCHAR(9)
   remark: null
 - name: rel_ac3
-  type: STRING
+  type: VARCHAR(9)
   remark: null
 - name: rel_ac4
-  type: STRING
+  type: VARCHAR(9)
   remark: null
 - name: occupation
-  type: STRING
+  type: VARCHAR(60)
   remark: null
 - name: margin_int
-  type: STRING
+  type: DECIMAL(12, 2)
   remark: null
 - name: lst_led_no
-  type: STRING
+  type: DECIMAL(9, 0)
   remark: null
 - name: cur_led_no
-  type: STRING
+  type: DECIMAL(9, 0)
   remark: null
 - name: remarks2
-  type: STRING
+  type: VARCHAR(60)
   remark: null
 - name: acc_type
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: mas_accno
-  type: STRING
+  type: VARCHAR(9)
   remark: null
 - name: legal
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: sell_limit
-  type: STRING
+  type: DECIMAL(9, 0)
   remark: null
 - name: brk_rate
-  type: STRING
+  type: DECIMAL(9, 4)
   remark: null
 - name: brokerage_type
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: cds_acc_no1
-  type: STRING
+  type: VARCHAR(9)
   remark: null
 - name: remarks1
-  type: STRING
+  type: VARCHAR(60)
   remark: null
 - name: payment_bank_code
-  type: STRING
+  type: VARCHAR(5)
   remark: null
 - name: noms
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: dms_date
   type: TIMESTAMP
@@ -419,349 +419,349 @@ columns:
   type: TIMESTAMP
   remark: null
 - name: mcd_branch
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: home_branch
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: eaf_code
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: call_warrant
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: user_id
-  type: STRING
+  type: VARCHAR(20)
   remark: null
 - name: credit_int_rate
-  type: STRING
+  type: DECIMAL(5, 2)
   remark: null
 - name: min_eligible_amt
-  type: STRING
+  type: DECIMAL(18, 4)
   remark: null
 - name: intraday_flag
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: intraday_rate
-  type: STRING
+  type: DECIMAL(5, 4)
   remark: null
 - name: cta_weight
-  type: STRING
+  type: DECIMAL(3, 0)
   remark: null
 - name: sta_weight
-  type: STRING
+  type: DECIMAL(3, 0)
   remark: null
 - name: bo_cds_acc_no
-  type: STRING
+  type: VARCHAR(20)
   remark: null
 - name: ecos_form
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: custodian_no
-  type: STRING
+  type: VARCHAR(7)
   remark: null
 - name: prin_acc
-  type: STRING
+  type: VARCHAR(2)
   remark: null
 - name: armada_type
-  type: STRING
+  type: VARCHAR(8)
   remark: null
 - name: old_authorisee
-  type: STRING
+  type: VARCHAR(5)
   remark: null
 - name: etrade_rate
-  type: STRING
+  type: DECIMAL(9, 4)
   remark: null
 - name: etf
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: cstamp_client_exempt
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: main_branch
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: prev_client_no
-  type: STRING
+  type: VARCHAR(9)
   remark: null
 - name: web_eds
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: place
-  type: STRING
+  type: VARCHAR(5)
   remark: null
 - name: excl_tdr_deduct
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: excl_auto_susp
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: trust_flag
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: mgn_new_int_rate
-  type: STRING
+  type: DECIMAL(5, 2)
   remark: null
 - name: counter_concentration
-  type: STRING
+  type: DECIMAL(5, 2)
   remark: null
 - name: auto_trust
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: margin_pct2
-  type: STRING
+  type: DECIMAL(5, 2)
   remark: null
 - name: df_flag
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: mgn_curr_int_rate
-  type: STRING
+  type: DECIMAL(5, 2)
   remark: null
 - name: product_type
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: web_ecos
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: xeye_clt_grp
-  type: STRING
+  type: VARCHAR(14)
   remark: null
 - name: bursa_violation_date
   type: TIMESTAMP
   remark: null
 - name: brokerage_type_etrade
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_odd_lot
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: omnibus
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: cg_tdr_code
-  type: STRING
+  type: VARCHAR(7)
   remark: null
 - name: limit_foreign
-  type: STRING
+  type: DECIMAL(9, 4)
   remark: null
 - name: limit_bursa
-  type: STRING
+  type: DECIMAL(9, 4)
   remark: null
 - name: brokerage_type_intraday
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_intraday_etrade
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: bursa_violation_date1
   type: TIMESTAMP
   remark: null
 - name: cif_no
-  type: STRING
+  type: VARCHAR(20)
   remark: null
 - name: brokerage_type_foreign
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: soft_copy
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: exclude_rollover
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: account_status
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: w8ben
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: ic_no_rel1
-  type: STRING
+  type: VARCHAR(15)
   remark: null
 - name: ic_no_rel2
-  type: STRING
+  type: VARCHAR(15)
   remark: null
 - name: ic_no_rel3
-  type: STRING
+  type: VARCHAR(15)
   remark: null
 - name: ic_no_rel4
-  type: STRING
+  type: VARCHAR(15)
   remark: null
 - name: ic_no_rel5
-  type: STRING
+  type: VARCHAR(15)
   remark: null
 - name: rel1
-  type: STRING
+  type: VARCHAR(15)
   remark: null
 - name: rel2
-  type: STRING
+  type: VARCHAR(15)
   remark: null
 - name: rel3
-  type: STRING
+  type: VARCHAR(15)
   remark: null
 - name: rel4
-  type: STRING
+  type: VARCHAR(15)
   remark: null
 - name: rel5
-  type: STRING
+  type: VARCHAR(15)
   remark: null
 - name: brokerage_type_etrade_b
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_odd_lot_b
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_b
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_foreign_b
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_intraday_b
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_intraday_etrade_b
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_etrade_s
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_odd_lot_s
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_s
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_foreign_s
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_intraday_s
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_intraday_etrade_s
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: no_free_trade
-  type: STRING
+  type: DECIMAL(2, 0)
   remark: null
 - name: sms
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: mobile_prefix
-  type: STRING
+  type: VARCHAR(5)
   remark: null
 - name: foreign_curr_set
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: num_free_trade
-  type: STRING
+  type: DECIMAL(2, 0)
   remark: null
 - name: etrader_type
-  type: STRING
+  type: VARCHAR(2)
   remark: null
 - name: check_limit
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: auto_margin
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: margin_client_no
-  type: STRING
+  type: VARCHAR(9)
   remark: null
 - name: dup_despatch_mode
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: risk
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: exclude_trader_limit
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: sett_mode_date_change
   type: TIMESTAMP
   remark: null
 - name: pick_up_fee_pct
-  type: STRING
+  type: DECIMAL(5, 2)
   remark: null
 - name: e_payment
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: mgn_new_int_rate2
-  type: STRING
+  type: DECIMAL(5, 2)
   remark: null
 - name: fund_cost_type
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: check_share
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: citibank_changes
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: citibank_charges
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: cq_market
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: exclude_margin_pro_rate
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: brokerage_type_cash_b
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_etrade_cash_b
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: clt_consent
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: consent_start_date
   type: TIMESTAMP
   remark: null
 - name: portfolio
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: expiry_date
   type: TIMESTAMP
   remark: null
 - name: intraday_auto_contra_option
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: dcf_limit
-  type: STRING
+  type: DECIMAL(9, 0)
   remark: null
 - name: brokerage_type_etb
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: mgn_force_sell_pct
-  type: STRING
+  type: DECIMAL(5, 2)
   remark: null
 - name: mgn_tenure
-  type: STRING
+  type: DECIMAL(3, 0)
   remark: null
 - name: mgn_expiry_date
   type: TIMESTAMP
   remark: null
 - name: loss_gl_acc_no
-  type: STRING
+  type: VARCHAR(18)
   remark: null
 - name: portfolio_date
   type: TIMESTAMP
   remark: null
 - name: day_prior_temp_susp
-  type: STRING
+  type: DECIMAL(4, 0)
   remark: null
 - name: day_prior_perm_susp
-  type: STRING
+  type: DECIMAL(4, 0)
   remark: null
 - name: gst_code
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: match_price_decimal_local
-  type: STRING
+  type: DECIMAL(1, 0)
   remark: null
 - name: match_price_decimal_foreign
-  type: STRING
+  type: DECIMAL(1, 0)
   remark: null
 - name: primary_id_expiry_date
   type: TIMESTAMP
@@ -770,61 +770,61 @@ columns:
   type: TIMESTAMP
   remark: null
 - name: mgn_int_tdr_spread_pct
-  type: STRING
+  type: DECIMAL(5, 2)
   remark: null
 - name: mgn_base_int_rate
-  type: STRING
+  type: DECIMAL(5, 2)
   remark: null
 - name: mgn_int_tdr_share
-  type: STRING
+  type: DECIMAL(5, 2)
   remark: null
 - name: islamic_flag
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: mcd_resident_flag
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: chq_charges_flag
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: chq_charges_tdr_pct
-  type: STRING
+  type: DECIMAL(9, 2)
   remark: null
 - name: brokerage_type_foreign_etrade
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_foreign_etrade_b
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_foreign_etrade_s
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: grp_exch_code
-  type: STRING
+  type: VARCHAR(5)
   remark: null
 - name: bdebt_ras
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: twse_declaration
-  type: STRING
+  type: VARCHAR(1)
   remark: null
 - name: joint_acc_amt
-  type: STRING
+  type: DECIMAL(12, 2)
   remark: null
 - name: high_risk_market
-  type: STRING
+  type: VARCHAR(2)
   remark: null
 - name: brokerage_type_leap_normal
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: brokerage_type_leap_etrade
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: etl_timestamp
   type: STRING
   remark: non_original_field
 - name: perm_country
-  type: STRING
+  type: VARCHAR(3)
   remark: null
 - name: type_of_account
   type: STRING
@@ -836,7 +836,7 @@ key: user_id
 key_detection_strategy: auto
 pre_processing:
 - name: temp_t_mhbos_m_client_all
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_all.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_all.sql
   action: include
   dependencies:
   - t_mhbos_m_client_ext:
@@ -846,31 +846,31 @@ pre_processing:
   - r_mhbos_m_client_ext:
       schema: com
 - name: temp_t_mhbos_m_client_primary_identification_type
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_primary_identification_type.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_primary_identification_type.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_all:
       schema: com
 - name: temp_t_mhbos_m_client_primary_identification_no
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_primary_identification_no.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_primary_identification_no.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_all:
       schema: com
 - name: temp_t_mhbos_m_client_secondary_identification_type
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_secondary_identification_type.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_secondary_identification_type.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_all:
       schema: com
 - name: temp_t_mhbos_m_client_secondary_identification_no
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_secondary_identification_no.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_secondary_identification_no.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_all:
       schema: com
 - name: temp_t_mhbos_m_client_identification_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_identification_info.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_identification_info.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_primary_identification_no:
@@ -882,7 +882,7 @@ pre_processing:
   - temp_t_mhbos_m_client_secondary_identification_type:
       schema: com
 - name: temp_t_mhbos_m_client_dob_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_dob_info.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_dob_info.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_identification_info:
@@ -890,7 +890,7 @@ pre_processing:
   - temp_t_mhbos_m_client_all:
       schema: com
 - name: temp_t_mhbos_m_client_gender_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_gender_info.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_gender_info.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_identification_info:
@@ -898,7 +898,7 @@ pre_processing:
   - temp_t_mhbos_m_client_all:
       schema: com
 - name: temp_t_mhbos_m_client_customer_name_1
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_customer_name_1.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_customer_name_1.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_all:
@@ -906,13 +906,13 @@ pre_processing:
   - temp_t_mhbos_m_client_primary_identification_type:
       schema: com
 - name: temp_t_mhbos_m_client_customer_name_2
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_customer_name_2.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_customer_name_2.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_customer_name_1:
       schema: com
 - name: temp_t_mhbos_m_client_race_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_race_info.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_race_info.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_all:
@@ -920,41 +920,41 @@ pre_processing:
   - temp_t_mhbos_m_client_customer_name_2:
       schema: com
 - name: temp_t_mhbos_m_client_telephone_number_clean
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_telephone_number_clean.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_telephone_number_clean.sql
   action: include
   dependencies: []
 - name: temp_t_mhbos_m_client_telephone_number_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_telephone_number_info.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_telephone_number_info.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_telephone_clean:
       schema: com
 - name: temp_t_mhbos_m_client_email_clean
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_email_clean.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_email_clean.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_all:
       schema: com
 - name: temp_t_mhbos_m_client_email_info_1
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_email_info_1.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_email_info_1.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_email_clean:
       schema: com
 - name: temp_t_mhbos_m_client_email_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_email_info.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_email_info.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_email_info_1:
       schema: com
 - name: temp_t_mhbos_m_client_address_city
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_address_city.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_address_city.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_all:
       schema: com
 - name: temp_t_mhbos_m_client_address_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_address_info.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_address_info.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_address_city:
@@ -962,7 +962,7 @@ pre_processing:
   - t_ref_pub_cd_map:
       schema: com
 - name: temp_t_mhbos_m_client_nominees_info_1
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_nominees_info_1.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_nominees_info_1.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_all:
@@ -970,13 +970,13 @@ pre_processing:
   - t_mhbos_m_mcd_client_addr:
       schema: com
 - name: temp_t_mhbos_m_client_nominees_info_2_1
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_nominees_info_2_1.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_nominees_info_2_1.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_nominees_info_1:
       schema: com
 - name: temp_t_mhbos_m_client_nominees_info_2
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_nominees_info_2.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_nominees_info_2.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_nominees_info_1:
@@ -984,19 +984,19 @@ pre_processing:
   - temp_t_mhbos_m_client_nominees_info_2_1:
       schema: com
 - name: temp_t_mhbos_m_client_nominees_info_3
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_nominees_info_3.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_nominees_info_3.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_nominees_info_2:
       schema: com
 - name: temp_t_mhbos_m_client_nominees_info_4_1
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_nominees_info_4_1.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_nominees_info_4_1.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_nominees_info_3:
       schema: com
 - name: temp_t_mhbos_m_client_nominees_info_4
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_nominees_info_4.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_nominees_info_4.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_nominees_info_3:
@@ -1004,19 +1004,19 @@ pre_processing:
   - temp_t_mhbos_m_client_nominees_info_4_1:
       schema: com
 - name: temp_t_mhbos_m_client_nominees_info_5
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_nominees_info_5.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_nominees_info_5.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_nominees_info_4:
       schema: com
 - name: temp_t_mhbos_m_client_nominees_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_nominees_info.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_nominees_info.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_nominees_info_5:
       schema: com
 - name: temp_t_mhbos_m_client_name_info
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_name_info.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_name_info.sql
   action: include
   dependencies:
   - r_lookup_custname_primaryidno:
@@ -1036,7 +1036,7 @@ pre_processing:
   - temp_t_mhbos_m_client_identification_info:
       schema: com
 - name: temp_t_mhbos_m_client
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_all:
@@ -1044,17 +1044,17 @@ pre_processing:
   - temp_t_mhbos_m_client_identification_info_step2:
       schema: com
 - name: temp_t_mhbos_m_client_telephone_clean
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_telephone_clean.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_telephone_clean.sql
   action: include
   dependencies:
   - temp_t_mhbos_m_client_all:
       schema: com
 - name: temp_t_mhbos_m_client_identification_info_step1
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_identification_info_step1.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_identification_info_step1.sql
   action: include
   dependencies: []
 - name: temp_t_mhbos_m_client_identification_info_step2
-  file: C:/Users/dungp/projects/hql_spark_bridge/output/migration/com_t_mhbos_m_client/processing_steps/temp_t_mhbos_m_client_identification_info_step2.sql
+  file: output/migration/com_t_mhbos_m_client/processing_steps/com_temp_t_mhbos_m_client_identification_info_step2.sql
   action: include
   dependencies: []
 delta_columns:
@@ -1333,4 +1333,4 @@ delta_columns:
 - type_of_account
 - einvoice_email
 applied_source_rule: mhbos
-ddl_source: C:/Users/dungp/projects/datalake-script/ddl/com/com_t_mhbos_m_client.sql
+ddl_source: C:/Users/ext_giadung/projects/datalake-script/ddl/com/com_t_mhbos_m_client.sql

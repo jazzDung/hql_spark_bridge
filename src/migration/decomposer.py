@@ -187,7 +187,7 @@ class DecomposerWriter:
         steps_dir.mkdir(parents=True, exist_ok=True)
 
         for block in decomposed.temp_tables:
-            out_file = steps_dir / f"{block.name}.sql"
+            out_file = steps_dir / f"{decomposed.schema}_{block.name}.sql"
             out_file.write_text(block.raw_sql, encoding="utf-8")
 
         # Ghi riêng Main SQL để tham chiếu

@@ -75,10 +75,13 @@ class PySparkGenerator:
         for step in pipeline_config.get("pre_processing", []):
             if step.get("action") == "skip":
                 continue
-            step_file = Path(step["file"])
+            step_file = PROJECT_ROOT / Path(step["file"])
+            print(f"Reading pre-processing SQL from {step_file}")
+
             if step_file.exists():
                 # Create a context for the transformer
                 context = HiveScriptParser.parse_file(str(step_file))
+                print(context.source_name, context.sub_layer)
                 
                 # Apply the ComPysparkTransformer
                 jinja_render_model = self.transformer.transform(context)

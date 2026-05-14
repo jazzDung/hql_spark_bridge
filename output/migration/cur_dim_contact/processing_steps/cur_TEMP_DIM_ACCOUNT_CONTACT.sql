@@ -1,0 +1,1404 @@
+/* ==============[Group.1]============== */
+DROP TABLE IF EXISTS ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT;
+
+CREATE TABLE ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID VARCHAR(50), /* None */
+  CONTACT_OWNER_TYPE VARCHAR(20), /* None */
+  CONTACT_TYPE VARCHAR(15), /* None */
+  CONTACT_VALUE VARCHAR(150), /* None */
+  CONTACT_NAME VARCHAR(100), /* None */
+  CONTACT_CREATE_DATE DATE, /* None */
+  CONTACT_UPDATE_DATE DATE, /* None */
+  LINE_OF_BUSINESS VARCHAR(20), /* None */
+  SOURCE_NAME VARCHAR(10), /* None */
+  SOURCE_RECORD_ID VARCHAR(50), /* None */
+  SEQUENCE_NO INT /* None */
+)
+STORED AS PARQUET
+TBLPROPERTIES (
+  'parquet.compression'='SNAPPY',
+  'external.table.purge'='true'
+);
+
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'MHBOS_' || T1.CLIENT_NO AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'MOBILE' AS CONTACT_TYPE, /* None */
+  T1.MOBILE_NO AS CONTACT_VALUE, /* None */
+  NULL AS CONTACT_NAME, /* None */
+  T1.DATE_CREATED AS CONTACT_CREATE_DATE, /* None */
+  T1.DATE_CHANGE AS CONTACT_UPDATE_DATE, /* None */
+  'EB' AS LINE_OF_BUSINESS, /* None */
+  'MHBOS' AS SOURCE_NAME, /* None */
+  T1.CLIENT_NO AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_MHBOS_M_CLIENT AS T1 /* None */
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND TRIM(COALESCE(T1.MOBILE_NO, '')) <> ''
+  AND NOT T1.MOBILE_NO LIKE '@[%]';
+
+/* ==============[Group.2]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'MHBOS_' || T1.CLIENT_NO AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'HOME' AS CONTACT_TYPE, /* None */
+  T1.TEL_NO_HOME AS CONTACT_VALUE, /* None */
+  NULL AS CONTACT_NAME, /* None */
+  T1.DATE_CREATED AS CONTACT_CREATE_DATE, /* None */
+  T1.DATE_CHANGE AS CONTACT_UPDATE_DATE, /* None */
+  'EB' AS LINE_OF_BUSINESS, /* None */
+  'MHBOS' AS SOURCE_NAME, /* None */
+  T1.CLIENT_NO AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_MHBOS_M_CLIENT AS T1 /* None */
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND TRIM(COALESCE(T1.TEL_NO_HOME, '')) <> ''
+  AND NOT T1.TEL_NO_HOME LIKE '@[%]';
+
+/* ==============[Group.3]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'MHBOS_' || T1.CLIENT_NO AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'OFFICE' AS CONTACT_TYPE, /* None */
+  T1.TEL_NO_OFFICE AS CONTACT_VALUE, /* None */
+  NULL AS CONTACT_NAME, /* None */
+  T1.DATE_CREATED AS CONTACT_CREATE_DATE, /* None */
+  T1.DATE_CHANGE AS CONTACT_UPDATE_DATE, /* None */
+  'EB' AS LINE_OF_BUSINESS, /* None */
+  'MHBOS' AS SOURCE_NAME, /* None */
+  T1.CLIENT_NO AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_MHBOS_M_CLIENT AS T1 /* None */
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND TRIM(COALESCE(T1.TEL_NO_OFFICE, '')) <> ''
+  AND NOT T1.TEL_NO_OFFICE LIKE '@[%]';
+
+/* ==============[Group.4]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'MHBOS_' || T1.CLIENT_NO AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'FAX' AS CONTACT_TYPE, /* None */
+  T1.FAX_NO AS CONTACT_VALUE, /* None */
+  NULL AS CONTACT_NAME, /* None */
+  T1.DATE_CREATED AS CONTACT_CREATE_DATE, /* None */
+  T1.DATE_CHANGE AS CONTACT_UPDATE_DATE, /* None */
+  'EB' AS LINE_OF_BUSINESS, /* None */
+  'MHBOS' AS SOURCE_NAME, /* None */
+  T1.CLIENT_NO AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_MHBOS_M_CLIENT AS T1 /* None */
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND TRIM(COALESCE(T1.FAX_NO, '')) <> ''
+  AND NOT T1.FAX_NO LIKE '@[%]';
+
+/* ==============[Group.5]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'MHBOS_' || T1.CLIENT_NO AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'EMAIL' AS CONTACT_TYPE, /* None */
+  T1.EMAIL AS CONTACT_VALUE, /* None */
+  NULL AS CONTACT_NAME, /* None */
+  T1.DATE_CREATED AS CONTACT_CREATE_DATE, /* None */
+  T1.DATE_CHANGE AS CONTACT_UPDATE_DATE, /* None */
+  'EB' AS LINE_OF_BUSINESS, /* None */
+  'MHBOS' AS SOURCE_NAME, /* None */
+  T1.CLIENT_NO AS SOURCE_RECORD_ID, /* None */
+  T1.SEQUENCE_NO AS SEQUENCE_NO /* None */
+FROM (
+  SELECT
+    CLIENT_NO,
+    EMAIL_1 AS EMAIL,
+    DATE_CREATED,
+    DATE_CHANGE,
+    1 AS SEQUENCE_NO
+  FROM ${com_schema}.T_MHBOS_M_CLIENT
+  WHERE
+    TRIM(COALESCE(EMAIL_1, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_1 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    CLIENT_NO,
+    EMAIL_2 AS EMAIL,
+    DATE_CREATED,
+    DATE_CHANGE,
+    2 AS SEQUENCE_NO
+  FROM ${com_schema}.T_MHBOS_M_CLIENT
+  WHERE
+    TRIM(COALESCE(EMAIL_2, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_2 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    CLIENT_NO,
+    EMAIL_3 AS EMAIL,
+    DATE_CREATED,
+    DATE_CHANGE,
+    3 AS SEQUENCE_NO
+  FROM ${com_schema}.T_MHBOS_M_CLIENT
+  WHERE
+    TRIM(COALESCE(EMAIL_3, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_3 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    CLIENT_NO,
+    EMAIL_4 AS EMAIL,
+    DATE_CREATED,
+    DATE_CHANGE,
+    4 AS SEQUENCE_NO
+  FROM ${com_schema}.T_MHBOS_M_CLIENT
+  WHERE
+    TRIM(COALESCE(EMAIL_4, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_4 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    CLIENT_NO,
+    EMAIL_5 AS EMAIL,
+    DATE_CREATED,
+    DATE_CHANGE,
+    5 AS SEQUENCE_NO
+  FROM ${com_schema}.T_MHBOS_M_CLIENT
+  WHERE
+    TRIM(COALESCE(EMAIL_5, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_5 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    CLIENT_NO,
+    EMAIL_6 AS EMAIL,
+    DATE_CREATED,
+    DATE_CHANGE,
+    6 AS SEQUENCE_NO
+  FROM ${com_schema}.T_MHBOS_M_CLIENT
+  WHERE
+    TRIM(COALESCE(EMAIL_6, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_6 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    CLIENT_NO,
+    EMAIL_7 AS EMAIL,
+    DATE_CREATED,
+    DATE_CHANGE,
+    7 AS SEQUENCE_NO
+  FROM ${com_schema}.T_MHBOS_M_CLIENT
+  WHERE
+    TRIM(COALESCE(EMAIL_7, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_7 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    CLIENT_NO,
+    EMAIL_8 AS EMAIL,
+    DATE_CREATED,
+    DATE_CHANGE,
+    8 AS SEQUENCE_NO
+  FROM ${com_schema}.T_MHBOS_M_CLIENT
+  WHERE
+    TRIM(COALESCE(EMAIL_8, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_8 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    CLIENT_NO,
+    EMAIL_9 AS EMAIL,
+    DATE_CREATED,
+    DATE_CHANGE,
+    9 AS SEQUENCE_NO
+  FROM ${com_schema}.T_MHBOS_M_CLIENT
+  WHERE
+    TRIM(COALESCE(EMAIL_9, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_9 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    CLIENT_NO,
+    EMAIL_10 AS EMAIL,
+    DATE_CREATED,
+    DATE_CHANGE,
+    10 AS SEQUENCE_NO
+  FROM ${com_schema}.T_MHBOS_M_CLIENT
+  WHERE
+    TRIM(COALESCE(EMAIL_10, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_10 RLIKE '^\\@\\[.*\\]$'
+) AS T1 /* None */
+WHERE
+  1 = 1;
+
+/* ==============[Group.55]============== */ /* ==============EINVOICE_EMAIL============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'MHBOS_' || T1.CLIENT_NO AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'EMAIL_EINV' AS CONTACT_TYPE, /* None */
+  T1.EMAIL AS CONTACT_VALUE, /* None */
+  NULL AS CONTACT_NAME, /* None */
+  T1.DATE_CREATED AS CONTACT_CREATE_DATE, /* None */
+  T1.DATE_CHANGE AS CONTACT_UPDATE_DATE, /* None */
+  'EB' AS LINE_OF_BUSINESS, /* None */
+  'MHBOS' AS SOURCE_NAME, /* None */
+  T1.CLIENT_NO AS SOURCE_RECORD_ID, /* None */
+  T1.SEQUENCE_NO AS SEQUENCE_NO /* None */
+FROM (
+  SELECT
+    CLIENT_NO,
+    EINVOICE_EMAIL AS EMAIL,
+    DATE_CREATED,
+    DATE_CHANGE,
+    1 AS SEQUENCE_NO
+  FROM ${com_schema}.T_MHBOS_M_CLIENT
+  WHERE
+    TRIM(COALESCE(EINVOICE_EMAIL, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EINVOICE_EMAIL RLIKE '^\\@\\[.*\\]$'
+) AS T1 /* None */
+WHERE
+  1 = 1;
+
+/* ==============[Group.14: Merge GUAVA Account Contact]============== */
+WITH temp_dim_account_contact_guava_row_num AS (
+  SELECT
+    OWNER_ID,
+    CONTACT_OWNER_TYPE,
+    CONTACT_TYPE,
+    CONTACT_VALUE,
+    CONTACT_NAME,
+    DATE_FORMAT(CAST(CONTACT_CREATE_DATE AS TIMESTAMP), 'yyyy-MM-dd') AS CONTACT_CREATE_DATE, /* None */
+    DATE_FORMAT(CAST(CONTACT_UPDATE_DATE AS TIMESTAMP), 'yyyy-MM-dd') AS CONTACT_UPDATE_DATE, /* None */
+    LINE_OF_BUSINESS,
+    SOURCE_NAME,
+    SOURCE_RECORD_ID,
+    SEQUENCE_NO,
+    ROW_NUMBER() OVER (PARTITION BY OWNER_ID, CONTACT_OWNER_TYPE, CONTACT_TYPE ORDER BY PRIORITY) AS rn
+  FROM ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT_GUAVA
+)
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+FROM temp_dim_account_contact_guava_row_num
+WHERE
+  rn = 1;
+
+/* ==============[Group.15 + 16 + 17: M21, M21_A, M21_O Account Contact]============== */
+WITH temp_dim_account_contact_m21_row_num AS (
+  SELECT
+    OWNER_ID,
+    CONTACT_OWNER_TYPE,
+    CONTACT_TYPE,
+    CONTACT_VALUE,
+    CONTACT_NAME,
+    DATE_FORMAT(CAST(CONTACT_CREATE_TIME AS TIMESTAMP), 'yyyy-MM-dd') AS CONTACT_CREATE_DATE, /* None */
+    DATE_FORMAT(CAST(CONTACT_UPDATE_TIME AS TIMESTAMP), 'yyyy-MM-dd') AS CONTACT_UPDATE_DATE, /* None */
+    LINE_OF_BUSINESS,
+    SOURCE_NAME,
+    SOURCE_RECORD_ID,
+    SEQUENCE_NO,
+    ROW_NUMBER() OVER (PARTITION BY OWNER_ID, CONTACT_OWNER_TYPE, CONTACT_TYPE ORDER BY CONTACT_UPDATE_TIME DESC) AS rn
+  FROM ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT_M21
+)
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+FROM temp_dim_account_contact_m21_row_num
+WHERE
+  rn = 1;
+
+/* ==============[Group.23 - TOMS_ECORPORATE: Officephone, mobilephone, email]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  T1.OWNER_ID AS OWNER_ID, /* None */
+  T1.CONTACT_OWNER_TYPE AS CONTACT_OWNER_TYPE, /* None */
+  T1.CONTACT_TYPE AS CONTACT_TYPE, /* None */
+  T1.CONTACT_VALUE AS CONTACT_VALUE, /* None */
+  T1.CONTACT_NAME AS CONTACT_NAME, /* None */
+  T1.CONTACT_CREATE_DATE AS CONTACT_CREATE_DATE, /* None */
+  T1.CONTACT_UPDATE_DATE AS CONTACT_UPDATE_DATE, /* None */
+  T1.LINE_OF_BUSINESS AS LINE_OF_BUSINESS, /* None */
+  T1.SOURCE_NAME AS SOURCE_NAME, /* None */
+  T1.SOURCE_RECORD_ID AS SOURCE_RECORD_ID, /* None */
+  T1.SEQUENCE_NO AS SEQUENCE_NO /* None */
+FROM ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT_TOMS_ECORPORATE AS T1 /* None */;
+
+/* ==============[Group.24 - TOMS_ECORPORATE: Fax]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'TOMS_' || T1.ACCOUNTNO AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'FAX' AS CONTACT_TYPE, /* None */
+  T1.FAXNO AS CONTACT_VALUE, /* None */
+  NULL AS CONTACT_NAME, /* None */
+  T1.SYDTC AS CONTACT_CREATE_DATE, /* None */
+  T1.SYDTU AS CONTACT_UPDATE_DATE, /* None */
+  'UT' AS LINE_OF_BUSINESS, /* None */
+  'TOMS' AS SOURCE_NAME, /* None */
+  T1.ACCOUNTNO AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_TOMS_ECORPORATE_ACCOUNT AS T1 /* None */
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND TRIM(COALESCE(T1.FAXNO, '')) <> ''
+  AND NOT T1.FAXNO LIKE '@[%]';
+
+/* ==============[Group.25]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'TOMS_' || T1.ACCOUNTNO AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'OFFICE' AS CONTACT_TYPE, /* None */
+  T1.OFCPHONENO AS CONTACT_VALUE, /* None */
+  NULL AS CONTACT_NAME, /* None */
+  T1.SYDTC AS CONTACT_CREATE_DATE, /* None */
+  T1.SYDTU AS CONTACT_UPDATE_DATE, /* None */
+  'UT' AS LINE_OF_BUSINESS, /* None */
+  'TOMS' AS SOURCE_NAME, /* None */
+  T1.ACCOUNTNO AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_TOMS_ERETAIL_ACCOUNT AS T1 /* None */
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND TRIM(COALESCE(T1.OFCPHONENO, '')) <> ''
+  AND NOT T1.OFCPHONENO LIKE '@[%]';
+
+/* ==============[Group.26]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'TOMS_' || T1.ACCOUNTNO AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'HOME' AS CONTACT_TYPE, /* None */
+  T1.HOMEPHONE AS CONTACT_VALUE, /* None */
+  NULL AS CONTACT_NAME, /* None */
+  T1.SYDTC AS CONTACT_CREATE_DATE, /* None */
+  T1.SYDTU AS CONTACT_UPDATE_DATE, /* None */
+  'UT' AS LINE_OF_BUSINESS, /* None */
+  'TOMS' AS SOURCE_NAME, /* None */
+  T1.ACCOUNTNO AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_TOMS_ERETAIL_ACCOUNT AS T1 /* None */
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND TRIM(COALESCE(T1.HOMEPHONE, '')) <> ''
+  AND NOT T1.HOMEPHONE LIKE '@[%]';
+
+/* ==============[Group.27]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'TOMS_' || T1.ACCOUNTNO AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'FAX' AS CONTACT_TYPE, /* None */
+  T1.FAXNO AS CONTACT_VALUE, /* None */
+  NULL AS CONTACT_NAME, /* None */
+  T1.SYDTC AS CONTACT_CREATE_DATE, /* None */
+  T1.SYDTU AS CONTACT_UPDATE_DATE, /* None */
+  'UT' AS LINE_OF_BUSINESS, /* None */
+  'TOMS' AS SOURCE_NAME, /* None */
+  T1.ACCOUNTNO AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_TOMS_ERETAIL_ACCOUNT AS T1 /* None */
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND TRIM(COALESCE(T1.FAXNO, '')) <> ''
+  AND NOT T1.FAXNO LIKE '@[%]';
+
+/* ==============[Group.28]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'TOMS_' || T1.ACCOUNTNO AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'MOBILE' AS CONTACT_TYPE, /* None */
+  T1.MOBILENO AS CONTACT_VALUE, /* None */
+  NULL AS CONTACT_NAME, /* None */
+  T1.SYDTC AS CONTACT_CREATE_DATE, /* None */
+  T1.SYDTU AS CONTACT_UPDATE_DATE, /* None */
+  'UT' AS LINE_OF_BUSINESS, /* None */
+  'TOMS' AS SOURCE_NAME, /* None */
+  T1.ACCOUNTNO AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_TOMS_ERETAIL_ACCOUNT AS T1 /* None */
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND TRIM(COALESCE(T1.MOBILENO, '')) <> ''
+  AND NOT T1.MOBILENO LIKE '@[%]';
+
+/* ==============[Group.29]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'TOMS_' || T1.ACCOUNTNO AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'EMAIL' AS CONTACT_TYPE, /* None */
+  T1.EMAIL AS CONTACT_VALUE, /* None */
+  NULL AS CONTACT_NAME, /* None */
+  T1.SYDTC AS CONTACT_CREATE_DATE, /* None */
+  T1.SYDTU AS CONTACT_UPDATE_DATE, /* None */
+  'UT' AS LINE_OF_BUSINESS, /* None */
+  'TOMS' AS SOURCE_NAME, /* None */
+  T1.ACCOUNTNO AS SOURCE_RECORD_ID, /* None */
+  T1.SEQUENCE_NO AS SEQUENCE_NO /* None */
+FROM (
+  SELECT
+    ACCOUNTNO,
+    EMAIL_1 AS EMAIL,
+    SYDTC,
+    SYDTU,
+    1 AS SEQUENCE_NO
+  FROM ${com_schema}.T_TOMS_ERETAIL_ACCOUNT
+  WHERE
+    TRIM(COALESCE(EMAIL_1, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_1 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    ACCOUNTNO,
+    EMAIL_2 AS EMAIL,
+    SYDTC,
+    SYDTU,
+    2 AS SEQUENCE_NO
+  FROM ${com_schema}.T_TOMS_ERETAIL_ACCOUNT
+  WHERE
+    TRIM(COALESCE(EMAIL_2, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_2 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    ACCOUNTNO,
+    EMAIL_3 AS EMAIL,
+    SYDTC,
+    SYDTU,
+    3 AS SEQUENCE_NO
+  FROM ${com_schema}.T_TOMS_ERETAIL_ACCOUNT
+  WHERE
+    TRIM(COALESCE(EMAIL_3, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_3 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    ACCOUNTNO,
+    EMAIL_4 AS EMAIL,
+    SYDTC,
+    SYDTU,
+    4 AS SEQUENCE_NO
+  FROM ${com_schema}.T_TOMS_ERETAIL_ACCOUNT
+  WHERE
+    TRIM(COALESCE(EMAIL_4, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_4 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    ACCOUNTNO,
+    EMAIL_5 AS EMAIL,
+    SYDTC,
+    SYDTU,
+    5 AS SEQUENCE_NO
+  FROM ${com_schema}.T_TOMS_ERETAIL_ACCOUNT
+  WHERE
+    TRIM(COALESCE(EMAIL_5, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_5 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    ACCOUNTNO,
+    EMAIL_6 AS EMAIL,
+    SYDTC,
+    SYDTU,
+    6 AS SEQUENCE_NO
+  FROM ${com_schema}.T_TOMS_ERETAIL_ACCOUNT
+  WHERE
+    TRIM(COALESCE(EMAIL_6, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_6 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    ACCOUNTNO,
+    EMAIL_7 AS EMAIL,
+    SYDTC,
+    SYDTU,
+    7 AS SEQUENCE_NO
+  FROM ${com_schema}.T_TOMS_ERETAIL_ACCOUNT
+  WHERE
+    TRIM(COALESCE(EMAIL_7, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_7 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    ACCOUNTNO,
+    EMAIL_8 AS EMAIL,
+    SYDTC,
+    SYDTU,
+    8 AS SEQUENCE_NO
+  FROM ${com_schema}.T_TOMS_ERETAIL_ACCOUNT
+  WHERE
+    TRIM(COALESCE(EMAIL_8, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_8 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    ACCOUNTNO,
+    EMAIL_9 AS EMAIL,
+    SYDTC,
+    SYDTU,
+    9 AS SEQUENCE_NO
+  FROM ${com_schema}.T_TOMS_ERETAIL_ACCOUNT
+  WHERE
+    TRIM(COALESCE(EMAIL_9, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_9 RLIKE '^\\@\\[.*\\]$'
+  UNION ALL
+  SELECT
+    ACCOUNTNO,
+    EMAIL_10 AS EMAIL,
+    SYDTC,
+    SYDTU,
+    10 AS SEQUENCE_NO
+  FROM ${com_schema}.T_TOMS_ERETAIL_ACCOUNT
+  WHERE
+    TRIM(COALESCE(EMAIL_10, '')) <> ''
+    AND ETL_DT = '${batch_date}'
+    AND NOT EMAIL_10 RLIKE '^\\@\\[.*\\]$'
+) AS T1 /* None */
+WHERE
+  TRIM(COALESCE(T1.EMAIL, '')) <> '' AND NOT T1.EMAIL LIKE '@[%';
+
+/* ==============[Group.35]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'KDI_' || T1.client_id AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  T1.CONTACT_NUMBER_TYPE AS CONTACT_TYPE, /* None */
+  T1.MOBILE_NUMBER AS CONTACT_VALUE, /* None */
+  T1.NAME AS CONTACT_NAME, /* None */
+  T1.Record_Created_Date AS CONTACT_CREATE_DATE, /* None */
+  T1.Record_Updated_Date AS CONTACT_UPDATE_DATE, /* None */
+  'UT' AS LINE_OF_BUSINESS, /* None */
+  'KDI' AS SOURCE_NAME, /* None */
+  T1.CLIENT_ID AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_KDI_CLIENTREPORT AS T1 /* None */
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND /* AND T1.clean_rule_flag not like '%1%' */ COALESCE(T1.CONTACT_NUMBER_TYPE, '') <> ''
+  AND NOT T1.MOBILE_NUMBER LIKE '@[%]';
+
+/* ==============[Group.36]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'KDI_' || T1.client_id AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'EMAIL' AS CONTACT_TYPE, /* None */
+  T1.EMAIL_ADDRESS AS CONTACT_VALUE, /* None */
+  T1.NAME AS CONTACT_NAME, /* None */
+  Record_Created_Date AS CONTACT_CREATE_DATE, /* None */
+  Record_Updated_Date AS CONTACT_UPDATE_DATE, /* None */
+  'UT' AS LINE_OF_BUSINESS, /* None */
+  'KDI' AS SOURCE_NAME, /* None */
+  T1.client_id AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_KDI_CLIENTREPORT AS T1 /* None */
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND /* AND T1.clean_rule_flag not like '%1%' */ NOT T1.EMAIL_ADDRESS IS NULL
+  AND T1.EMAIL_ADDRESS <> '';
+
+/* ==============[Group.37]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  T1.SOURCE_SYSTEM || '_' || T1.ACCOUNT_NO AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  T1.CUSTOMER_CONTACT_NUMBER_TYPE AS CONTACT_TYPE, /* None */
+  T1.CUSTOMER_CONTACT_NUMBER AS CONTACT_VALUE, /* None */
+  T1.CUSTOMER_NAME AS CONTACT_NAME, /* None */
+  NULL AS CONTACT_CREATE_DATE, /* None */
+  NULL AS CONTACT_UPDATE_DATE, /* None */
+  NULL AS LINE_OF_BUSINESS, /* None */
+  SOURCE_SYSTEM AS SOURCE_NAME, /* None */
+  T1.ACCOUNT_NO AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_rak_CUSTOMER AS T1 /* None */
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND NOT T1.clean_rule_flag LIKE '%1%'
+  AND NOT T1.CUSTOMER_CONTACT_NUMBER IS NULL
+  AND T1.CUSTOMER_CONTACT_NUMBER <> ''
+  AND NOT T1.CUSTOMER_CONTACT_NUMBER LIKE '@[%]';
+
+/* ==============[Group.38]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  T1.SOURCE_SYSTEM || '_' || T1.ACCOUNT_NO AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'EMAIL' AS CONTACT_TYPE, /* None */
+  T1.CUSTOMER_E_MAIL AS CONTACT_VALUE, /* None */
+  T1.CUSTOMER_NAME AS CONTACT_NAME, /* None */
+  NULL AS CONTACT_CREATE_DATE, /* None */
+  NULL AS CONTACT_UPDATE_DATE, /* None */
+  NULL AS LINE_OF_BUSINESS, /* None */
+  SOURCE_SYSTEM AS SOURCE_NAME, /* None */
+  T1.ACCOUNT_NO AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_rak_CUSTOMER AS T1 /* None */
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND NOT T1.clean_rule_flag LIKE '%1%'
+  AND NOT T1.CUSTOMER_E_MAIL IS NULL
+  AND T1.CUSTOMER_E_MAIL <> '';
+
+/* ==============[Group.39]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'SBL_' || T1.ACCOUNT_NUMBER AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'MOBILE' AS CONTACT_TYPE, /* None */
+  TRIM(T1.CUSTOMER_MOBILE_PHONE) AS CONTACT_VALUE, /* None */
+  UPPER(T1.CUSTOMER_NAME) AS CONTACT_NAME, /* None */
+  NULL AS CONTACT_CREATE_DATE, /* None */
+  NULL AS CONTACT_UPDATE_DATE, /* None */
+  'EB' AS LINE_OF_BUSINESS, /* None */
+  'SBL' AS SOURCE_NAME, /* None */
+  T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_SBL_TBL_EINVOICING_CLIENTDATA AS T1 /* None */
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND COALESCE(T1.CUSTOMER_MOBILE_PHONE, '') <> ''
+  AND NOT T1.CUSTOMER_MOBILE_PHONE LIKE '@[%]'
+  AND NOT T1.CLEAN_RULE_FLAG LIKE '%1%';
+
+/* ==============[Group.41]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'SBL_' || T1.ACCOUNT_NUMBER AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'HOME' AS CONTACT_TYPE, /* None */
+  TRIM(T1.CUSTOMER_HOME_PHONE) AS CONTACT_VALUE, /* None */
+  UPPER(T1.CUSTOMER_NAME) AS CONTACT_NAME, /* None */
+  NULL AS CONTACT_CREATE_DATE, /* None */
+  NULL AS CONTACT_UPDATE_DATE, /* None */
+  'EB' AS LINE_OF_BUSINESS, /* None */
+  'SBL' AS SOURCE_NAME, /* None */
+  T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_SBL_TBL_EINVOICING_CLIENTDATA AS T1 /* None */
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND COALESCE(T1.CUSTOMER_HOME_PHONE, '') <> ''
+  AND NOT T1.CUSTOMER_HOME_PHONE LIKE '@[%]'
+  AND NOT T1.CLEAN_RULE_FLAG LIKE '%1%';
+
+/* ==============[Group.44]============== */
+WITH LMS_COUNTERPARTY AS (
+  SELECT
+    T0.ACCOUNT_NUMBER,
+    T1.*
+  FROM ${com_schema}.T_LMSKIBB2_TBL_FACILITY AS T0
+  INNER JOIN ${com_schema}.T_LMSKIBB2_TBL_COUNTERPARTY AS T1
+    ON T0.COUNTERPARTY_ID = T1.COUNTERPARTY_ID
+    AND T1.ETL_DT = '${batch_date}'
+    AND NOT T1.CLEAN_RULE_FLAG LIKE '%1%'
+  WHERE
+    T0.ETL_DT = '${batch_date}'
+    AND /* exclude collateral party */ NOT T0.FACILITY_TYPE_ID IN (7, 8)
+), contacts AS (
+  /* MOBILE PHONE */
+  SELECT
+    'LMS_' || T1.ACCOUNT_NUMBER AS OWNER_ID, /* None */
+    'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+    'MOBILE' AS CONTACT_TYPE, /* None */
+    UPPER(TRIM(T1.CUSTOMER_MOBILE_PHONE)) AS CONTACT_VALUE, /* None */
+    UPPER(TRIM(T1.CUSTOMER_NAME)) AS CONTACT_NAME, /* None */
+    NULL AS CONTACT_CREATE_DATE, /* None */
+    COALESCE(T1.LAST_GENERATED_DATETIME, '1900-01-01') AS CONTACT_UPDATE_DATE, /* None */
+    'CB' AS LINE_OF_BUSINESS, /* None */
+    'LMS' AS SOURCE_NAME, /* None */
+    T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID, /* None */
+    1 AS SEQUENCE_NO /* None */
+  FROM ${com_schema}.T_LMS_TBL_EINVOICING_CLIENTDATA AS T1 /* None */
+  WHERE
+    T1.ETL_DT = '${batch_date}'
+    AND TRIM(COALESCE(T1.CUSTOMER_MOBILE_PHONE, '')) <> ''
+    AND NOT T1.CUSTOMER_MOBILE_PHONE LIKE '@[%]'
+    AND NOT T1.CLEAN_RULE_FLAG LIKE '%1%'
+  UNION ALL
+  SELECT
+    'LMS_' || T1.ACCOUNT_NUMBER AS OWNER_ID, /* None */
+    'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+    'MOBILE' AS CONTACT_TYPE, /* None */
+    UPPER(TRIM(T1.PHONE_NO)) AS CONTACT_VALUE, /* None */
+    UPPER(TRIM(T1.COUNTERPARTY_NAME)) AS CONTACT_NAME, /* None */
+    NULL AS CONTACT_CREATE_DATE, /* None */
+    GREATEST(
+      COALESCE(T1.system_updated_datetime, '1900-01-01'),
+      COALESCE(T1.last_action_datetime, '1900-01-01')
+    ) AS CONTACT_UPDATE_DATE, /* None */
+    'CB' AS LINE_OF_BUSINESS, /* None */
+    'LMS' AS SOURCE_NAME, /* None */
+    T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID, /* None */
+    1 AS SEQUENCE_NO /* None */
+  FROM LMS_COUNTERPARTY AS T1 /* None */
+  WHERE
+    TRIM(COALESCE(T1.PHONE_NO, '')) <> '' AND NOT T1.PHONE_NO LIKE '@[%]'
+  UNION ALL
+  /* HOME PHONE */
+  SELECT
+    'LMS_' || T1.ACCOUNT_NUMBER AS OWNER_ID, /* None */
+    'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+    'HOME' AS CONTACT_TYPE, /* None */
+    UPPER(TRIM(T1.CUSTOMER_HOME_PHONE)) AS CONTACT_VALUE, /* None */
+    UPPER(TRIM(T1.CUSTOMER_NAME)) AS CONTACT_NAME, /* None */
+    NULL AS CONTACT_CREATE_DATE, /* None */
+    COALESCE(T1.LAST_GENERATED_DATETIME, '1900-01-01') AS CONTACT_UPDATE_DATE, /* None */
+    'CB' AS LINE_OF_BUSINESS, /* None */
+    'LMS' AS SOURCE_NAME, /* None */
+    T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID, /* None */
+    1 AS SEQUENCE_NO /* None */
+  FROM ${com_schema}.T_LMS_TBL_EINVOICING_CLIENTDATA AS T1 /* None */
+  WHERE
+    T1.ETL_DT = '${batch_date}'
+    AND COALESCE(T1.CUSTOMER_HOME_PHONE, '') <> ''
+    AND NOT T1.CUSTOMER_HOME_PHONE LIKE '@[%]'
+    AND NOT T1.CLEAN_RULE_FLAG LIKE '%1%'
+  UNION ALL
+  SELECT
+    'LMS_' || T1.ACCOUNT_NUMBER AS OWNER_ID, /* None */
+    'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+    'HOME' AS CONTACT_TYPE, /* None */
+    UPPER(TRIM(T1.HOME_PHONE_NO)) AS CONTACT_VALUE, /* None */
+    UPPER(TRIM(T1.COUNTERPARTY_NAME)) AS CONTACT_NAME, /* None */
+    NULL AS CONTACT_CREATE_DATE, /* None */
+    GREATEST(
+      COALESCE(T1.system_updated_datetime, '1900-01-01'),
+      COALESCE(T1.last_action_datetime, '1900-01-01')
+    ) AS CONTACT_UPDATE_DATE, /* None */
+    'CB' AS LINE_OF_BUSINESS, /* None */
+    'LMS' AS SOURCE_NAME, /* None */
+    T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID, /* None */
+    1 AS SEQUENCE_NO /* None */
+  FROM LMS_COUNTERPARTY AS T1 /* None */
+  WHERE
+    TRIM(COALESCE(T1.PHONE_NO, '')) <> '' AND NOT T1.PHONE_NO LIKE '@[%]'
+  UNION ALL
+  SELECT
+    'LMS_' || T1.ACCOUNT_NUMBER AS OWNER_ID, /* None */
+    'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+    'OFFICE' AS CONTACT_TYPE, /* None */
+    UPPER(TRIM(T1.CUSTOMER_OFFICE_PHONE)) AS CONTACT_VALUE, /* None */
+    UPPER(TRIM(T1.CUSTOMER_NAME)) AS CONTACT_NAME, /* None */
+    NULL AS CONTACT_CREATE_DATE, /* None */
+    COALESCE(T1.LAST_GENERATED_DATETIME, '1900-01-01') AS CONTACT_UPDATE_DATE, /* None */
+    'CB' AS LINE_OF_BUSINESS, /* None */
+    'LMS' AS SOURCE_NAME, /* None */
+    T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID, /* None */
+    1 AS SEQUENCE_NO /* None */
+  FROM ${com_schema}.T_LMS_TBL_EINVOICING_CLIENTDATA AS T1 /* None */
+  WHERE
+    T1.ETL_DT = '${batch_date}'
+    AND COALESCE(T1.CUSTOMER_OFFICE_PHONE, '') <> ''
+    AND NOT T1.CUSTOMER_OFFICE_PHONE LIKE '@[%]'
+    AND NOT T1.CLEAN_RULE_FLAG LIKE '%1%'
+  UNION ALL
+  SELECT
+    'LMS_' || T1.ACCOUNT_NUMBER AS OWNER_ID, /* None */
+    'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+    'OFFICE' AS CONTACT_TYPE, /* None */
+    UPPER(TRIM(T1.OFFICE_PHONE_NO)) AS CONTACT_VALUE, /* None */
+    UPPER(TRIM(T1.COUNTERPARTY_NAME)) AS CONTACT_NAME, /* None */
+    NULL AS CONTACT_CREATE_DATE, /* None */
+    GREATEST(
+      COALESCE(T1.SYSTEM_UPDATED_DATETIME, '1900-01-01'),
+      COALESCE(T1.LAST_ACTION_DATETIME, '1900-01-01')
+    ) AS CONTACT_UPDATE_DATE, /* None */
+    'CB' AS LINE_OF_BUSINESS, /* None */
+    'LMS' AS SOURCE_NAME, /* None */
+    T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID, /* None */
+    1 AS SEQUENCE_NO /* None */
+  FROM LMS_COUNTERPARTY AS T1 /* None */
+  WHERE
+    TRIM(COALESCE(T1.OFFICE_PHONE_NO, '')) <> ''
+    AND NOT T1.OFFICE_PHONE_NO LIKE '@[%]'
+), contacts_ranking AS (
+  SELECT
+    ROW_NUMBER() OVER (PARTITION BY OWNER_ID, CONTACT_TYPE ORDER BY CONTACT_UPDATE_DATE DESC) AS rn,
+    OWNER_ID,
+    CONTACT_OWNER_TYPE,
+    CONTACT_TYPE,
+    CONTACT_VALUE,
+    CONTACT_NAME,
+    CONTACT_CREATE_DATE,
+    CONTACT_UPDATE_DATE,
+    LINE_OF_BUSINESS,
+    SOURCE_NAME,
+    SOURCE_RECORD_ID,
+    SEQUENCE_NO
+  FROM contacts
+)
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  T1.OWNER_ID,
+  T1.CONTACT_OWNER_TYPE,
+  T1.CONTACT_TYPE,
+  T1.CONTACT_VALUE,
+  T1.CONTACT_NAME,
+  COALESCE(T2.CONTACT_CREATE_DATE, '${batch_timestamp}') AS CONTACT_CREATE_DATE, /* NONE */
+  T1.CONTACT_UPDATE_DATE,
+  T1.LINE_OF_BUSINESS,
+  T1.SOURCE_NAME,
+  T1.SOURCE_RECORD_ID,
+  T1.SEQUENCE_NO
+FROM contacts_ranking AS T1
+LEFT JOIN ${cur_schema}.DIM_CONTACT AS T2
+  ON T2.ETL_DT = '${batch_date}'
+  AND T2.SOURCE_NAME = 'LMS'
+  AND T2.CONTACT_OWNER_TYPE = 'ACCOUNT'
+  AND T1.CONTACT_TYPE = T2.CONTACT_TYPE
+  AND T1.SOURCE_RECORD_ID = T2.SOURCE_RECORD_ID
+  AND T1.SEQUENCE_NO = T2.SEQUENCE_NO
+WHERE
+  T1.RN = 1;
+
+/* ==============[Group.43]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'SBL_' || T1.ACCOUNT_NUMBER AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'OFFICE' AS CONTACT_TYPE, /* None */
+  TRIM(T1.CUSTOMER_OFFICE_PHONE) AS CONTACT_VALUE, /* None */
+  UPPER(T1.CUSTOMER_NAME) AS CONTACT_NAME, /* None */
+  NULL AS CONTACT_CREATE_DATE, /* None */
+  NULL AS CONTACT_UPDATE_DATE, /* None */
+  'EB' AS LINE_OF_BUSINESS, /* None */
+  'SBL' AS SOURCE_NAME, /* None */
+  T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_SBL_TBL_EINVOICING_CLIENTDATA AS T1 /* None */
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND COALESCE(T1.CUSTOMER_OFFICE_PHONE, '') <> ''
+  AND NOT T1.CUSTOMER_OFFICE_PHONE LIKE '@[%]'
+  AND NOT T1.CLEAN_RULE_FLAG LIKE '%1%';
+
+/* ==============[Group.45]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'SBL_' || T1.ACCOUNT_NUMBER AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'EMAIL' AS CONTACT_TYPE, /* None */
+  T1.CUSTOMER_EMAIL_ADDRESS AS CONTACT_VALUE, /* None */
+  UPPER(T1.CUSTOMER_NAME) AS CONTACT_NAME, /* None */
+  NULL AS CONTACT_CREATE_DATE, /* None */
+  NULL AS CONTACT_UPDATE_DATE, /* None */
+  'EB' AS LINE_OF_BUSINESS, /* None */
+  'SBL' AS SOURCE_NAME, /* None */
+  T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID, /* None */
+  1 AS SEQUENCE_NO /* None */
+FROM ${com_schema}.T_SBL_TBL_EINVOICING_CLIENTDATA AS T1
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND NOT T1.CLEAN_RULE_FLAG LIKE '%1%'
+  AND TRIM(COALESCE(T1.CUSTOMER_EMAIL_ADDRESS, '')) <> '';
+
+/* ==============[Group.46]============== */
+WITH LMS_EMAIL AS (
+  SELECT
+    T1.ACCOUNT_NUMBER AS ACCOUNT_NUMBER, /* None */
+    UPPER(TRIM(T1.CUSTOMER_EMAIL_ADDRESS)) AS CUSTOMER_EMAIL_ADDRESS, /* None */
+    UPPER(TRIM(T1.CUSTOMER_NAME)) AS CONTACT_NAME, /* None */
+    COALESCE(T1.LAST_GENERATED_DATETIME, '1900-01-01') AS CONTACT_UPDATE_DATE, /* None */
+    T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID /* None */
+  FROM ${com_schema}.T_LMS_TBL_EINVOICING_CLIENTDATA AS T1
+  WHERE
+    ETL_DT = '${batch_date}' AND NOT CLEAN_RULE_FLAG LIKE '%1%'
+  UNION ALL
+  SELECT
+    T0.ACCOUNT_NUMBER AS ACCOUNT_NUMBER, /* None */
+    UPPER(TRIM(T1.EMAIL_ADDRESS)) AS CUSTOMER_EMAIL_ADDRESS, /* None */
+    UPPER(TRIM(T1.COUNTERPARTY_NAME)) AS CONTACT_NAME, /* None */
+    GREATEST(
+      COALESCE(T1.SYSTEM_UPDATED_DATETIME, '1900-01-01'),
+      COALESCE(T1.LAST_ACTION_DATETIME, '1900-01-01')
+    ) AS CONTACT_UPDATE_DATE, /* NONE */
+    T0.ACCOUNT_NUMBER AS SOURCE_RECORD_ID /* None */
+  FROM ${com_schema}.T_LMSKIBB2_TBL_FACILITY AS T0
+  INNER JOIN ${com_schema}.T_LMSKIBB2_TBL_COUNTERPARTY AS T1
+    ON T0.COUNTERPARTY_ID = T1.COUNTERPARTY_ID
+    AND T1.ETL_DT = '${batch_date}'
+    AND NOT T1.CLEAN_RULE_FLAG LIKE '%1%'
+    AND NOT T1.EMAIL_ADDRESS LIKE '@[%]'
+    AND TRIM(COALESCE(T1.EMAIL_ADDRESS, '')) <> ''
+  WHERE
+    T0.ETL_DT = '${batch_date}'
+    AND /* exclude collateral party */ NOT T0.FACILITY_TYPE_ID IN (7, 8)
+), LMS_EMAIL_RANKING AS (
+  SELECT
+    ROW_NUMBER() OVER (PARTITION BY ACCOUNT_NUMBER ORDER BY CONTACT_UPDATE_DATE DESC) AS rn,
+    ACCOUNT_NUMBER,
+    CUSTOMER_EMAIL_ADDRESS,
+    CONTACT_NAME,
+    CONTACT_UPDATE_DATE,
+    SOURCE_RECORD_ID
+  FROM LMS_EMAIL
+)
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO /* None */
+)
+SELECT
+  'LMS_' || T1.ACCOUNT_NUMBER AS OWNER_ID, /* None */
+  'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+  'EMAIL' AS CONTACT_TYPE, /* None */
+  UPPER(TRIM(T1.CUSTOMER_EMAIL_ADDRESS)) AS CONTACT_VALUE, /* None */
+  T1.CONTACT_NAME /* None */,
+  COALESCE(T2.CONTACT_CREATE_DATE, '${batch_timestamp}') AS CONTACT_CREATE_DATE, /* NONE */
+  T1.CONTACT_UPDATE_DATE /* None */,
+  'CB' AS LINE_OF_BUSINESS, /* None */
+  'LMS' AS SOURCE_NAME, /* None */
+  T1.SOURCE_RECORD_ID AS SOURCE_RECORD_ID, /* None */
+  T1.SEQUENCE_NO AS SEQUENCE_NO /* None */
+FROM (
+  SELECT
+    ACCOUNT_NUMBER,
+    SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[0] AS CUSTOMER_EMAIL_ADDRESS,
+    CONTACT_NAME,
+    SOURCE_RECORD_ID,
+    CONTACT_UPDATE_DATE,
+    1 AS SEQUENCE_NO
+  FROM LMS_EMAIL_RANKING
+  WHERE
+    RN = 1 AND COALESCE(TRIM(SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[0]), '') <> ''
+  UNION ALL
+  SELECT
+    ACCOUNT_NUMBER,
+    SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[1] AS CUSTOMER_EMAIL_ADDRESS,
+    CONTACT_NAME,
+    SOURCE_RECORD_ID,
+    CONTACT_UPDATE_DATE,
+    2 AS SEQUENCE_NO
+  FROM LMS_EMAIL_RANKING
+  WHERE
+    RN = 1 AND COALESCE(TRIM(SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[1]), '') <> ''
+  UNION ALL
+  SELECT
+    ACCOUNT_NUMBER,
+    SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[2] AS CUSTOMER_EMAIL_ADDRESS,
+    CONTACT_NAME,
+    SOURCE_RECORD_ID,
+    CONTACT_UPDATE_DATE,
+    3 AS SEQUENCE_NO
+  FROM LMS_EMAIL_RANKING
+  WHERE
+    RN = 1 AND COALESCE(TRIM(SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[2]), '') <> ''
+  UNION ALL
+  SELECT
+    ACCOUNT_NUMBER,
+    SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[3] AS CUSTOMER_EMAIL_ADDRESS,
+    CONTACT_NAME,
+    SOURCE_RECORD_ID,
+    CONTACT_UPDATE_DATE,
+    4 AS SEQUENCE_NO
+  FROM LMS_EMAIL_RANKING
+  WHERE
+    RN = 1 AND COALESCE(TRIM(SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[3]), '') <> ''
+  UNION ALL
+  SELECT
+    ACCOUNT_NUMBER,
+    SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[4] AS CUSTOMER_EMAIL_ADDRESS,
+    CONTACT_NAME,
+    SOURCE_RECORD_ID,
+    CONTACT_UPDATE_DATE,
+    5 AS SEQUENCE_NO
+  FROM LMS_EMAIL_RANKING
+  WHERE
+    RN = 1 AND COALESCE(TRIM(SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[4]), '') <> ''
+  UNION ALL
+  SELECT
+    ACCOUNT_NUMBER,
+    SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[5] AS CUSTOMER_EMAIL_ADDRESS,
+    CONTACT_NAME,
+    SOURCE_RECORD_ID,
+    CONTACT_UPDATE_DATE,
+    6 AS SEQUENCE_NO
+  FROM LMS_EMAIL_RANKING
+  WHERE
+    RN = 1 AND COALESCE(TRIM(SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[5]), '') <> ''
+  UNION ALL
+  SELECT
+    ACCOUNT_NUMBER,
+    SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[6] AS CUSTOMER_EMAIL_ADDRESS,
+    CONTACT_NAME,
+    SOURCE_RECORD_ID,
+    CONTACT_UPDATE_DATE,
+    7 AS SEQUENCE_NO
+  FROM LMS_EMAIL_RANKING
+  WHERE
+    RN = 1 AND COALESCE(TRIM(SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[6]), '') <> ''
+  UNION ALL
+  SELECT
+    ACCOUNT_NUMBER,
+    SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[7] AS CUSTOMER_EMAIL_ADDRESS,
+    CONTACT_NAME,
+    SOURCE_RECORD_ID,
+    CONTACT_UPDATE_DATE,
+    8 AS SEQUENCE_NO
+  FROM LMS_EMAIL_RANKING
+  WHERE
+    RN = 1 AND COALESCE(TRIM(SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[7]), '') <> ''
+  UNION ALL
+  SELECT
+    ACCOUNT_NUMBER,
+    SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[8] AS CUSTOMER_EMAIL_ADDRESS,
+    CONTACT_NAME,
+    SOURCE_RECORD_ID,
+    CONTACT_UPDATE_DATE,
+    9 AS SEQUENCE_NO
+  FROM LMS_EMAIL_RANKING
+  WHERE
+    RN = 1 AND COALESCE(TRIM(SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[8]), '') <> ''
+  UNION ALL
+  SELECT
+    ACCOUNT_NUMBER,
+    SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[9] AS CUSTOMER_EMAIL_ADDRESS,
+    CONTACT_NAME,
+    SOURCE_RECORD_ID,
+    CONTACT_UPDATE_DATE,
+    10 AS SEQUENCE_NO
+  FROM LMS_EMAIL_RANKING
+  WHERE
+    RN = 1 AND COALESCE(TRIM(SPLIT(CUSTOMER_EMAIL_ADDRESS, ';')[9]), '') <> ''
+) AS T1
+LEFT JOIN ${cur_schema}.DIM_CONTACT AS T2
+  ON T2.ETL_DT = '${batch_date}'
+  AND T2.SOURCE_NAME = 'LMS'
+  AND T2.CONTACT_OWNER_TYPE = 'ACCOUNT'
+  AND T2.CONTACT_TYPE = 'EMAIL'
+  AND T1.SOURCE_RECORD_ID = T2.SOURCE_RECORD_ID
+  AND T1.SEQUENCE_NO = T2.SEQUENCE_NO
+WHERE
+  1 = 1;
+
+/* Delete all temporary tables */
+DROP TABLE IF EXISTS ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT;

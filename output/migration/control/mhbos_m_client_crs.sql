@@ -6,8 +6,8 @@ SET
     last_ext_end_time = '2026-01-02T00:00:00',
     ext_start_time = '2026-01-02T00:00:00',
     ext_end_time = '2026-04-28T00:00:00'
-WHERE source_name = 'mhbos'
- AND table_name = 'm_client_crs';
+WHERE source_name = 'cur'
+ AND table_name = 'dim_contact_mhbos';
 
 
 

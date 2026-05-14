@@ -134,7 +134,7 @@ def transform_outdated_com_raw_references(node: exp.Expression, context: SqlConv
 
         # Handle table renaming (r_ to t_)
         if orig_name.startswith("r_"):
-            if script_type == "temp_t":
+            if script_type == "com_temp":
                 new_name = orig_name[2:]
                 table_node.set("this", exp.Identifier(this=new_name, quoted=table_node.this.args.get("quoted", False)))
                 table_node.set("db", exp.Parameter(this=exp.Var(this="raw_schema")))
@@ -167,7 +167,10 @@ def transform_outdated_com_raw_references(node: exp.Expression, context: SqlConv
                     if schema in ("raw_schema", "com_schema"):
                         schema_name = schema
                         break
-            
+
+            # print(node.sql(dialect="give", pretty=True))
+            # print(schema_name)
+
             if schema_name == "raw_schema":
                 # Create alias.etl_dt
                 new_col = exp.Column(
@@ -424,7 +427,7 @@ def is_rule_triggered(rule: dict, node: exp.Expression, context: SqlConversionCo
                 condition_match_result.append(False)
 
         if condition == "read_from_text_file":
-            if context.ext_context.read_from_text_file is trigger["read_from_text_file"]:
+            if context.ext_context is not None and context.ext_context.read_from_text_file is trigger["read_from_text_file"]:
                 condition_match_result.append(True)
             else:
                 condition_match_result.append(False)

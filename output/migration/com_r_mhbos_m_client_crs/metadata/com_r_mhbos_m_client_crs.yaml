@@ -1,0 +1,53 @@
+pipeline_id: com_r_mhbos_m_client_crs
+layer: com
+model_type: 3a
+source_name: mhbos
+target_table_name: t_mhbos_m_client_crs
+columns:
+- name: client_no
+  type: STRING
+  remark: null
+- name: controlling_name
+  type: STRING
+  remark: null
+- name: country_tax_residence
+  type: STRING
+  remark: null
+- name: tax_identification_no
+  type: STRING
+  remark: null
+- name: reason
+  type: STRING
+  remark: null
+- name: reason_remarks
+  type: STRING
+  remark: null
+- name: entity_type
+  type: STRING
+  remark: null
+- name: crs_tax_type
+  type: STRING
+  remark: null
+- name: etl_timestamp
+  type: STRING
+  remark: non_original_field
+- name: etl_dt
+  type: STRING
+  remark: non_original_field
+key: client_no
+key_detection_strategy: auto
+pre_processing:
+- name: r_mhbos_m_client_crs_bf
+  file: C:/Users/ext_giadung/projects/hql_spark_bridge/output/migration/com_r_mhbos_m_client_crs/processing_steps/r_mhbos_m_client_crs_bf.sql
+  action: skip
+  dependencies: []
+delta_columns:
+- controlling_name
+- country_tax_residence
+- tax_identification_no
+- reason
+- reason_remarks
+- entity_type
+- crs_tax_type
+applied_source_rule: mhbos
+ddl_source: C:/Users/ext_giadung/projects/datalake-script/ddl/com/com_r_mhbos_m_client_crs.sql
