@@ -1,0 +1,108 @@
+pipeline_id: cur_dim_customer_employment
+layer: cur
+model_type: 3a
+source_name: dim
+target_table_name: None_dim_customer
+columns:
+- name: customer_id
+  type: VARCHAR(20)
+  remark: null
+- name: customer_employer_name
+  type: VARCHAR(100)
+  remark: null
+- name: customer_employer_industry
+  type: VARCHAR(100)
+  remark: null
+- name: customer_employer_type
+  type: VARCHAR(100)
+  remark: null
+- name: customer_amla_occupation
+  type: VARCHAR(50)
+  remark: null
+- name: customer_ccris_occupation
+  type: VARCHAR(10)
+  remark: null
+- name: source_name
+  type: VARCHAR(10)
+  remark: null
+- name: source_record_id
+  type: VARCHAR(20)
+  remark: null
+- name: etl_timestamp
+  type: STRING
+  remark: non_original_field
+- name: source_update_date
+  type: TIMESTAMP
+  remark: null
+- name: customer_employer_type_of_business
+  type: VARCHAR(200)
+  remark: null
+key: customer_id
+key_detection_strategy: auto
+pre_processing:
+- name: TEMP_DIM_CUSTOMER_EMPLOYMENT
+  file: output/migration/cur_dim_customer_employment/processing_steps/cur_TEMP_DIM_CUSTOMER_EMPLOYMENT.sql
+  action: include
+  dependencies:
+  - TEMP_DIM_CUSTOMER_EMPLOYMENT:
+      schema: cur
+  - M_MHBOS_M_CLIENT:
+      schema: com
+  - T_MHBOS_M_CLIENT_EXT:
+      schema: com
+  - M_GUAVA_COMPANY:
+      schema: com
+  - R_GUAVA_COMPANY:
+      schema: com
+  - R_K2_ACCOUNT:
+      schema: com
+  - R_K2_CIF_ACCOUNT:
+      schema: com
+  - R_K2_RULE_VALUE:
+      schema: com
+  - M_M21_CUSTOMER:
+      schema: com
+  - M_TOMS_ERETAIL_CIF:
+      schema: com
+  - REF_LOOKUP:
+      schema: cur
+  - M_LMSKIBB2_TBL_COUNTERPARTY:
+      schema: com
+  - ref_lookup:
+      schema: cur
+  - M_SBL_TBL_EINVOICING_CLIENTDATA:
+      schema: com
+  - t_sblkibb_tbl_account:
+      schema: com
+  - t_sblkibb_tbl_counterparty:
+      schema: com
+  - t_sblkibb_tbl_employmentsector:
+      schema: com
+  - t_sblkibb_tbl_employmentstatustype:
+      schema: com
+  - t_sblkibb_tbl_occupation:
+      schema: com
+  - t_sblkibb_tbl_typeofbusiness:
+      schema: com
+  - M_KDI_CLIENTREPORT:
+      schema: com
+- name: DIM_CUSTOMER_EMPLOYMENT
+  file: output/migration/cur_dim_customer_employment/processing_steps/cur_DIM_CUSTOMER_EMPLOYMENT.sql
+  action: include
+  dependencies:
+  - DIM_CUSTOMER_EMPLOYMENT:
+      schema: cur
+  - TEMP_DIM_CUSTOMER_EMPLOYMENT:
+      schema: cur
+delta_columns:
+- customer_employer_name
+- customer_employer_industry
+- customer_employer_type
+- customer_amla_occupation
+- customer_ccris_occupation
+- source_name
+- source_record_id
+- source_update_date
+- customer_employer_type_of_business
+applied_source_rule: default
+ddl_source: C:/Users/ext_giadung/projects/datalake-script/ddl/cur/cur_dim_customer_employment.sql

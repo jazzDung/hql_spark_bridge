@@ -213,7 +213,7 @@ SELECT
     current_timestamp() AS dl_record_updated_date,
     '{batch_date}' AS etl_dt,
     current_timestamp() AS etl_timestamp,
-    s.source_name -- This must be the last column for dynamic partition overwrite
+    s.source_name
 FROM {params["cur_schema"]}.temp_dim_contact_mhbos_consolidated s
 LEFT JOIN {params["cur_schema"]}.dim_contact t
     ON s.owner_id = t.owner_id

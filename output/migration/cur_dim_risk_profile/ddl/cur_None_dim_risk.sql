@@ -1,20 +1,18 @@
 -- Purpose:    DDL/COM STATUS
--- Generated:  2026-05-18 08:07:26
--- Source:     cur_dim_customer_employment
+-- Generated:  2026-05-15 08:21:55
+-- Source:     cur_dim_risk_profile
 
-DROP TABLE IF EXISTS ${com_schema}.None_dim_customer;
+DROP TABLE IF EXISTS ${com_schema}.None_dim_risk;
 
-CREATE TABLE ${com_schema}.None_dim_customer(
+CREATE TABLE ${com_schema}.None_dim_risk(
     customer_id VARCHAR(20) comment ''
-    , customer_employer_name VARCHAR(100) comment ''
-    , customer_employer_industry VARCHAR(100) comment ''
-    , customer_employer_type VARCHAR(100) comment ''
-    , customer_amla_occupation VARCHAR(50) comment ''
-    , customer_ccris_occupation VARCHAR(10) comment ''
+    , amla_risk_profile_date DATE comment ''
+    , amlatf_risk VARCHAR(1) comment ''
+    , estimated_networth VARCHAR(100) comment ''
+    , annual_income INT comment ''
     , source_name VARCHAR(10) comment ''
     , source_record_id VARCHAR(20) comment ''
     , source_update_date TIMESTAMP comment ''
-    , customer_employer_type_of_business VARCHAR(200) comment ''
     -- Standard fields (Model 3a)
     , dl_record_status VARCHAR(10) comment 'A=Active'
     , dl_record_created_date TIMESTAMP comment 'First insert time'

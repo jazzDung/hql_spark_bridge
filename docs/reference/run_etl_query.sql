@@ -49,4 +49,4 @@ WHERE source_name = 'cur'
 
 INSERT INTO public.c_etl_run (source_name, table_name, last_etl_start_time, last_etl_end_time, last_ext_start_time,
                               last_ext_end_time, ext_start_time)
-VALUES ('k2', 'bank', '2026-03-25 10:26:46.213', '2026-03-25 10:29:31.985', '20260326', '20260326', '20260327');
+VALUES ('cur', 'dim_contact_mhbos', '2026-03-25 10:26:46.213', '2026-03-25 10:29:31.985', '20260326', '20260326', '20260327');
