@@ -35,8 +35,8 @@ table_name  = "m_client"
 
 # spark session
 spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source_name, table_name)
-# batch_date = today_date
-batch_date = '20260505'
+batch_date = today_date
+# batch_date = '20251231'
 last_date = yesterday_date
 batch_yyyymm = batch_date[:-2]
 
