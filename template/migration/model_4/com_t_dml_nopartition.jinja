@@ -1,17 +1,18 @@
 {###  File Name   : com_{{ target_table_name }}#}
 {###  File Type   : DML#}
-{###  Model       : {{ model_type }}#}
+{###  Model       : {{ model_type }} (No Partition)#}
 {###  Generated   : {{ generated_at }}#}
 {###  Source      : {{ pipeline_id }} (migrated from Datalake Old)#}
 
 {% if header_comments %}
 {{ header_comments }}
+{% endif %}
 
 import os
 import sys
 sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
 from etl_common_function import run_etl, set_parameter
-from pyspark.sql.functions import current_timestamp, md5, concat_ws
+from pyspark.sql.functions import current_timestamp
 
 source_name = "{{ source_name }}"
 table_name  = "{{ base_table }}"
@@ -26,7 +27,6 @@ params = set_parameter(spark)
 spark.sql(f"""
 {{ step_sql | indent(4) }}
 """)
-
 {% endfor %}
 {% endif %}
 
@@ -38,6 +38,7 @@ spark.sql(f"""
         {% for col in original_columns %}
         {{ ", " if not loop.first else "" }}{{ col.name }} {{ col.type }}
         {% endfor %}
+        , dl_record_status VARCHAR(10)
     )
     stored as parquet
     tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
@@ -46,7 +47,6 @@ spark.sql(f"""
 spark.sql(f"""
 {{ main_sql | indent(4) }}
 """)
-
 
 # ─── TEMP TABLE SETUP ────────────────────────────────────────────────────────
 spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_updated""")
@@ -71,14 +71,17 @@ spark.sql(f"""
         {% for col in original_columns %}
         {{ ", " if not loop.first else "" }}{{ col.name }}
         {% endfor %}
-        , 'A' AS dl_record_status
+        , dl_record_status
         , dl_record_created_date
         , dl_record_updated_date
     FROM {params["com_schema"]}.{{ target_table_name }} com_t
-    WHERE NOT EXISTS (
-        SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_consolidated r
-        WHERE r.{{ key }} = com_t.{{ key }}
-    )
+    WHERE
+        com_t.dl_record_status = 'A'
+        AND NOT EXISTS (
+            SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_consolidated r
+            WHERE {% for k in keys %}{% if not loop.first %} AND {% endif %}r.{{ k }} = com_t.{{ k }}
+            {% endfor %}
+        )
 """)
 
 # ─── STEP 2: Upsert changed/new records ──────────────────────────────────────
@@ -90,12 +93,14 @@ spark.sql(f"""
         {% endfor %}
         , 'A' AS dl_record_status
         , CASE
-            WHEN com_t.{{ key }} IS NOT NULL THEN com_t.dl_record_created_date
+            WHEN com_t.{{ keys[0] }} IS NOT NULL THEN com_t.dl_record_created_date
             ELSE current_timestamp() END AS dl_record_created_date
         , current_timestamp() AS dl_record_updated_date
     FROM {params["com_schema"]}.temp_{{ target_table_name }}_consolidated r
     LEFT JOIN {params["com_schema"]}.{{ target_table_name }} com_t
-        ON r.{{ key }} = com_t.{{ key }}
+        ON com_t.dl_record_status = 'A'
+        {% for k in keys %}AND r.{{ k }} = com_t.{{ k }}
+        {% endfor %}
 """)
 
 # ─── STEP 3: Overwrite target table ──────────────────────────────────────────

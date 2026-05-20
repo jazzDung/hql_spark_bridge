@@ -1,0 +1,148 @@
+{###  File Name   : cur_{{ target_table_name }}#}
+{###  File Type   : DML#}
+{###  Model       : {{ model_type }} (No Partition)#}
+{###  Generated   : {{ generated_at }}#}
+{###  Source      : {{ pipeline_id }} (migrated from Datalake Old)#}
+
+{% if header_comments %}
+{{ header_comments }}
+{% endif %}
+
+import os
+import sys
+sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
+from etl_common_function import run_etl, set_parameter
+from pyspark.sql.functions import current_timestamp
+
+source_name = "{{ source_name }}"
+table_name  = "{{ base_table }}"
+
+spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source_name, table_name)
+batch_date = today_date
+params = set_parameter(spark)
+
+# Enable dynamic partition overwrites for history table
+spark.sql("SET spark.sql.sources.partitionOverwriteMode=dynamic")
+
+{% if pre_processing_sqls %}
+# ─── PRE-PROCESSING (Temp tables logic from legacy script) ───────────────────
+{% for step_sql in pre_processing_sqls %}
+spark.sql(f"""
+{{ step_sql | indent(4) }}
+""")
+{% endfor %}
+{% endif %}
+
+# ─── DELTA TABLE SETUP (TRANSFORMED COM_T) ──────────────────────────────────
+# Identifies delta from COM_T based on record_updated_date
+spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_delta""")
+spark.sql(f"""
+    CREATE TABLE {params["com_schema"]}.temp_{{ target_table_name }}_delta (
+        {% for col in original_columns %}
+        {{ ", " if not loop.first else "" }}{{ col.name }} {{ col.type }}
+        {% endfor %}
+        , dl_record_status       VARCHAR(10)
+    )
+    stored as parquet
+    tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
+""")
+
+# main_sql should include the WHERE DATE_FORMAT(record_updated_date, 'yyyyMMdd') = '{batch_date}' logic
+spark.sql(f"""
+{{ main_sql | indent(4) }}
+""")
+
+# ─── UPDATED TABLE SETUP ─────────────────────────────────────────────────────
+spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_updated""")
+spark.sql(f"""
+    CREATE TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated (
+        {% for col in original_columns %}
+        {{ ", " if not loop.first else "" }}{{ col.name }} {{ col.type }}
+        {% endfor %}
+        , dl_record_status       VARCHAR(10)
+        , dl_record_created_date TIMESTAMP
+        , dl_record_updated_date TIMESTAMP
+    )
+    stored as parquet
+    tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
+""")
+
+# ─── STEP 1: Insert existing unchanged records from CUR ──────────────────────
+spark.sql(f"""
+    INSERT INTO TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated
+    SELECT
+        {% for col in original_columns %}
+        cur.{{ col.name }},
+        {% endfor %}
+        cur.dl_record_status,
+        cur.dl_record_created_date,
+        cur.dl_record_updated_date
+    FROM {params["cur_schema"]}.{{ target_table_name }} cur
+    WHERE
+        {% if partition_key %}cur.{{ partition_key }} = '{{ partition_value }}' AND {% endif %}
+        NOT EXISTS (
+            SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_delta delta
+            WHERE {% for k in keys %}{% if not loop.first %} AND {% endif %}delta.{{ k }} = cur.{{ k }}{% endfor %}
+        )
+""")
+
+# ─── STEP 2: Upsert transformed delta into temp table ────────────────────────
+spark.sql(f"""
+    INSERT INTO TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated
+    SELECT
+        {% for col in original_columns %}
+        delta.{{ col.name }},
+        {% endfor %}
+        COALESCE(delta.dl_record_status, 'A') AS dl_record_status,
+        CASE
+            WHEN cur.{{ keys[0] }} IS NOT NULL THEN cur.dl_record_created_date
+            ELSE current_timestamp() END AS dl_record_created_date,
+        current_timestamp() AS dl_record_updated_date
+    FROM {params["com_schema"]}.temp_{{ target_table_name }}_delta delta
+    LEFT JOIN {params["cur_schema"]}.{{ target_table_name }} cur
+        ON {% if partition_key %}cur.{{ partition_key }} = '{{ partition_value }}' AND {% endif %}{% for k in keys %}{% if not loop.first %} AND {% endif %}delta.{{ k }} = cur.{{ k }}{% endfor %}
+""")
+
+# ─── STEP 3: Insert previous state of changed records into History table ─────
+spark.sql(f"""
+    INSERT INTO TABLE {params["cur_schema"]}.{{ target_table_name }}_h PARTITION ({% if partition_key %}{{ partition_key }}, {% endif %}hist_year)
+    SELECT
+        {% for col in original_columns %}
+        cur.{{ col.name }},
+        {% endfor %}
+        cur.dl_record_status,
+        cur.dl_record_created_date,
+        cur.dl_record_updated_date,
+        '{batch_date}' AS etl_dt,
+        current_timestamp() AS etl_timestamp
+        {% if partition_key %}, '{{ partition_value }}' AS {{ partition_key }}{% endif %}
+        , DATE_FORMAT(current_timestamp(), 'yyyy') AS hist_year
+    FROM {params["cur_schema"]}.{{ target_table_name }} cur
+    WHERE
+        {% if partition_key %}cur.{{ partition_key }} = '{{ partition_value }}' AND {% endif %}
+        EXISTS (
+            SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_delta delta
+            WHERE {% for k in keys %}{% if not loop.first %} AND {% endif %}delta.{{ k }} = cur.{{ k }}{% endfor %}
+        )
+""")
+
+# ─── STEP 4: Overwrite CUR table ─────────────────────────────────────────────
+spark.sql(f"""
+    INSERT OVERWRITE TABLE {params["cur_schema"]}.{{ target_table_name }} {% if partition_key %}PARTITION ({{ partition_key }} = '{{ partition_value }}'){% endif %}
+    SELECT
+        {% for col in original_columns %}
+        {{ col.name }},
+        {% endfor %}
+        dl_record_status,
+        dl_record_created_date,
+        dl_record_updated_date,
+        '{batch_date}' AS etl_dt,
+        current_timestamp() AS etl_timestamp
+    FROM {params["com_schema"]}.temp_{{ target_table_name }}_updated
+""")
+
+spark.sql(f"""
+    ANALYZE TABLE {params["cur_schema"]}.{{ target_table_name }} {% if partition_key %}PARTITION ({{ partition_key }} = '{{ partition_value }}'){% endif %} COMPUTE STATISTICS
+""")
+
+spark.stop()

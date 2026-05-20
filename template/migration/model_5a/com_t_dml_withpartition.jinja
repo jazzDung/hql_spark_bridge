@@ -1,17 +1,18 @@
 {###  File Name   : com_{{ target_table_name }}#}
 {###  File Type   : DML#}
-{###  Model       : {{ model_type }}#}
+{###  Model       : {{ model_type }} (With Partition)#}
 {###  Generated   : {{ generated_at }}#}
 {###  Source      : {{ pipeline_id }} (migrated from Datalake Old)#}
 
 {% if header_comments %}
 {{ header_comments }}
+{% endif %}
 
 import os
 import sys
 sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
 from etl_common_function import run_etl, set_parameter
-from pyspark.sql.functions import current_timestamp, md5, concat_ws
+from pyspark.sql.functions import current_timestamp
 
 source_name = "{{ source_name }}"
 table_name  = "{{ base_table }}"
@@ -20,23 +21,27 @@ spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source
 batch_date = today_date
 params = set_parameter(spark)
 
+# Enable dynamic partition overwrites
+spark.sql("SET spark.sql.sources.partitionOverwriteMode=dynamic")
+
 {% if pre_processing_sqls %}
 # ─── PRE-PROCESSING (Temp tables logic from legacy script) ───────────────────
 {% for step_sql in pre_processing_sqls %}
 spark.sql(f"""
 {{ step_sql | indent(4) }}
 """)
-
 {% endfor %}
 {% endif %}
 
-# ─── CONSOLIDATED TABLE SETUP ────────────────────────────────────────────────────────
+# ─── CONSOLIDATED TABLE SETUP (NEW INCREMENTAL DATA) ─────────────────────────
 spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_consolidated""")
-
 spark.sql(f"""
     CREATE TABLE {params["com_schema"]}.temp_{{ target_table_name }}_consolidated (
         {% for col in original_columns %}
         {{ ", " if not loop.first else "" }}{{ col.name }} {{ col.type }}
+        {% endfor %}
+        {% for p_col in partition_columns %}
+        , {{ p_col }} STRING
         {% endfor %}
     )
     stored as parquet
@@ -47,69 +52,82 @@ spark.sql(f"""
 {{ main_sql | indent(4) }}
 """)
 
-
 # ─── TEMP TABLE SETUP ────────────────────────────────────────────────────────
 spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_updated""")
-
 spark.sql(f"""
     CREATE TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated (
         {% for col in original_columns %}
         {{ ", " if not loop.first else "" }}{{ col.name }} {{ col.type }}
         {% endfor %}
+        , raw_incremental_etl_dt STRING
         , dl_record_status       VARCHAR(10)
         , dl_record_created_date TIMESTAMP
         , dl_record_updated_date TIMESTAMP
+        {% for p_col in partition_columns %}
+        , {{ p_col }} STRING
+        {% endfor %}
     )
     stored as parquet
     tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
 """)
 
-# ─── STEP 1: Keep unchanged records ──────────────────────────────────────────
+# ─── STEP 1: Keep existing records from IMPACTED PARTITIONS ONLY ────────────
+# Only keep records where raw_incremental_etl_dt != batch_date to avoid duplicates
 spark.sql(f"""
     INSERT INTO TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated
     SELECT
         {% for col in original_columns %}
-        {{ ", " if not loop.first else "" }}{{ col.name }}
+        com_t.{{ col.name }},
         {% endfor %}
-        , 'A' AS dl_record_status
-        , dl_record_created_date
-        , dl_record_updated_date
+        com_t.raw_incremental_etl_dt,
+        com_t.dl_record_status,
+        com_t.dl_record_created_date,
+        com_t.dl_record_updated_date
+        {% for p_col in partition_columns %}
+        , com_t.{{ p_col }}
+        {% endfor %}
     FROM {params["com_schema"]}.{{ target_table_name }} com_t
-    WHERE NOT EXISTS (
-        SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_consolidated r
-        WHERE r.{{ key }} = com_t.{{ key }}
-    )
+    INNER JOIN (
+        SELECT DISTINCT {% for p_col in partition_columns %}{{ ", " if not loop.first else "" }}{{ p_col }}{% endfor %}
+        FROM {params["com_schema"]}.temp_{{ target_table_name }}_consolidated
+    ) impacted_partitions
+    ON {% for p_col in partition_columns %}{% if not loop.first %} AND {% endif %}com_t.{{ p_col }} = impacted_partitions.{{ p_col }}{% endfor %}
+    WHERE com_t.raw_incremental_etl_dt != '{batch_date}'
 """)
 
-# ─── STEP 2: Upsert changed/new records ──────────────────────────────────────
+# ─── STEP 2: Insert new incremental records from the current batch ───────────
 spark.sql(f"""
     INSERT INTO TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated
     SELECT
         {% for col in original_columns %}
-        {{ ", " if not loop.first else "" }}r.{{ col.name }}
+        r.{{ col.name }},
         {% endfor %}
-        , 'A' AS dl_record_status
-        , CASE
-            WHEN com_t.{{ key }} IS NOT NULL THEN com_t.dl_record_created_date
-            ELSE current_timestamp() END AS dl_record_created_date
-        , current_timestamp() AS dl_record_updated_date
+        '{batch_date}' AS raw_incremental_etl_dt,
+        'A' AS dl_record_status,
+        current_timestamp() AS dl_record_created_date,
+        current_timestamp() AS dl_record_updated_date
+        {% for p_col in partition_columns %}
+        , r.{{ p_col }}
+        {% endfor %}
     FROM {params["com_schema"]}.temp_{{ target_table_name }}_consolidated r
-    LEFT JOIN {params["com_schema"]}.{{ target_table_name }} com_t
-        ON r.{{ key }} = com_t.{{ key }}
 """)
 
-# ─── STEP 3: Overwrite target table ──────────────────────────────────────────
+# ─── STEP 3: Overwrite target table partitions dynamically ──────────────────
 spark.sql(f"""
-    INSERT OVERWRITE TABLE {params["com_schema"]}.{{ target_table_name }}
+    INSERT OVERWRITE TABLE {params["com_schema"]}.{{ target_table_name }} PARTITION ({% for p_col in partition_columns %}{{ ", " if not loop.first else "" }}{{ p_col }}{% endfor %})
     SELECT
         {% for col in original_columns %}
-        {{ ", " if not loop.first else "" }}{{ col.name }}
+        {{ col.name }},
         {% endfor %}
-        , dl_record_status
-        , dl_record_created_date
-        , dl_record_updated_date
-        , '{batch_date}'       AS etl_dt
-        , current_timestamp()  AS etl_timestamp
+        raw_incremental_etl_dt,
+        dl_record_status,
+        dl_record_created_date,
+        dl_record_updated_date,
+        '{batch_date}' AS etl_dt,
+        current_timestamp() AS etl_timestamp
+        {% for p_col in partition_columns %}
+        , {{ p_col }}
+        {% endfor %}
     FROM {params["com_schema"]}.temp_{{ target_table_name }}_updated
 """)
 

@@ -1,0 +1,124 @@
+{###  File Name   : cur_{{ target_table_name }}#}
+{###  File Type   : DML#}
+{###  Model       : {{ model_type }}#}
+{###  Generated   : {{ generated_at }}#}
+{###  Source      : {{ pipeline_id }} (migrated from Datalake Old)#}
+
+{% if header_comments %}
+{{ header_comments }}
+{% endif %}
+
+import os
+import sys
+sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
+from etl_common_function import run_etl, set_parameter
+from pyspark.sql.functions import current_timestamp, lit, to_date
+
+source_name = "{{ source_name }}"
+table_name  = "{{ base_table }}"
+
+spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source_name, table_name)
+batch_date = today_date
+params = set_parameter(spark)
+
+# Define snapshot-specific variables
+snapshot_date_str = batch_date # Or yesterday_date, depending on logic
+snapshot_year_month = snapshot_date_str[:6]
+
+{% if pre_processing_sqls %}
+# ─── PRE-PROCESSING (Temp tables logic from legacy script) ───────────────────
+{% for step_sql in pre_processing_sqls %}
+spark.sql(f"""
+{{ step_sql | indent(4) }}
+""")
+{% endfor %}
+{% endif %}
+
+# ─── TRANSFORMED SNAPSHOT TABLE ──────────────────────────────────────────────
+# This table holds the new snapshot data, transformed from COM_T
+spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_delta""")
+spark.sql(f"""
+    CREATE TABLE {params["com_schema"]}.temp_{{ target_table_name }}_delta (
+        {% for col in original_columns %}
+        {{ ", " if not loop.first else "" }}{{ col.name }} {{ col.type }}
+        {% endfor %}
+    )
+    stored as parquet
+    tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
+""")
+
+# The main_sql for Model 2B cur is expected to read from com_schema and perform transformations
+spark.sql(f"""
+{{ main_sql | indent(4) }}
+""")
+
+# ─── FINAL UPDATED TABLE SETUP ───────────────────────────────────────────────
+spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_updated""")
+spark.sql(f"""
+    CREATE TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated (
+        snapshot_date DATE,
+        {% for col in original_columns %}
+        {{ col.name }} {{ col.type }},
+        {% endfor %}
+        dl_record_created_date TIMESTAMP,
+        dl_record_updated_date TIMESTAMP
+    )
+    stored as parquet
+    tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
+""")
+
+# ─── STEP 1: Keep records from other snapshot dates within the same month ───
+spark.sql(f"""
+    INSERT INTO TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated
+    SELECT
+        snapshot_date,
+        {% for col in original_columns %}
+        {{ col.name }},
+        {% endfor %}
+        dl_record_created_date,
+        dl_record_updated_date
+    FROM {params["cur_schema"]}.{{ target_table_name }}
+    WHERE year_month = '{snapshot_year_month}'
+      AND snapshot_date != to_date('{snapshot_date_str}', 'yyyyMMdd')
+      {% if partition_key %}AND {{ partition_key }} = '{{ partition_value }}'{% endif %}
+""")
+
+# ─── STEP 2: Insert the new snapshot data from COM_T ────────────────────────
+spark.sql(f"""
+    INSERT INTO TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated
+    SELECT
+        to_date('{snapshot_date_str}', 'yyyyMMdd') AS snapshot_date,
+        {% for col in original_columns %}
+        delta.{{ col.name }},
+        {% endfor %}
+        current_timestamp() AS dl_record_created_date,
+        current_timestamp() AS dl_record_updated_date
+    FROM {params["com_schema"]}.temp_{{ target_table_name }}_delta delta
+""")
+
+# ─── STEP 3: Overwrite the year_month partition with the updated data ───────
+spark.sql(f"""
+    SET spark.sql.sources.partitionOverwriteMode=dynamic
+""")
+spark.sql(f"""
+    INSERT OVERWRITE TABLE {params["cur_schema"]}.{{ target_table_name }}
+    PARTITION (year_month, {% if partition_key %}{{ partition_key }}{% endif %})
+    SELECT
+        snapshot_date,
+        {% for col in original_columns %}
+        {{ col.name }},
+        {% endfor %}
+        dl_record_created_date,
+        dl_record_updated_date,
+        '{batch_date}' AS etl_dt,
+        current_timestamp() AS etl_timestamp,
+        '{snapshot_year_month}' AS year_month
+        {% if partition_key %},'{{ partition_value }}' AS {{ partition_key }}{% endif %}
+    FROM {params["com_schema"]}.temp_{{ target_table_name }}_updated
+""")
+
+spark.sql(f"""
+    ANALYZE TABLE {params["cur_schema"]}.{{ target_table_name }} COMPUTE STATISTICS
+""")
+
+spark.stop()

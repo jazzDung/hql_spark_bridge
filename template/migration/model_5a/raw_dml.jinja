@@ -1,0 +1,50 @@
+{###  File Name   : raw_{{ target_table_name }}#}
+{###  File Type   : DML#}
+{###  Model       : {{ model_type }}#}
+{###  Generated   : {{ generated_at }}#}
+{###  Source      : {{ pipeline_id }} (migrated from Datalake Old)#}
+
+{% if header_comments %}
+{{ header_comments }}
+{% endif %}
+
+import os
+import sys
+sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
+from etl_common_function import run_etl, set_parameter
+from pyspark.sql.functions import current_timestamp
+
+source_name = "{{ source_name }}"
+table_name  = "{{ base_table }}"
+
+spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source_name, table_name)
+batch_date = today_date
+params = set_parameter(spark)
+
+# ─── EXTERNAL TABLE SETUP ───────────────────────────────────────────────────
+spark.sql(f"""DROP TABLE IF EXISTS {params["raw_schema"]}.{{ target_table_name }}_et""")
+spark.sql(f"""
+    CREATE EXTERNAL TABLE IF NOT EXISTS {params["raw_schema"]}.{{ target_table_name }}_et (
+        {% for col in original_columns %}
+        {{ ", " if not loop.first else "" }}{{ col.name }} {{ col.type }}
+        {% endfor %}
+    )
+    ROW FORMAT DELIMITED
+    FIELDS TERMINATED BY '{{ field_delimiter }}'
+    LINES TERMINATED BY '\\n'
+    STORED AS TEXTFILE
+    LOCATION '{params["itl_data_path"]}/{{ source_file_name }}.{batch_date}.dat'
+""")
+
+# ─── LOAD DATA INTO PARTITIONED TABLE ───────────────────────────────────────
+spark.sql(f"""
+    INSERT OVERWRITE TABLE {params["raw_schema"]}.{{ target_table_name }} PARTITION (ETL_DT = '{batch_date}')
+    SELECT
+        {% for col in original_columns %}
+        {{ ", " if not loop.first else "" }}{{ col.name }}
+        {% endfor %}
+        , current_timestamp() AS etl_timestamp
+    FROM {params["raw_schema"]}.{{ target_table_name }}_et
+""")
+
+spark.stop()

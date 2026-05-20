@@ -1,0 +1,70 @@
+{###  File Name   : com_{{ target_table_name }}#}
+{###  File Type   : DML#}
+{###  Model       : {{ model_type }}#}
+{###  Generated   : {{ generated_at }}#}
+{###  Source      : {{ pipeline_id }} (migrated from Datalake Old)#}
+
+{% if header_comments %}
+{{ header_comments }}
+{% endif %}
+
+import os
+import sys
+sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
+from etl_common_function import run_etl, set_parameter
+from pyspark.sql.functions import current_timestamp
+
+source_name = "{{ source_name }}"
+table_name  = "{{ base_table }}"
+
+spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source_name, table_name)
+batch_date = today_date
+params = set_parameter(spark)
+
+{% if pre_processing_sqls %}
+# ─── PRE-PROCESSING (Temp tables logic from legacy script) ───────────────────
+{% for step_sql in pre_processing_sqls %}
+spark.sql(f"""
+{{ step_sql | indent(4) }}
+""")
+{% endfor %}
+{% endif %}
+
+# ─── CONSOLIDATED TABLE (FROM RAW) ───────────────────────────────────────────
+# This table holds the transformed, complete dataset from the RAW source for this batch
+spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_consolidated""")
+spark.sql(f"""
+    CREATE TABLE {params["com_schema"]}.temp_{{ target_table_name }}_consolidated (
+        {% for col in original_columns %}
+        {{ ", " if not loop.first else "" }}{{ col.name }} {{ col.type }}
+        {% endfor %}
+    )
+    stored as parquet
+    tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
+""")
+
+# The main_sql for Model 2A is expected to read from raw_schema and perform transformations
+spark.sql(f"""
+{{ main_sql | indent(4) }}
+""")
+
+# ─── STEP 1: Overwrite target table with transformed data ───────────────────
+spark.sql(f"""
+    INSERT OVERWRITE TABLE {params["com_schema"]}.{{ target_table_name }}
+    SELECT
+        {% for col in original_columns %}
+        {{ ", " if not loop.first else "" }}t.*
+        {% endfor %}
+        , 'A' AS dl_record_status
+        , current_timestamp() AS dl_record_created_date
+        , current_timestamp() AS dl_record_updated_date
+        , '{batch_date}'      AS etl_dt
+        , current_timestamp() AS etl_timestamp
+    FROM {params["com_schema"]}.temp_{{ target_table_name }}_consolidated t
+""")
+
+spark.sql(f"""
+    ANALYZE TABLE {params["com_schema"]}.{{ target_table_name }} COMPUTE STATISTICS
+""")
+
+spark.stop()

@@ -1,4 +1,4 @@
-{###  File Name   : com_{{ target_table_name }}#}
+{###  File Name   : cur_{{ target_table_name }}#}
 {###  File Type   : DML#}
 {###  Model       : {{ model_type }}#}
 {###  Generated   : {{ generated_at }}#}
@@ -6,12 +6,13 @@
 
 {% if header_comments %}
 {{ header_comments }}
+{% endif %}
 
 import os
 import sys
 sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
 from etl_common_function import run_etl, set_parameter
-from pyspark.sql.functions import current_timestamp, md5, concat_ws
+from pyspark.sql.functions import current_timestamp
 
 source_name = "{{ source_name }}"
 table_name  = "{{ base_table }}"
@@ -26,18 +27,18 @@ params = set_parameter(spark)
 spark.sql(f"""
 {{ step_sql | indent(4) }}
 """)
-
 {% endfor %}
 {% endif %}
 
-# ─── CONSOLIDATED TABLE SETUP ────────────────────────────────────────────────────────
-spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_consolidated""")
-
+# ─── DELTA TABLE SETUP ───────────────────────────────────────────────────────
+# This table holds the transformed dataset from COM_T
+spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_delta""")
 spark.sql(f"""
-    CREATE TABLE {params["com_schema"]}.temp_{{ target_table_name }}_consolidated (
+    CREATE TABLE {params["com_schema"]}.temp_{{ target_table_name }}_delta (
         {% for col in original_columns %}
         {{ ", " if not loop.first else "" }}{{ col.name }} {{ col.type }}
         {% endfor %}
+        , dl_record_status       VARCHAR(10)
     )
     stored as parquet
     tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
@@ -47,10 +48,8 @@ spark.sql(f"""
 {{ main_sql | indent(4) }}
 """)
 
-
-# ─── TEMP TABLE SETUP ────────────────────────────────────────────────────────
+# ─── UPDATED TABLE SETUP ─────────────────────────────────────────────────────
 spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_updated""")
-
 spark.sql(f"""
     CREATE TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated (
         {% for col in original_columns %}
@@ -64,43 +63,43 @@ spark.sql(f"""
     tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
 """)
 
-# ─── STEP 1: Keep unchanged records ──────────────────────────────────────────
+# ─── STEP 1: Upsert new and updated records from COM_T ───────────────────────
 spark.sql(f"""
     INSERT INTO TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated
     SELECT
         {% for col in original_columns %}
-        {{ ", " if not loop.first else "" }}{{ col.name }}
+        {{ ", " if not loop.first else "" }}delta.{{ col.name }}
         {% endfor %}
-        , 'A' AS dl_record_status
-        , dl_record_created_date
-        , dl_record_updated_date
-    FROM {params["com_schema"]}.{{ target_table_name }} com_t
-    WHERE NOT EXISTS (
-        SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_consolidated r
-        WHERE r.{{ key }} = com_t.{{ key }}
-    )
-""")
-
-# ─── STEP 2: Upsert changed/new records ──────────────────────────────────────
-spark.sql(f"""
-    INSERT INTO TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated
-    SELECT
-        {% for col in original_columns %}
-        {{ ", " if not loop.first else "" }}r.{{ col.name }}
-        {% endfor %}
-        , 'A' AS dl_record_status
+        , delta.dl_record_status
         , CASE
-            WHEN com_t.{{ key }} IS NOT NULL THEN com_t.dl_record_created_date
+            WHEN cur.{{ keys[0] }} IS NOT NULL THEN cur.dl_record_created_date
             ELSE current_timestamp() END AS dl_record_created_date
         , current_timestamp() AS dl_record_updated_date
-    FROM {params["com_schema"]}.temp_{{ target_table_name }}_consolidated r
-    LEFT JOIN {params["com_schema"]}.{{ target_table_name }} com_t
-        ON r.{{ key }} = com_t.{{ key }}
+    FROM {params["com_schema"]}.temp_{{ target_table_name }}_delta delta
+    LEFT JOIN {params["cur_schema"]}.{{ target_table_name }} cur
+        ON {% if partition_key %}cur.{{ partition_key }} = '{{ partition_value }}' AND {% endif %}{% for k in keys %}delta.{{ k }} = cur.{{ k }}{% if not loop.last %} AND {% endif %}{% endfor %}
+""")
+
+# ─── STEP 2: Mark removed CUR records as deleted ('X') ───────────────────────
+spark.sql(f"""
+    INSERT INTO TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated
+    SELECT
+        {% for col in original_columns %}
+        {{ ", " if not loop.first else "" }}cur.{{ col.name }}
+        {% endfor %}
+        , 'X' AS dl_record_status
+        , cur.dl_record_created_date
+        , current_timestamp() AS dl_record_updated_date
+    FROM {params["cur_schema"]}.{{ target_table_name }} cur
+    WHERE {% if partition_key %}cur.{{ partition_key }} = '{{ partition_value }}' AND {% endif %}NOT EXISTS (
+        SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_delta delta
+        WHERE {% for k in keys %}cur.{{ k }} = delta.{{ k }}{% if not loop.last %} AND {% endif %}{% endfor %}
+    )
 """)
 
 # ─── STEP 3: Overwrite target table ──────────────────────────────────────────
 spark.sql(f"""
-    INSERT OVERWRITE TABLE {params["com_schema"]}.{{ target_table_name }}
+    INSERT OVERWRITE TABLE {params["cur_schema"]}.{{ target_table_name }} {% if partition_key %}PARTITION ({{ partition_key }} = '{{ partition_value }}'){% endif %}
     SELECT
         {% for col in original_columns %}
         {{ ", " if not loop.first else "" }}{{ col.name }}
@@ -114,7 +113,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-    ANALYZE TABLE {params["com_schema"]}.{{ target_table_name }} COMPUTE STATISTICS
+    ANALYZE TABLE {params["cur_schema"]}.{{ target_table_name }} {% if partition_key %}PARTITION ({{ partition_key }} = '{{ partition_value }}'){% endif %} COMPUTE STATISTICS
 """)
 
 spark.stop()
