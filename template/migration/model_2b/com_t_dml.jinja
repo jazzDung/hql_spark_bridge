@@ -43,9 +43,9 @@ spark.sql(f"""
     tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
 """)
 
-# The main_sql for Model 2B is expected to read from raw_schema and perform transformations
+# The main_processing_sqls for Model 2B is expected to read from raw_schema and perform transformations
 spark.sql(f"""
-{{ main_sql | indent(4) }}
+{{ main_processing_sqls | indent(4) }}
 """)
 
 # ─── STEP 1: Overwrite target table with transformed data ───────────────────

@@ -46,7 +46,7 @@ def format_header_comments(header_comments: str) -> str:
     return '\n'.join(python_header_comments)
 
 
-def replace_variables_in_node(node: exp.Expression, variable_mapping: dict, dialect: str) -> None:
+def replace_variables_in_node(node: exp.Expression, variable_mapping: dict, dialect: str = 'pyspark') -> exp.Expression:
     """
     Scan the AST tree to replace variables (Parameter/Var).
     In sqlglot, ${raw_schema} will be parsed as exp.Parameter(this=exp.Var(this="raw_schema"))
@@ -60,8 +60,10 @@ def replace_variables_in_node(node: exp.Expression, variable_mapping: dict, dial
                 py_var_str = f'{{{variable_mapping[var_name][dialect]}}}'
                 # Quoted=False so sqlglot doesn't wrap with backticks (`{params...}`)
                 param_node.replace(exp.Identifier(this=py_var_str, quoted=False))
+    
+    return node
 
-def replace_variables_in_strings(node: exp.Expression, variable_mapping: dict, dialect: str) -> None:
+def replace_variables_in_strings(node: exp.Expression, variable_mapping: dict, dialect: str = 'pyspark') -> exp.Expression:
     """
     Process variables embedded in STRINGS (with single quotes), called Literal by sqlglot
     """
@@ -100,153 +102,163 @@ def replace_variables_in_strings(node: exp.Expression, variable_mapping: dict, d
             if new_text != text_content:
                 literal_node.args["this"] = new_text
 
-def transform_outdated_com_raw_references(node: exp.Expression, context: SqlConversionContext) -> None:
+    return node
+
+def replace_variables_in_comments(node: exp.Expression, variable_mapping: dict, dialect: str = 'pyspark') -> exp.Expression:
     """
-    Transforms references to raw/com tables with outdated logic in the AST node.
-    
-    1. If a table reference has prefix "r_", change it to "t_".
-    2. If the query references columns like "part_id":
-       - If the table schema is raw_schema, replace the reference with etl_dt.
-       - If the table schema is com_schema, replace the reference with dl_record_updated_date.
+    Quét và thay thế các biến (dạng ${var_name}) nằm riêng trong comments của cây AST sqlglot.
     """
-    
-    def extract_schema_name(db_node):
-        if not db_node:
-            return None
-        if isinstance(db_node, exp.Parameter) and isinstance(db_node.this, exp.Var):
-            return db_node.this.name
-        name = getattr(db_node, "name", str(db_node))
-        m1 = re.search(r'\$\{([^}]+)\}', name)
-        if m1: 
-            return m1.group(1)
-        m2 = re.search(r'params\["([^"]+)"\]', name)
-        if m2: 
-            return m2.group(1)
-        return name
+    # generator .walk() duyệt qua mọi node trong AST
+    for n in node.walk():
+        # Kiểm tra node có mang thuộc tính comments không
+        if hasattr(n, "comments") and n.comments:
+            new_comments = []
+            for comment_text in n.comments:
 
-    # 1. Parse all tables and map their alias/name to their schema
-    alias_to_schema = {}
-    for table_node in node.find_all(exp.Table):
-        orig_name = table_node.name
-        new_name = orig_name
+                def replace_comment_var(match):
+                    v_name = match.group(1)
+                    if v_name in variable_mapping:
+                        mapped = variable_mapping[v_name][dialect]
+                        # Trong comment thì text là text thuần, không phải AST node
+                        # Nếu là hàm SQL thì trả về chuỗi hàm, nếu là biến Python thì bọc ngoặc nhọn
+                        return mapped if mapped.endswith("()") else f'{{{mapped}}}'
+                    return match.group(0)
 
-        script_type = f"{getattr(context, 'layer', '')}_{getattr(context, 'sub_layer', '')}"
+                updated_comment = re.sub(r'\$\{([a-zA-Z0-9_]+)\}', replace_comment_var, comment_text)
+                new_comments.append(updated_comment)
 
-        # Handle table renaming (r_ to t_)
-        if orig_name.startswith("r_"):
-            if script_type == "com_temp":
-                new_name = orig_name[2:]
-                table_node.set("this", exp.Identifier(this=new_name, quoted=table_node.this.args.get("quoted", False)))
-                table_node.set("db", exp.Parameter(this=exp.Var(this="raw_schema")))
-            else:
-                new_name = "t_" + orig_name[2:]
-                table_node.set("this", exp.Identifier(this=new_name, quoted=table_node.this.args.get("quoted", False)))
-            
-        schema_name = extract_schema_name(table_node.args.get("db"))
+            # Ghi đè lại mảng comment của node
+            n.comments.clear()
+            # Bọc thêm \n ở đầu và cuối để format block comment trông đẹp mắt hơn
+            merged_comment = "\n".join(new_comments)
+            n.comments.append(merged_comment)
 
-        if schema_name:
-            if table_node.alias:
-                alias_to_schema[table_node.alias] = schema_name
-            alias_to_schema[orig_name] = schema_name
-            alias_to_schema[new_name] = schema_name
+    return node
 
-    # 2. Find and replace part_id references
-    for op_node in node.find_all(exp.EQ, exp.LTE, exp.GTE, exp.LT, exp.GT):
-        part_id_col = None
-        if isinstance(op_node.left, exp.Column) and op_node.left.name.lower() == "part_id":
-            part_id_col = op_node.left
-        elif isinstance(op_node.right, exp.Column) and op_node.right.name.lower() == "part_id":
-            part_id_col = op_node.right
 
-        if part_id_col:
-            schema_name = None
-            if part_id_col.table:
-                schema_name = alias_to_schema.get(part_id_col.table)
-            else:
-                for schema in alias_to_schema.values():
-                    if schema in ("raw_schema", "com_schema"):
-                        schema_name = schema
-                        break
+import sqlglot
+from sqlglot import exp
 
-            # print(node.sql(dialect="give", pretty=True))
-            # print(schema_name)
 
-            if schema_name == "raw_schema":
-                # Create alias.etl_dt
-                new_col = exp.Column(
-                    this=exp.Identifier(this="etl_dt"),
-                    table=exp.Identifier(this=part_id_col.table) if part_id_col.table else None
-                )
-                
-                # Replace the operator node with alias.etl_dt = '{batch_date}'
-                new_op_node = exp.EQ(
-                    this=new_col,
-                    expression=exp.Literal(this="{batch_date}", is_string=True)
-                )
-                op_node.replace(new_op_node)
+def remove_part_id_from_projections(expression: exp.Expression) -> exp.Expression:
+    """
+    Bước 1: Loại bỏ sự xuất hiện của 'part_id' trong các mệnh đề định nghĩa/khai báo.
+    - Cột trong lệnh SELECT.
+    - Định nghĩa cột trong lệnh CREATE TABLE.
+    """
 
-            elif schema_name == "com_schema":
-                # Create TO_DATE(table_alias.dl_record_updated_date)
-                col_expr = exp.Column(
-                    this=exp.Identifier(this="dl_record_updated_date"),
-                    table=exp.Identifier(this=part_id_col.table) if part_id_col.table else None
-                )
-                
-                # We need to construct TO_DATE(...) cleanly using sqlglot
-                new_left = exp.Anonymous(
-                    this="TO_DATE",
-                    expressions=[col_expr]
-                )
-                
-                # Create the complex nested expression for the right side
-                # TO_DATE(FROM_UNIXTIME(UNIX_TIMESTAMP('{batch_date}', 'yyyyMMdd')))
-                # Note: If batch_date has already been replaced by replace_variables_in_node
-                # or replace_variables_in_strings, it might be {params["batch_date"]} or similar.
-                # Assuming here the literal value on the right is what needs to be wrapped.
-                
-                # Get the value from the other side of the operator
-                right_val_expr = op_node.right if part_id_col is op_node.left else op_node.left
-                
-                # Extract the string value if it's a literal or parameter
-                date_val_str = ""
-                if isinstance(right_val_expr, exp.Literal):
-                    date_val_str = right_val_expr.this
-                elif isinstance(right_val_expr, exp.Parameter) and isinstance(right_val_expr.this, exp.Var):
-                    date_val_str = "${" + right_val_expr.this.name + "}"
-                elif isinstance(right_val_expr, exp.Identifier):
-                     # Could be an f-string already replaced
-                     date_val_str = right_val_expr.name
-                
-                unix_ts = exp.Anonymous(
-                    this="UNIX_TIMESTAMP",
-                    expressions=[
-                        exp.Literal.string(date_val_str),
-                        exp.Literal.string("yyyyMMdd")
-                    ]
-                )
-                
-                from_unix = exp.Anonymous(
-                    this="FROM_UNIXTIME",
-                    expressions=[unix_ts]
-                )
-                
-                new_right = exp.Anonymous(
-                    this="TO_DATE",
-                    expressions=[from_unix]
-                )
+    def transformer(node):
+        if isinstance(node, exp.Select):
+            new_exprs = []
+            for e in node.expressions:
+                # Dùng .unalias() để bóc tách trường hợp alias (VD: part_id AS p)
+                col = e.unalias()
+                # Kiểm tra nếu biểu thức cốt lõi là Column và tên là part_id
+                if isinstance(col, exp.Column) and col.name.lower() == "part_id":
+                    continue  # Bỏ qua, không đưa vào danh sách mới
+                new_exprs.append(e)
 
-                # Replace the entire operator node
-                new_op_node = op_node.copy()
-                if isinstance(new_op_node.left, exp.Column) and new_op_node.left.name.lower() == "part_id":
-                    new_op_node.set("this", new_left)
-                    new_op_node.set("expression", new_right)
+            # Trả về node mới với danh sách expressions đã được lọc
+            new_node = node.copy()
+            new_node.set("expressions", new_exprs)
+            return new_node
+
+        elif isinstance(node, exp.Schema):
+            # Xử lý cho CREATE TABLE (exp.Schema chứa danh sách các exp.ColumnDef)
+            new_exprs = []
+            for e in node.expressions:
+                if isinstance(e, exp.ColumnDef) and e.name.lower() == "part_id":
+                    continue
+                new_exprs.append(e)
+
+            new_node = node.copy()
+            new_node.set("expressions", new_exprs)
+            return new_node
+
+        return node
+
+    # Copy=True để đảm bảo an toàn không thay đổi trực tiếp cây gốc trong lúc duyệt
+    return expression.copy().transform(transformer)
+
+
+def rename_remaining_identifiers_and_tables(expression: exp.Expression) -> exp.Expression:
+    """
+    Bước 2: Xử lý các node còn sót lại trong AST (lúc này part_id chỉ còn nằm ở
+    JOIN, WHERE, PARTITION BY, ORDER BY...).
+    Đồng thời xử lý đổi tên bảng tiền tố r_.
+    """
+
+    def transformer(node):
+        # LUẬT 1: Đổi tên bảng r_
+        if isinstance(node, exp.Table):
+            table_name = node.name
+            if table_name and table_name.lower().startswith("r_"):
+                new_node = node.copy()
+                new_node.this.set("this", table_name[2:])
+                new_db = exp.Parameter(this=exp.Var(this="raw_schema"), expression=False)
+                new_node.set("db", new_db)
+                return new_node
+
+        # LUẬT 2: Đổi part_id -> etl_dt
+        if isinstance(node, exp.Identifier):
+            if node.name.lower() == "part_id":
+                new_node = node.copy()
+                new_node.set("this", "etl_dt")
+                return new_node
+
+        return node
+
+    return expression.transform(transformer)
+
+
+def replace_table_identifier(
+    node: exp.Expression,
+    old_schema: str, old_table: str,
+    new_schema: str, new_table: str,
+    dialect: str = "hive"
+) -> exp.Expression:
+    """
+    Thay thế chính xác 1 bảng trong AST. Đã vá lỗi ép kiểu (into=exp.Table).
+    """
+    # ÉP KIỂU: Bắt buộc parse chuỗi dưới dạng Table thay vì Column
+    old_expr = sqlglot.parse_one(f"{old_schema}.{old_table}", read=dialect, into=exp.Table)
+    new_expr = sqlglot.parse_one(f"{new_schema}.{new_table}", read=dialect, into=exp.Table)
+
+    # Lúc này old_expr chắc chắn là Table, lấy db an toàn
+    old_db_norm = old_expr.args.get("db").sql(dialect) if old_expr.args.get("db") else ""
+    old_tbl_norm = old_expr.name.lower()
+
+    def transformer(n):
+        if isinstance(n, exp.Table):
+            curr_db_norm = n.args.get("db").sql(dialect) if n.args.get("db") else ""
+            curr_tbl_norm = n.name.lower()
+
+            if curr_db_norm == old_db_norm and curr_tbl_norm == old_tbl_norm:
+                new_n = n.copy()
+                new_n.set("this", new_expr.args.get("this").copy())
+
+                if new_expr.args.get("db"):
+                    new_n.set("db", new_expr.args.get("db").copy())
                 else:
-                    new_op_node.set("expression", new_left)
-                    new_op_node.set("this", new_right)
+                    new_n.args.pop("db", None)
+                return new_n
+        return n
 
-                op_node.replace(new_op_node)
+    return node.transform(transformer)
 
+def strip_partition_clauses(node: exp.Expression) -> exp.Expression:
+    """
+    Quét toàn bộ AST và loại bỏ mọi cấu trúc PARTITION(...).
+    Hoạt động tốt với INSERT, CREATE TABLE, v.v.
+    """
+    def transformer(n):
+        # Nếu node là định dạng PARTITION(...)
+        if isinstance(n, exp.Partition):
+            return None # Báo cho sqlglot xóa node này khỏi AST
+        return n
 
+    # Tạo bản sao để không làm hỏng AST gốc nếu cần dùng lại
+    return node.copy().transform(transformer)
 
 def handle_skip_action(
     rule: dict,

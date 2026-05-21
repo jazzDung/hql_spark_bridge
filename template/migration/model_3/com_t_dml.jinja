@@ -44,7 +44,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-{{ main_sql | indent(4) }}
+{{ main_processing_sqls | indent(4) }}
 """)
 
 
@@ -79,7 +79,7 @@ spark.sql(f"""
         com_t.dl_record_status = 'A'
         AND NOT EXISTS (
             SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_consolidated r
-            WHERE {% for k in keys %}{% if not loop.first %} AND {% endif %}r.{{ k }} = com_t.{{ k }}
+            WHERE {% for k in primary_key %}{% if not loop.first %} AND {% endif %}r.{{ k }} = com_t.{{ k }}
             {% endfor %}
         )
 """)
@@ -93,13 +93,13 @@ spark.sql(f"""
         {% endfor %}
         , 'A' AS dl_record_status
         , CASE
-            WHEN com_t.{{ keys[0] }} IS NOT NULL THEN com_t.dl_record_created_date
+            WHEN com_t.{{ primary_key[0] }} IS NOT NULL THEN com_t.dl_record_created_date
             ELSE current_timestamp() END AS dl_record_created_date
         , current_timestamp() AS dl_record_updated_date
     FROM {params["com_schema"]}.temp_{{ target_table_name }}_consolidated r
     LEFT JOIN {params["com_schema"]}.{{ target_table_name }} com_t
         ON com_t.dl_record_status = 'A'
-        {% for k in keys %}AND r.{{ k }} = com_t.{{ k }}
+        {% for k in primary_key %}AND r.{{ k }} = com_t.{{ k }}
         {% endfor %}
 """)
 

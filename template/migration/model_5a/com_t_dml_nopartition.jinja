@@ -42,9 +42,9 @@ spark.sql(f"""
     tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
 """)
 
-# main_sql is expected to read and transform data from RAW for the current batch_date
+# main_processing_sqls is expected to read and transform data from RAW for the current batch_date
 spark.sql(f"""
-{{ main_sql | indent(4) }}
+{{ main_processing_sqls | indent(4) }}
 """)
 
 # ─── TEMP TABLE SETUP ────────────────────────────────────────────────────────

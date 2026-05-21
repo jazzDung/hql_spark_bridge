@@ -5,6 +5,7 @@ from typing import Optional
 import yaml
 import re
 
+from migration.schema_extractor import SchemaExtractor
 from paths import DATALAKE_SCRIPT_DIR, PROJECT_ROOT
 from src.migration.decomposer import DecomposedScript
 from src.core.ddl_parser import DDLParser
@@ -12,141 +13,18 @@ from src.core.ddl_parser import DDLParser
 # Import từ các module khác thuộc Bước 2 (Step 2)
 from src.migration.model_detector import ModelDetector
 from src.migration.key_detector import KeyDetector
-
-def _file_has_create_table(path: Path) -> bool:
-    try:
-        content = path.read_text(encoding="utf-8").upper()
-        return "CREATE TABLE" in content
-    except Exception:
-        return False
-
-def resolve_ddl_path(dml_path: Path) -> Optional[Path]:
-    """
-    DDL resolution priority:
-    1. Same directory, same stem, same extension (DDL file contains 'CREATE TABLE' as first statement)
-    2. Sibling directory named 'ddl/' with same stem
-    3. Parent's sibling directory named 'ddl/' with same stem
-    """
-    candidates = [
-        # dml_path.parent / dml_path.name,              # same file (multi-statement)
-        # dml_path.parent / "ddl" / dml_path.name,      # sibling dir
-        # dml_path.parent.parent / "ddl" / dml_path.name, # parent's sibling dir
-        DATALAKE_SCRIPT_DIR /"ddl" / "com"  / dml_path.name, # parent's sibling dir
-        DATALAKE_SCRIPT_DIR /"ddl" / "cur"  / dml_path.name, # parent's sibling dir
-    ]
-
-    # print(candidates)
-    for c in candidates:
-        if c.exists() and _file_has_create_table(c):
-            return c
-    return None
-
-# class SchemaExtractor:
-#     def __init__(self, source_rules: dict):
-#         self.non_original_fields = set(
-#             source_rules.get("column_rules", {})
-#                         .get("non_original_fields", {})
-#                         .get("name", [])
-#         )
-#         self.ddl_parser = DDLParser() # uses default config
-#
-#     def extract(self, ddl_path: Path) -> list[dict]:
-#         ddl_content = ddl_path.read_text(encoding="utf-8")
-#
-#         # Simple extraction for SOURCE statements removal before passing to parser
-#         ddl_content = re.sub(r'source\s+\S+;', '', ddl_content, flags=re.IGNORECASE)
-#
-#         full_table_name, struct_type = self.ddl_parser.parse_hive_ddl(ddl_content)
-#
-#         result = []
-#         for field in struct_type.fields:
-#             col_name = field.name.lower()
-#             remark = "non_original_field" if col_name in self.non_original_fields else None
-#             # DataType.simpleString() returns strings like "string", "decimal(18,2)"
-#             result.append({
-#                 "name": col_name,
-#                 # "type": field.dataType.simpleString().upper(),
-#                 "type": field.dataType.simpleString().upper(),
-#                 "remark": remark
-#             })
-#
-#
-#         return result
+from src.migration.ddl_resolver import DdlResolver
 
 import re
 from pathlib import Path
 from sqlglot import parse_one, exp, parse
 
-
-class SchemaExtractor:
-    def __init__(self, source_rules: dict):
-        self.non_original_fields = set(
-            source_rules.get("column_rules", {})
-            .get("non_original_fields", {})
-            .get("name", [])
-        )
-
-    def extract(self, ddl_path: Path) -> list[dict]:
-        ddl_content = ddl_path.read_text(encoding="utf-8")
-
-        # Remove custom SOURCE statements if exists
-        ddl_content = re.sub(
-            r"source\s+\S+;",
-            "",
-            ddl_content,
-            flags=re.IGNORECASE
-        )
-
-        statements = parse(ddl_content, read="hive")
-
-        create_stmt = next(
-            (
-                stmt for stmt in statements
-                if isinstance(stmt, exp.Create)
-            ),
-            None
-        )
-
-        if create_stmt is None:
-            raise ValueError("No CREATE TABLE statement found")
-
-        schema = create_stmt.this
-
-        if not isinstance(schema, exp.Schema):
-            raise ValueError("Unable to parse schema from DDL")
-
-        result = []
-
-        for column in schema.expressions:
-            if not isinstance(column, exp.ColumnDef):
-                continue
-
-            col_name = column.name.lower()
-
-            kind = column.args.get("kind")
-            hive_type = kind.sql(dialect="hive").upper() if kind else "STRING"
-
-            remark = (
-                "non_original_field"
-                if col_name in self.non_original_fields
-                else None
-            )
-
-            result.append({
-                "name": col_name,
-                "type": hive_type,
-                "remark": remark
-            })
-
-        return result
-
 class MetadataProcessor:
-    def __init__(self, source_rules: dict, ai_fallback: bool = False):
+    def __init__(self, source_rules: dict):
         self.source_rules = source_rules
-        self.ai_fallback = ai_fallback
         self.schema_extractor = SchemaExtractor(source_rules)
         self.model_detector = ModelDetector()
-        self.key_detector = KeyDetector(ai_fallback=ai_fallback)
+        self.key_detector = KeyDetector()
 
     def process(self, decomposed: DecomposedScript, input_path: Path, output_root: Path = None) -> dict:
 
@@ -154,7 +32,8 @@ class MetadataProcessor:
             output_root = Path("output/migration")
 
         # 1. Resolve DDL path
-        ddl_path = resolve_ddl_path(input_path)
+        ddl_resolver = DdlResolver(source_rules = self.source_rules)
+        ddl_path = ddl_resolver.resolve_ddl_path(input_path)
         if not ddl_path:
             raise FileNotFoundError(f"Could not resolve DDL for {input_path}. Make sure DDL file exists.")
 
@@ -166,7 +45,7 @@ class MetadataProcessor:
         model_type = self.model_detector.detect(decomposed.main_sql, source_default=default_model)
 
         # 4. Detect key
-        key = self.key_detector.detect(decomposed, columns, self.source_rules)
+        primary_key = self.key_detector.detect(decomposed, self.source_rules)
 
         # 5. Build pre_processing blocks
         temp_table_rules = self.source_rules.get("temp_table_rules", {})
@@ -180,7 +59,7 @@ class MetadataProcessor:
                         action = rule.get("action", "include")
                         break
             
-            step_file_path = output_root / decomposed.pipeline_id / "processing_steps" / f"{decomposed.schema}_{temp_block.name}.sql"
+            step_file_path = output_root / decomposed.pipeline_id / "processing_steps" / f"{decomposed.schema_name}_{temp_block.name}.sql"
             pre_processing.append({
                 "name": temp_block.name,
                 "file": str(step_file_path.as_posix()),
@@ -191,20 +70,27 @@ class MetadataProcessor:
         # 6. Calculate Delta columns
         delta_columns = [
             c["name"] for c in columns 
-            if c["name"] != key and c.get("remark") != "non_original_field"
+            if c["name"] not in primary_key['logical_primary_key'] and c.get("remark") != "non_original_field"
         ]
 
         target_table_name = f"t_{decomposed.source_name}_{decomposed.base_table}" if decomposed.sub_layer == "r" else decomposed.main_table
+        main_file_path = output_root / decomposed.pipeline_id / "processing_steps" / "_main_dml.sql"
+        header_comments_file_path = output_root / decomposed.pipeline_id / "processing_steps" / "_header_comments.sql"
 
         pipeline_config = {
             "pipeline_id": decomposed.pipeline_id,
-            "layer": decomposed.schema,
+            "layer": decomposed.schema_name,
             "model_type": model_type,
             "source_name": decomposed.source_name,
             "target_table_name": target_table_name,
             "columns": columns,
-            "key": key,
-            "key_detection_strategy": "auto",  # This can be extracted if key_detector returns a tuple
+            "primary_key": primary_key,
+            "header_comments": {
+                "file": str(header_comments_file_path.as_posix())
+            },
+            "main_processing": {
+                "file": str(main_file_path.as_posix())
+            },
             "pre_processing": pre_processing,
             "delta_columns": delta_columns,
             "applied_source_rule": self.source_rules.get("source", "unknown"),

@@ -116,9 +116,9 @@ spark.sql(f"""
 """)
 
 # ─── STEP 2: Insert transformed delta into temp table ────────────────────────
-# main_sql is expected to transform data from temp_{target_table_name}_delta
+# main_processing_sqls is expected to transform data from temp_{target_table_name}_delta
 spark.sql(f"""
-{{ main_sql | indent(4) }}
+{{ main_processing_sqls | indent(4) }}
 """)
 
 # ─── STEP 3: Overwrite CUR table dynamically ─────────────────────────────────

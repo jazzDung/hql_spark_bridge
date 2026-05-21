@@ -1,8 +1,12 @@
-##  File Name   : com_{{ target_table_name }}
-##  File Type   : DML
-##  Model       : {{ model_type }}
-##  Generated   : {{ generated_at }}
-##  Source      : {{ pipeline_id }} (migrated from Datalake Old)
+{###  File Name   : com_{{ target_table_name }}#}
+{###  File Type   : DML#}
+{###  Model       : {{ model_type }}#}
+{###  Generated   : {{ generated_at }}#}
+{###  Source      : {{ pipeline_id }} (migrated from Datalake Old)#}
+
+{% if header_comments %}
+{{ header_comments }}
+{% endif %}
 
 import os
 import sys

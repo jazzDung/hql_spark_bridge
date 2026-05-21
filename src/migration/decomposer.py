@@ -18,21 +18,22 @@ class TempTableBlock:
     raw_sql: str                 # Đoạn text SQL được trích xuất
     ast_nodes: list              # Các node AST của sqlglot cho block này
     operation: str               # "create_as_select" | "drop_create_insert" | "insert_only"
-    schema: str                  # schema của bản thân bảng tạm này
+    schema_name: str                  # schema của bản thân bảng tạm này
     dependencies: list[dict] = field(default_factory=list)
 
 @dataclass
 class DecomposedScript:
+    file_path: Path
     source_name: str             # "k2"
     base_table: str              # "cif_alias"
     main_table: str              # "r_k2_cif_alias"
     pipeline_id: str             # "com_r_k2_cif_alias"
-    schema: str                   # "com" | "raw" | "cur | "unl"
+    schema_name: str             # "com" | "raw" | "cur | "unl"
     sub_layer: str               # "r" | "t" | "m"
     temp_tables: list[TempTableBlock]
     main_sql: str                # Block INSERT INTO bảng đích (target table) cuối cùng
     raw_sql_full: str            # Nội dung gốc của file
-
+    header_comments: str = ""    # Header comments from the original file
 
 
 class SqlDecomposer:
@@ -44,33 +45,48 @@ class SqlDecomposer:
         Parse và chia nhỏ một file HiveQL nguyên khối thành các block có tên.
         """
         content = sql_file.read_text(encoding="utf-8")
+        
+        # 1. Separate header comments from the main SQL code
+        header_lines = []
+        sql_lines = []
+        is_header = True
+        
+        for line in content.split('\n'):
+            stripped_line = line.strip()
+            if is_header and (stripped_line.startswith('--') or not stripped_line):
+                header_lines.append(line)
+            else:
+                is_header = False
+                sql_lines.append(line)
+        
+        header_comments = '\n'.join(header_lines).strip()
+        sql_content = '\n'.join(sql_lines)
+
         schema, sub_layer, source_name, base_table = parse_file_name(sql_file)
         main_table = f"{sub_layer}_{source_name}_{base_table}"
 
-        # 1. Loại bỏ header comment block (các dòng bắt đầu bằng --)
-        # content = self._strip_header(content)
-        # 2. Loại bỏ các command đặc thù của Hive (SOURCE ..., SET ...)
-        # content = self._clean_hive_specific(content)
-        # 3. Parse AST
-        statements = sqlglot.parse(content, read="hive", error_level=sqlglot.ErrorLevel.WARN)
-        # 4. Nhóm các câu lệnh theo từng temp table
+        # 2. Parse AST from the SQL content (without header)
+        statements = sqlglot.parse(sql_content, read="hive", error_level=sqlglot.ErrorLevel.WARN)
+        # 3. Nhóm các câu lệnh theo từng temp table
         blocks = self._group_by_table(statements)
-        # 5. Nhận diện khối lệnh INSERT chính (bảng đích, không phải bảng tạm)
+        # 4. Nhận diện khối lệnh INSERT chính (bảng đích, không phải bảng tạm)
         main_sql, temp_blocks = self._separate_main(blocks, content, main_table)
-        # 6. Build các object TempTableBlock
+        # 5. Build các object TempTableBlock
         temp_table_objs = self._build_temp_table_objects(temp_blocks, content)
 
 
         return DecomposedScript(
+            file_path=sql_file,
             source_name=source_name,
             base_table=base_table,
             main_table=main_table,
             pipeline_id=sql_file.stem,       # "com_r_k2_cif_alias"
-            schema=schema,
+            schema_name=schema,
             sub_layer=sub_layer,
             temp_tables=temp_table_objs,
             main_sql=main_sql,
-            raw_sql_full=content
+            raw_sql_full=content,
+            header_comments=header_comments
         )
 
     def _group_by_table(self, statements: list) -> dict[str, list]:
@@ -174,7 +190,7 @@ class SqlDecomposer:
                     raw_sql=raw_sql,
                     ast_nodes=statements,
                     operation=operation,
-                    schema=schema,
+                    schema_name=schema,
                     dependencies=dependencies
                 )
             )
@@ -186,8 +202,13 @@ class DecomposerWriter:
         steps_dir = output_root / "processing_steps"
         steps_dir.mkdir(parents=True, exist_ok=True)
 
+        # Write header comments if they exist
+        if decomposed.header_comments:
+            header_file = steps_dir / "_header_comments.sql"
+            header_file.write_text(decomposed.header_comments, encoding="utf-8")
+
         for block in decomposed.temp_tables:
-            out_file = steps_dir / f"{decomposed.schema}_{block.name}.sql"
+            out_file = steps_dir / f"{decomposed.schema_name}_{block.name}.sql"
             out_file.write_text(block.raw_sql, encoding="utf-8")
 
         # Ghi riêng Main SQL để tham chiếu

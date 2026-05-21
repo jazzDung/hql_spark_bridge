@@ -50,7 +50,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-{{ main_sql | indent(4) }}
+{{ main_processing_sqls | indent(4) }}
 """)
 
 
@@ -96,7 +96,7 @@ spark.sql(f"""
         com_t.dl_record_status = 'A'
         AND NOT EXISTS (
             SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_consolidated r
-            WHERE {% for k in keys %}{% if not loop.first %} AND {% endif %}r.{{ k }} = com_t.{{ k }}{% endfor %}
+            WHERE {% for k in primary_key %}{% if not loop.first %} AND {% endif %}r.{{ k }} = com_t.{{ k }}{% endfor %}
             {% for p_col in partition_columns %} AND r.{{ p_col }} = com_t.{{ p_col }}{% endfor %}
         )
 """)

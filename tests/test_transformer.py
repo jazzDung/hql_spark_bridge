@@ -1,7 +1,7 @@
 from sqlglot import parse_one
 import sqlglot
 
-from src.transformers.utils import transform_outdated_com_raw_references
+from src.transformers.utils import refactor_ast_for_com_layer
 
 def test_transform():
     sql = """WITH filtered_clients AS (
@@ -28,7 +28,7 @@ def test_transform():
 )"""
     
     node = parse_one(sql, read="hive")
-    transform_outdated_com_raw_references(node)
+    refactor_ast_for_com_layer(node)
     print(node.sql(dialect="spark"))
 
 if __name__ == "__main__":

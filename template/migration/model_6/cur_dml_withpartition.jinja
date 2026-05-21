@@ -33,7 +33,7 @@ spark.sql(f"""
 {% endfor %}
 {% endif %}
 
-# ─── DELTA TABLE SETUP (EXTRACT IMPACTED KEYS FROM COM_T) ───────────────────
+# ─── DELTA TABLE SETUP (EXTRACT IMPACTED primary_key FROM COM_T) ───────────────────
 spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_delta""")
 spark.sql(f"""
     CREATE TABLE {params["com_schema"]}.temp_{{ target_table_name }}_delta (
@@ -59,11 +59,11 @@ spark.sql(f"""
         {% endfor %}
     FROM {params["com_schema"]}.{{ target_table_name }} com_t
     INNER JOIN (
-        SELECT DISTINCT {% for k in keys %}{{ k }}{{ "," if not loop.last else "" }}{% endfor %}
+        SELECT DISTINCT {% for k in primary_key %}{{ k }}{{ "," if not loop.last else "" }}{% endfor %}
         FROM {params["com_schema"]}.{{ target_table_name }}
         WHERE DATE_FORMAT(dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
     ) delta_key
-    ON {% for k in keys %}com_t.{{ k }} = delta_key.{{ k }}{% if not loop.last %} AND {% endif %}{% endfor %}
+    ON {% for k in primary_key %}com_t.{{ k }} = delta_key.{{ k }}{% if not loop.last %} AND {% endif %}{% endfor %}
     WHERE com_t.dl_record_status = 'A'
 """)
 
@@ -106,15 +106,15 @@ spark.sql(f"""
         {% if source_key_partition %}cur.{{ source_key_partition }} = '{{ source_key_value }}' AND {% endif %}
         NOT EXISTS (
             SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_delta delta
-            WHERE {% for k in keys %}delta.{{ k }} = cur.{{ k }} AND {% endfor %}
+            WHERE {% for k in primary_key %}delta.{{ k }} = cur.{{ k }} AND {% endfor %}
             {% for p_col in partition_columns %}delta.{{ p_col }} = cur.{{ p_col }}{% if not loop.last %} AND {% endif %}{% endfor %}
         )
 """)
 
 # ─── STEP 2: Insert transformed delta into temp table ────────────────────────
-# main_sql is expected to transform data from temp_{target_table_name}_delta
+# main_processing_sqls is expected to transform data from temp_{target_table_name}_delta
 spark.sql(f"""
-{{ main_sql | indent(4) }}
+{{ main_processing_sqls | indent(4) }}
 """)
 
 # ─── STEP 3: Overwrite CUR table dynamically ─────────────────────────────────

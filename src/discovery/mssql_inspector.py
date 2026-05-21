@@ -42,7 +42,7 @@ class MSSQLInspector(BaseInspector):
             .load().limit(0)
 
         return [{"name": f.name, "type": str(f.dataType), "nullable": f.nullable}
-                for f in df.schema.fields]
+                for f in df.schema_name.fields]
 
     def _get_schema_via_native(self, table_name):
         """New logic using pymssql to read metadata directly from SQL Server"""

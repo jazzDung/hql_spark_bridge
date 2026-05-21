@@ -278,10 +278,10 @@ Resolves template path automatically from `PipelineConfig.template_path_prefix`:
 
 ```python
 # template/datalake_model_5b/hiveql_ddl/raw.jinja
-ddl_sql = render_template(f'{config.schema}.jinja', context, ddl_template_folder)
+ddl_sql = render_template(f'{config.schema_name}.jinja', context, ddl_template_folder)
 
 # template/datalake_model_5b/hiveql_dml/raw.jinja
-dml_sql = render_template(f'{config.schema}.jinja', context, dml_template_folder)
+dml_sql = render_template(f'{config.schema_name}.jinja', context, dml_template_folder)
 ```
 
 

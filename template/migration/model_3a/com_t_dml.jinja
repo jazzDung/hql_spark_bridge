@@ -6,6 +6,7 @@
 
 {% if header_comments %}
 {{ header_comments }}
+{% endif %}
 
 import os
 import sys
@@ -24,7 +25,7 @@ params = set_parameter(spark)
 # ─── PRE-PROCESSING (Temp tables logic from legacy script) ───────────────────
 {% for step_sql in pre_processing_sqls %}
 spark.sql(f"""
-{{ step_sql | indent(4) }}
+{{ step_sql  | comment_formatting | indent(4) }}
 """)
 
 {% endfor %}
@@ -43,10 +44,16 @@ spark.sql(f"""
     tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
 """)
 
+# ─── INSERT INTO CONSOLIDATED TABLE ────────────────────────────────────────────────────────
+
+{% if main_processing_sqls %}
+{% for main_sql in main_processing_sqls %}
 spark.sql(f"""
-{{ main_sql | indent(4) }}
+{{ main_sql  | comment_formatting  | indent(4) }}
 """)
 
+{% endfor %}
+{% endif %}
 
 # ─── TEMP TABLE SETUP ────────────────────────────────────────────────────────
 spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_updated""")
@@ -77,7 +84,7 @@ spark.sql(f"""
     FROM {params["com_schema"]}.{{ target_table_name }} com_t
     WHERE NOT EXISTS (
         SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_consolidated r
-        WHERE r.{{ key }} = com_t.{{ key }}
+        WHERE {% for k in primary_key %}r.{{ k }} = com_t.{{ k }}{% if not loop.last %} AND {% endif %}{% endfor %}
     )
 """)
 
@@ -90,12 +97,12 @@ spark.sql(f"""
         {% endfor %}
         , 'A' AS dl_record_status
         , CASE
-            WHEN com_t.{{ key }} IS NOT NULL THEN com_t.dl_record_created_date
+            WHEN com_t.{{ primary_key[0] }} IS NOT NULL THEN com_t.dl_record_created_date
             ELSE current_timestamp() END AS dl_record_created_date
         , current_timestamp() AS dl_record_updated_date
     FROM {params["com_schema"]}.temp_{{ target_table_name }}_consolidated r
     LEFT JOIN {params["com_schema"]}.{{ target_table_name }} com_t
-        ON r.{{ key }} = com_t.{{ key }}
+        ON {% for k in primary_key %}r.{{ k }} = com_t.{{ k }}{% if not loop.last %} AND {% endif %}{% endfor %}
 """)
 
 # ─── STEP 3: Overwrite target table ──────────────────────────────────────────

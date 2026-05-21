@@ -6,10 +6,12 @@ import sqlglot
 
 from src.core.parser import HiveScriptParser
 from src.jinja.environment import render_template
-from src.migration.ddl_enricher import DdlEnricher
+from src.migration.ddl_resolver import DdlResolver
 from src.paths import PROJECT_ROOT
 from src.context.sql_conversion_context import SqlConversionContext
 from src.transformers.com_pyspark_transformer import ComPySparkTransformer
+from transformers.utils import format_header_comments
+
 
 class PySparkGenerator:
     def __init__(self, source_rules: Dict[str, Any], output_mode: str = "simple"):
@@ -31,7 +33,7 @@ class PySparkGenerator:
         return ddl_context, dml_context
 
     def _generate_ddl(self, pipeline_config: Dict[str, Any], output_root: Path):
-        enricher = DdlEnricher(source_rules=self.source_rules)
+        enricher = DdlResolver(source_rules=self.source_rules)
         ddl_context = enricher.enrich(pipeline_config)
         ddl_context["generated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -63,6 +65,11 @@ class PySparkGenerator:
             col for col in pipeline_config.get("columns", [])
             if col.get("remark") != "non_original_field"
         ]
+
+        # --- Process Header Comments ---
+        header_comments_path = PROJECT_ROOT / Path(pipeline_config.get("header_comments").get("file"))
+        header_comments = header_comments_path.read_text(encoding="utf-8")
+        formatted_header_comments = format_header_comments(header_comments)
         
         # Extract base_table from target_table_name
         # e.g., t_k2_cif_alias -> cif_alias
@@ -76,15 +83,15 @@ class PySparkGenerator:
             if step.get("action") == "skip":
                 continue
             step_file = PROJECT_ROOT / Path(step["file"])
-            print(f"Reading pre-processing SQL from {step_file}")
+            print(f"Reading pre-processing SQL from: {step_file.stem}")
 
             if step_file.exists():
                 # Create a context for the transformer
                 context = HiveScriptParser.parse_file(str(step_file))
-                print(context.source_name, context.sub_layer)
+                # print(context.source_name, context.sub_layer)
                 
                 # Apply the ComPysparkTransformer
-                jinja_render_model = self.transformer.transform(context)
+                jinja_render_model = self.transformer.transform(pipeline_config, context)
                 
                 # Extract the transformed queries
                 for query_obj in jinja_render_model.transformed_queries:
@@ -93,6 +100,17 @@ class PySparkGenerator:
                      elif isinstance(query_obj, str): # In case it's just a list of strings
                          pre_processing_sqls.append(query_obj)
 
+        # Read main processing SQLs
+        main_processing_sqls = []
+        main_processing_sql_path = PROJECT_ROOT / Path(pipeline_config.get("main_processing").get("file"))
+        main_processing_context = HiveScriptParser.parse_file(str(main_processing_sql_path))
+        main_processing_render_model = self.transformer.transform(pipeline_config, main_processing_context)
+
+        for query_obj in main_processing_render_model.transformed_queries:
+             if isinstance(query_obj, dict) and query_obj.get('type') == 'query':
+                 main_processing_sqls.append(query_obj.get('content'))
+             elif isinstance(query_obj, str): # In case it's just a list of strings
+                 main_processing_sqls.append(query_obj)
 
         dml_context = {
             "pipeline_id": pipeline_config["pipeline_id"],
@@ -102,8 +120,10 @@ class PySparkGenerator:
             "source_name": source_name,
             "base_table": base_table,
             "original_columns": original_columns,
+            "header_comments": formatted_header_comments,
             "delta_columns": pipeline_config.get("delta_columns", []),
-            "key": pipeline_config["key"],
+            "primary_key": pipeline_config["primary_key"]['logical_primary_key'],
+            "main_processing_sqls": main_processing_sqls,
             "pre_processing_sqls": pre_processing_sqls
         }
 

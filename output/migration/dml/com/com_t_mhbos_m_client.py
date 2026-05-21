@@ -1,8 +1,26 @@
-##  File Name   : com_t_mhbos_m_client
-##  File Type   : DML
-##  Model       : 3a
-##  Generated   : 2026-05-13 09:38:32
-##  Source      : com_t_mhbos_m_client (migrated from Datalake Old)
+
+"""
+Purpose:    Customer information cleaning rules implementation program
+Author:     Sunline
+Usage:      python $ETL_HOME/script/main.py 20230809 com_t_mhbos_m_client
+CreateDate: 20230810
+Logs:       zhairp 20230810 create script.
+Logs:       leext  20240321 modify and add rule.
+Logs:       leext  20240518 modify and add rule
+Logs:       marco  20241111 modify noms_ind and nominees_type logic
+Logs:       marco  20241111 modify customer_name logic to store principal name regardless of nominee criteria
+Logs:       marco  20241118 modify remove bracketed text at the end of the customer_name logic (from '\\(.*\\)$' to '\\s*\\([^)]*\\)$')
+Logs:       marco  20241120 modify customer_name logic to ignore splitting of "FOR" for client_type in ('#', '0', '1', '6', '8', 'V')
+Logs:       marco  20250313 added primary_identification_type conversion logic and new lookup file primaryidno_newcustname
+Logs:       marco  20250502 update contact number cleansing logic (temp_t_mhbos_m_client_telephone_clean, temp_t_mhbos_m_client_telephone_number_info)
+Logs:       marco  20250502 update BRN number length checking (temp_t_mhbos_m_client_primary_identification_no, temp_t_mhbos_m_client_secondary_identification_no)
+Logs:       marco  20250620 update customer_name, secondary_identification_no, secondary_identification_no conversion based on lookup_custname_primaryidno
+Logs:       marco  20250715 added new fields from m_client_ext: perm_city, perm_state_code, perm_country and derive address logic
+Logs:       syhmi  20250903 added new fields: einvoice_email
+Logs:       marco  20250925 optimize whole sript, only do data cleansing for incremental data from com_r_mhbos_m_client and com_r_mhbos_m_client_ext table
+Logs:       marco  20251013 add m_client_ext.state_code to determine mailing state, remove the full address scanning logic to define mailing state and registered state
+1.0 set parameter
+"""
 
 import os
 import sys
@@ -254,7 +272,6 @@ spark.sql(f"""
       `brokerage_type_leap_etrade` STRING,
       `etl_timestamp` STRING,
       `etl_dt` STRING,
-      `part_id` STRING,
       `date_of_birth` TIMESTAMP,
       `email` STRING,
       `perm_addr1` STRING,
@@ -272,7 +289,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_all
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_all /* 2.1.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -281,22 +298,22 @@ WITH filtered_clients AS (
         client_no
       FROM {params["raw_schema"]}.mhbos_m_client
       WHERE
-        TO_DATE(dl_record_updated_date) = TO_DATE(FROM_UNIXTIME(UNIX_TIMESTAMP('{batch_date}', 'yyyyMMdd')))
+        etl_dt = '{batch_date}'
       UNION
       SELECT DISTINCT
         client_no
       FROM {params["raw_schema"]}.mhbos_m_client_ext
       WHERE
-        TO_DATE(dl_record_updated_date) = TO_DATE(FROM_UNIXTIME(UNIX_TIMESTAMP('{batch_date}', 'yyyyMMdd')))
+        etl_dt = '{batch_date}'
     ), latest_clients AS (
       SELECT
         mmc.*,
-        ROW_NUMBER() OVER (PARTITION BY mmc.client_no ORDER BY mmc.part_id DESC) AS rn
+        ROW_NUMBER() OVER (PARTITION BY mmc.client_no ORDER BY mmc.etl_dt DESC) AS rn
       FROM {params["raw_schema"]}.mhbos_m_client AS mmc
       INNER JOIN filtered_clients AS fc
         ON mmc.client_no = fc.client_no
       WHERE
-        mmc.etl_dt = '{batch_date}'
+        mmc.etl_dt <= '{batch_date}'
     )
     INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_all
     SELECT
@@ -528,7 +545,6 @@ WITH filtered_clients AS (
       mmc.brokerage_type_leap_etrade,
       mmc.etl_timestamp,
       mmc.etl_dt,
-      mmc.part_id,
       mmce.date_of_birth,
       mmce.email,
       mmce.perm_addr1,
@@ -536,16 +552,15 @@ WITH filtered_clients AS (
       mmce.perm_addr3,
       mmce.perm_addr4,
       mmce.perm_postcode,
-      mmce.perm_city /* 20250715 */,
-      mmce.perm_state_code /* 20250715 */,
-      mmce.perm_country /* 20250715 */,
-      mmc.type_of_account /* 20250806 */,
-      mmce.einvoice_email /* 20250903 */,
+      mmce.perm_city, /* 20250715 */
+      mmce.perm_state_code, /* 20250715 */
+      mmce.perm_country, /* 20250715 */
+      mmc.type_of_account, /* 20250806 */
+      mmce.einvoice_email, /* 20250903 */
       mmce.state_code /* 20251013 */
     FROM latest_clients AS mmc
     LEFT JOIN {params["com_schema"]}.t_mhbos_m_client_ext AS mmce
-      ON mmc.client_no = mmce.client_no
-      AND TO_DATE(mmce.dl_record_updated_date) = TO_DATE(FROM_UNIXTIME(UNIX_TIMESTAMP('{batch_date}', 'yyyyMMdd')))
+      ON mmc.client_no = mmce.client_no AND mmce.etl_dt = '{batch_date}'
     WHERE
       mmc.rn = 1
 """)
@@ -566,7 +581,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_primary_identification_type
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_primary_identification_type /* 2.1.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -679,7 +694,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_primary_identification_no
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_primary_identification_no /* 2.1.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -803,7 +818,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_secondary_identification_type
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_secondary_identification_type /* 2.1.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -917,7 +932,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_secondary_identification_no
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_secondary_identification_no /* 2.1.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -1035,7 +1050,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_identification_info
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_identification_info /* 2.1.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -1066,7 +1081,94 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_identification_info
                 INT(SUBSTRING(p_no.primary_identification_no, 5, 2)) >= 1
                 AND INT(SUBSTRING(p_no.primary_identification_no, 5, 2)) <= 31
               )
-              AND SUBSTRING(p_no.primary_identification_no, 7, 2) /* At 7th and 8th digit referring to the Place of Birth */ IN ('01', '21', '22', '23', '24', '02', '25', '26', '27', '03', '28', '29', '04', '30', '05', '31', '59', '06', '32', '33', '07', '34', '35', '08', '36', '37', '38', '39', '09', '40', '10', '41', '42', '43', '44', '11', '45', '46', '12', '47', '48', '49', '13', '50', '51', '52', '53', '14', '54', '55', '56', '57', '15', '58', '16', '60', '61', '62', '63', '64', '65', '66', '67', '68', '71', '72', '74', '75', '76', '77', '78', '79', '82', '83', '84', '85', '86', '87', '88', '89', '90', '91', '92', '93', '98', '99')
+              AND SUBSTRING(p_no.primary_identification_no, 7, 2) /* At 7th and 8th digit referring to the Place of Birth */ IN (
+                '01',
+                '21',
+                '22',
+                '23',
+                '24',
+                '02',
+                '25',
+                '26',
+                '27',
+                '03',
+                '28',
+                '29',
+                '04',
+                '30',
+                '05',
+                '31',
+                '59',
+                '06',
+                '32',
+                '33',
+                '07',
+                '34',
+                '35',
+                '08',
+                '36',
+                '37',
+                '38',
+                '39',
+                '09',
+                '40',
+                '10',
+                '41',
+                '42',
+                '43',
+                '44',
+                '11',
+                '45',
+                '46',
+                '12',
+                '47',
+                '48',
+                '49',
+                '13',
+                '50',
+                '51',
+                '52',
+                '53',
+                '14',
+                '54',
+                '55',
+                '56',
+                '57',
+                '15',
+                '58',
+                '16',
+                '60',
+                '61',
+                '62',
+                '63',
+                '64',
+                '65',
+                '66',
+                '67',
+                '68',
+                '71',
+                '72',
+                '74',
+                '75',
+                '76',
+                '77',
+                '78',
+                '79',
+                '82',
+                '83',
+                '84',
+                '85',
+                '86',
+                '87',
+                '88',
+                '89',
+                '90',
+                '91',
+                '92',
+                '93',
+                '98',
+                '99'
+              )
               THEN p_no.primary_identification_no
               ELSE '@[' || p_no.primary_identification_no || ']'
             END
@@ -1089,7 +1191,94 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_identification_info
                 INT(SUBSTRING(p_no.primary_identification_no, 5, 2)) >= 1
                 AND INT(SUBSTRING(p_no.primary_identification_no, 5, 2)) <= 31
               )
-              AND SUBSTRING(p_no.primary_identification_no, 7, 2) /* At 7th and 8th digit referring to the Place of Birth */ IN ('01', '21', '22', '23', '24', '02', '25', '26', '27', '03', '28', '29', '04', '30', '05', '31', '59', '06', '32', '33', '07', '34', '35', '08', '36', '37', '38', '39', '09', '40', '10', '41', '42', '43', '44', '11', '45', '46', '12', '47', '48', '49', '13', '50', '51', '52', '53', '14', '54', '55', '56', '57', '15', '58', '16', '60', '61', '62', '63', '64', '65', '66', '67', '68', '71', '72', '74', '75', '76', '77', '78', '79', '82', '83', '84', '85', '86', '87', '88', '89', '90', '91', '92', '93', '98', '99')
+              AND SUBSTRING(p_no.primary_identification_no, 7, 2) /* At 7th and 8th digit referring to the Place of Birth */ IN (
+                '01',
+                '21',
+                '22',
+                '23',
+                '24',
+                '02',
+                '25',
+                '26',
+                '27',
+                '03',
+                '28',
+                '29',
+                '04',
+                '30',
+                '05',
+                '31',
+                '59',
+                '06',
+                '32',
+                '33',
+                '07',
+                '34',
+                '35',
+                '08',
+                '36',
+                '37',
+                '38',
+                '39',
+                '09',
+                '40',
+                '10',
+                '41',
+                '42',
+                '43',
+                '44',
+                '11',
+                '45',
+                '46',
+                '12',
+                '47',
+                '48',
+                '49',
+                '13',
+                '50',
+                '51',
+                '52',
+                '53',
+                '14',
+                '54',
+                '55',
+                '56',
+                '57',
+                '15',
+                '58',
+                '16',
+                '60',
+                '61',
+                '62',
+                '63',
+                '64',
+                '65',
+                '66',
+                '67',
+                '68',
+                '71',
+                '72',
+                '74',
+                '75',
+                '76',
+                '77',
+                '78',
+                '79',
+                '82',
+                '83',
+                '84',
+                '85',
+                '86',
+                '87',
+                '88',
+                '89',
+                '90',
+                '91',
+                '92',
+                '93',
+                '98',
+                '99'
+              )
               THEN '0'
               ELSE '1'
             END
@@ -1114,7 +1303,8 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_identification_info
                     end)
                  else s_no.secondary_identification_no
              end ) as secondary_identification_no,
-            */ /* 20250620 */
+            
+     20250620 */
       s_no.secondary_identification_no_flag /*
            (case when s_type.secondary_identification_type  = '1' then -- identification type is '1'
                    (case when s_no.secondary_identification_no rlike '^\\d+$' and -- Determine whether the ID number is all numbers
@@ -1161,7 +1351,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_dob_info
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_dob_info /* 2.1.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -1177,10 +1367,10 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_dob_info
         CASE
           WHEN id.primary_identification_type = '1' AND id.primary_identification_no_flag = '0'
           THEN DATE_FORMAT(
-            CAST(FROM_UNIXTIME(
+            FROM_UNIXTIME(
               UNIX_TIMESTAMP(SUBSTRING(id.primary_identification_no, 1, 6), 'yymmdd'),
               'yyyy-mm-dd'
-            ) AS TIMESTAMP),
+            ),
             'yyyy-MM-dd'
           )
           WHEN NOT mmce.date_of_birth IS NULL
@@ -1197,7 +1387,8 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_dob_info
           ELSE '0'
         END
       ) AS date_of_birth_flag
-    FROM {params["com_schema"]}.temp_t_mhbos_m_client_identification_info AS id, {params["com_schema"]}.temp_t_mhbos_m_client_all AS mmce
+    FROM {params["com_schema"]}.temp_t_mhbos_m_client_identification_info AS id
+    CROSS JOIN {params["com_schema"]}.temp_t_mhbos_m_client_all AS mmce
     WHERE
       id.client_no = mmce.client_no
 """)
@@ -1221,7 +1412,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_gender_info
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_gender_info /* 2.1.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -1298,7 +1489,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_customer_name_1
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_customer_name_1 /* 2.1.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -1363,7 +1554,8 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_customer_name_1
                        mmca.client_name1 like '%FLR%') then 
                    '@[' || upper(mmca.client_name1) || ']'
                  else upper(trim(mmca.client_name1)) end) as client_name1,
-            */ /* 20250620 */
+            
+     20250620 */
       UPPER(TRIM(mmca.client_name2)) AS client_name2, /*
            (case when mmca.client_no in ('NG0086080' ,'MO0167753') and 
     	              (mmca.client_name2 like '%CONDO%' or 
@@ -1373,7 +1565,8 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_customer_name_1
                        mmca.client_name2 like '%FLR%') then 
                    '@[' || upper(mmca.client_name2) || ']'
                  else upper(trim(mmca.client_name2)) end)  as client_name2,
-           */ /* 20250620 */
+           
+     20250620 */
       UPPER(TRIM(mmca.client_name3)) AS client_name3, /*
            (case when mmca.client_no in ('NG0086080' ,'MO0167753') and 
     	              (mmca.client_name3 like '%CONDO%' or 
@@ -1383,7 +1576,8 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_customer_name_1
                        mmca.client_name3 like '%FLR%') then 
                    '@[' || upper(mmca.client_name3) || ']'
                  else upper(trim(mmca.client_name3)) end) as client_name3,
-           */ /* 20250620 */
+           
+     20250620 */
       '0' AS client_name_flag, /*
            (case when mmca.client_no in ('NG0086080' ,'MO0167753') and 
     	              (mmca.client_name like '%CONDO%' or 
@@ -1393,7 +1587,8 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_customer_name_1
                        mmca.client_name like '%FLR%') then 
                    '1'
                  else '0' end) as client_name_flag,
-            */ /* 20250620 */
+            
+     20250620 */
       '0' AS client_name1_flag, /*
            (case when mmca.client_no in ('NG0086080' ,'MO0167753') and 
     	              (mmca.client_name1 like '%CONDO%' or 
@@ -1402,7 +1597,8 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_customer_name_1
                        mmca.client_name1 like '%OFFICE%' or
                        mmca.client_name1 like '%FLR%') then '1'
                  else '0' end) as client_name1_flag,
-            */ /* 20250620 */
+            
+     20250620 */
       '0' AS client_name2_flag, /*
            (case when mmca.client_no in ('NG0086080' ,'MO0167753') and 
     	              (mmca.client_name2 like '%CONDO%' or 
@@ -1411,7 +1607,8 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_customer_name_1
                        mmca.client_name2 like '%OFFICE%' or
                        mmca.client_name2 like '%FLR%') then '1'
                   else '0' end)  as client_name2_flag,
-           */ /* 20250620 */
+           
+     20250620 */
       '0' /*
            (case when mmca.client_no in ('NG0086080' ,'MO0167753') and 
     	              (mmca.client_name3 like '%CONDO%' or 
@@ -1455,7 +1652,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_customer_name_2
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_customer_name_2 /* 2.1.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -1571,7 +1768,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_race_info
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_race_info /* 2.1.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -1638,7 +1835,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_telephone_number_info
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_telephone_number_info /* 2.12.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -1649,14 +1846,46 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_telephone_number_info /
       t.source_fax_no,
       t.source_tel_no_home,
       t.source_tel_no_office,
-      t.mobile_no, /*  (case when t.mobile_no rlike '^[0-9+]+$' then t.mobile_no */ /*        when t.mobile_no like '%(0)%' then t.mobile_no */ /*        when t.mobile_no rlike '^[0-9+]+\/[0-9]+$' then t.mobile_no */ /*      when nvl(trim(t.mobile_no), '') = '' then '' */ /*        else '@[' || t.mobile_no || ']' end) as mobile_no, */
-      t.fax_no, /*  (case when t.fax_no rlike '^[0-9+]+$' then t.fax_no */ /*        when t.fax_no like '%(0)%' then t.fax_no */ /*        when t.fax_no rlike '^[0-9+]+\/[0-9]+$' then t.fax_no */ /*      when nvl(trim(t.fax_no), '') = '' then '' */ /*        else '@[' || t.fax_no || ']' end) as fax_no, */
-      t.tel_no_home, /*  (case when t.tel_no_home rlike '^[0-9+]+$' then t.tel_no_home */ /*        when t.tel_no_home like '%(0)%' then t.tel_no_home */ /*        when t.tel_no_home rlike '^[0-9+]+\/[0-9]+$' then t.tel_no_home */ /*      when nvl(trim(t.tel_no_home), '') = '' then '' */ /*        else '@[' || t.tel_no_home || ']' end) as tel_no_home, */
-      t.tel_no_office, /*  (case when t.tel_no_office rlike '^[0-9+]+$' then t.tel_no_office */ /*        when t.tel_no_office like '%(0)%' then t.tel_no_office */ /*        when t.tel_no_office rlike '^[0-9+]+\/[0-9]+$' then t.tel_no_office */ /*      when nvl(trim(t.tel_no_office), '') = '' then '' */ /*        else '@[' || t.tel_no_office || ']' end) as tel_no_office, */
-      '0' AS mobile_no_flag, /*  (case when t.mobile_no rlike '^[0-9+]+$' then '0' */ /*        when t.mobile_no like '%(0)%' then '0' */ /*        when t.mobile_no rlike '^[0-9+]+\/[0-9]+$' then '0' */ /*      when nvl(trim(t.mobile_no), '') = '' then '0' */ /*        else '1' end) as mobile_no_flag, */
-      '0' AS fax_no_flag, /*  (case when t.fax_no rlike '^[0-9+]+$' then '0' */ /*        when t.fax_no like '%(0)%' then '0' */ /*        when t.fax_no rlike '^[0-9+]+\/[0-9]+$' then '0' */ /*      when nvl(trim(t.fax_no), '') = '' then '0' */ /*        else '1' end) as fax_no_flag, */
-      '0' AS tel_no_home_flag, /*  (case when t.tel_no_home rlike '^[0-9+]+$' then '0' */ /*        when t.tel_no_home like '%(0)%' then '0' */ /*        when t.tel_no_home rlike '^[0-9+]+\/[0-9]+$' then '0' */ /*      when nvl(trim(t.tel_no_home), '') = '' then '0' */ /*        else '1' end) as tel_no_home_flag, */
-      '0' AS tel_no_office_flag /*  (case when t.tel_no_office rlike '^[0-9+]+$' then '0' */ /*        when t.tel_no_office like '%(0)%' then '0' */ /*        when t.tel_no_office rlike '^[0-9+]+\/[0-9]+$' then '0' */ /*      when nvl(trim(t.tel_no_office), '') = '' then '0' */ /*        else '1' end) as tel_no_office_flag */
+      t.mobile_no, /*  (case when t.mobile_no rlike '^[0-9+]+$' then t.mobile_no 
+            when t.mobile_no like '%(0)%' then t.mobile_no 
+            when t.mobile_no rlike '^[0-9+]+\/[0-9]+$' then t.mobile_no 
+          when nvl(trim(t.mobile_no), '') = '' then '' 
+            else '@[' || t.mobile_no || ']' end) as mobile_no, */
+      t.fax_no, /*  (case when t.fax_no rlike '^[0-9+]+$' then t.fax_no 
+            when t.fax_no like '%(0)%' then t.fax_no 
+            when t.fax_no rlike '^[0-9+]+\/[0-9]+$' then t.fax_no 
+          when nvl(trim(t.fax_no), '') = '' then '' 
+            else '@[' || t.fax_no || ']' end) as fax_no, */
+      t.tel_no_home, /*  (case when t.tel_no_home rlike '^[0-9+]+$' then t.tel_no_home 
+            when t.tel_no_home like '%(0)%' then t.tel_no_home 
+            when t.tel_no_home rlike '^[0-9+]+\/[0-9]+$' then t.tel_no_home 
+          when nvl(trim(t.tel_no_home), '') = '' then '' 
+            else '@[' || t.tel_no_home || ']' end) as tel_no_home, */
+      t.tel_no_office, /*  (case when t.tel_no_office rlike '^[0-9+]+$' then t.tel_no_office 
+            when t.tel_no_office like '%(0)%' then t.tel_no_office 
+            when t.tel_no_office rlike '^[0-9+]+\/[0-9]+$' then t.tel_no_office 
+          when nvl(trim(t.tel_no_office), '') = '' then '' 
+            else '@[' || t.tel_no_office || ']' end) as tel_no_office, */
+      '0' AS mobile_no_flag, /*  (case when t.mobile_no rlike '^[0-9+]+$' then '0' 
+            when t.mobile_no like '%(0)%' then '0' 
+            when t.mobile_no rlike '^[0-9+]+\/[0-9]+$' then '0' 
+          when nvl(trim(t.mobile_no), '') = '' then '0' 
+            else '1' end) as mobile_no_flag, */
+      '0' AS fax_no_flag, /*  (case when t.fax_no rlike '^[0-9+]+$' then '0' 
+            when t.fax_no like '%(0)%' then '0' 
+            when t.fax_no rlike '^[0-9+]+\/[0-9]+$' then '0' 
+          when nvl(trim(t.fax_no), '') = '' then '0' 
+            else '1' end) as fax_no_flag, */
+      '0' AS tel_no_home_flag, /*  (case when t.tel_no_home rlike '^[0-9+]+$' then '0' 
+            when t.tel_no_home like '%(0)%' then '0' 
+            when t.tel_no_home rlike '^[0-9+]+\/[0-9]+$' then '0' 
+          when nvl(trim(t.tel_no_home), '') = '' then '0' 
+            else '1' end) as tel_no_home_flag, */
+      '0' AS tel_no_office_flag /*  (case when t.tel_no_office rlike '^[0-9+]+$' then '0' 
+            when t.tel_no_office like '%(0)%' then '0' 
+            when t.tel_no_office rlike '^[0-9+]+\/[0-9]+$' then '0' 
+          when nvl(trim(t.tel_no_office), '') = '' then '0' 
+            else '1' end) as tel_no_office_flag */
     FROM {params["com_schema"]}.temp_t_mhbos_m_client_telephone_clean AS t
 """)
 
@@ -1684,7 +1913,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_email_clean
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_email_clean /* 2.13.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -1747,7 +1976,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_email_info_1
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_email_info_1 /* 2.1.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -2136,7 +2365,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_email_info
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_email_info /* 2.1.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -2198,7 +2427,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_address_city
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_address_city /* 2.1.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -2236,10 +2465,11 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_address_city
       addr.postcode,
       addr.mailing_addr,
       REGEXP_EXTRACT(
-        REGEXP_REPLACE(UPPER(addr.mailing_addr), '[^A-Z ]', ' '),
-        '\\b(BATU PAHAT|JOHOR BAHRU|KLUANG|KOTA TINGGI|MERSING|MUAR|PONTIAN|SEGAMAT|LEDANG|KULAI|TANGKAK|BALING|SERDANG|ALOR SETAR|SUNGAI PETANI|JITRA|KULIM|KUAH|KUALA NERANG|PENDANG|POKOK SENA|SIK|YAM|BACHOK|GUA MUSANG|JELI|KOTA BHARU|KUALA KRAI|MACHANG|PASIR MAS|PASIR PUTEH|TANAH MERAH|TUMPAT|ALOR GAJAH|JASIN|AYER KEROH|KUALA KLAWANG|BANDAR SERI JEMPOL|KUALA PILAH|PORT DICKSON|REMBAU|SEREMBAN|TAMPIN|BENTONG|BANDAR BERA|TANAH RATA|JERANTUT|KUANTAN|KUALA LIPIS|MARAN|PEKAN|RAUB|KUALA ROMPIN|TEMERLOH|BUKIT MERTAJAM|KEPALA BATAS|GEORGE TOWN|SUNGAI JAWI|BALIK PULAU|TAPAH|TELUK INTAN|GERIK|KAMPAR|PARIT BUNTAR|BATU GAJAH|KUALA KANGSAR|SERI MANJUNG|TAIPING|SERI ISKANDAR|BAGAN DATUK|BEAUFORT|BELURAN|KENINGAU|KOTA KINABATANGAN|KOTA BELUD|KOTA KINABALU|KOTA MARUDU|KUALA PENYU|KUDAT|KUNAK|LAHAD DATU|NABAWAN|PAPAR|DONGGONGON|PITAS|PUTATAN|RANAU|SANDAKAN|SEMPORNA|SIPITANG|TAMBUNAN|TAWAU|TELUPID|TENOM|TONGOD|TUARAN|ASAJAYA|BAU|BELAGA|BELUGU|BETONG|BINTULU|DALAT|MATU|JULAU|KABONG|KANOWIT|KAPIT|KUCHING|LAWAS|LIMBANG|LUBOK ANTU|LUNDU|MARUDI|BINTANGOR|MIRI|MUKAH|PAKAN|PUSA|KOTA SAMARAHAN|SARATOK|SARIKEI|SEBAUH|SELANGAU|SERIAN|SIBU|SIMUNJAN|SONG|SIMANGGANG|SUBIS|BELAWAI|TATAU|TEBEDU|LONG LAMA|BANDAR BARU SELAYANG|BANDAR BARU BANGI|KUALA KUBU BAHRU|KLANG|TELUK DATOK|KUALA SELANGOR|SUBANG|SABAK|SALAK TINGGI|KAMPUNG RAJA|KUALA DUNGUN|KUALA BERANG|CHUKAI|KUALA NERUS|KUALA TERENGGANU|MARANG|BANDAR PERMAISURI|KUALA LUMPUR|PUTRAJAYA|LABUAN|AYER ITAM|BAGAN SERAI|CHEMOR|CHERAS|GELUGOR|GEORGETOWN|GOMBAK|GURUN|IPOH|JERAM|KAJANG|KUALA KEDAH|LENGGONG|MELAKA|NILAI|PETALING JAYA|PUCHONG|SELAYANG|SELEKOH|SERI KEMBANGAN|SHAH ALAM|SINGAPORE|SKUDAI|SUNGAI BULOH|YONG PENG|TANJONG KARANG|BATU CAVES|BAYAN LEPAS|BANTING|CYBERJAYA|ULU TIRAM|MASAI|PASIR GUDANG|KEMAMAN|TOKYO|ANGELES CITY|ARAU|BANDAR SERI BEGAWAN|BANGKOK|BERLIN|BIDOR|BUTTERWORTH|CANBERRA|CHICAGO|DUBAI|DUNGUN|GEMAS|HANOI|HONG KONG|ISKANDAR PUTERI|JEDDAH|JENGKA|KANGAR|KARAK|KLUANG|KUALA KLAWANG|KUALA KURAU|KUALA PERLIS|KUALA TERENGGANU|LANGKAWI|LONDON|LOS ANGELES|LUMUT|LUNAS|MADRID|MELBOURNE|MENTAKAB|NEW YORK|NIBONG TEBAL|PADANG BESAR|PADANG SERAI|PAKA|PANTAI REMIS|PARIS|PASIR GUDANG|PERTH|RANTAU PANJANG|PUSING|REMBAU|ROME|SABAK BERNAM|SELAMA|SETAPAK|SLIM RIVER|SITIAWAN|SHANGHAI|SUNGAI SIPUT|SYDNEY|TANJONG MALIM|TORONTO|TRIANG|VANCOUVER|WASHINGTON DC|YAN)\\b'
+        UPPER(addr.mailing_addr),
+        '\\b(?:.*\\b)((BATU PAHAT)|(JOHOR BAHRU)|(KLUANG)|(KOTA TINGGI)|(MERSING)|(MUAR)|(PONTIAN)|(SEGAMAT)|(LEDANG)|(KULAI)|(TANGKAK)|(BALING)|(SERDANG)|(ALOR SETAR)|(SUNGAI PETANI)|(JITRA)|(KULIM)|(KUAH)|(KUALA NERANG)|(PENDANG)|(POKOK SENA)|(SIK)|(YAM)|(BACHOK)|(GUA MUSANG)|(JELI)|(KOTA BHARU)|(KUALA KRAI)|(MACHANG)|(PASIR MAS)|(PASIR PUTEH)|(TANAH MERAH)|(TUMPAT)|(ALOR GAJAH)|(JASIN)|(AYER KEROH)|(KUALA KLAWANG)|(BANDAR SERI JEMPOL)|(KUALA PILAH)|(PORT DICKSON)|(REMBAU)|(SEREMBAN)|(TAMPIN)|(BENTONG)|(BANDAR BERA)|(TANAH RATA)|(JERANTUT)|(KUANTAN)|(KUALA LIPIS)|(MARAN)|(PEKAN)|(RAUB)|(KUALA ROMPIN)|(TEMERLOH)|(BUKIT MERTAJAM)|(KEPALA BATAS)|(GEORGE TOWN)|(SUNGAI JAWI)|(BALIK PULAU)|(TAPAH)|(TELUK INTAN)|(GERIK)|(KAMPAR)|(PARIT BUNTAR)|(BATU GAJAH)|(KUALA KANGSAR)|(SERI MANJUNG)|(TAIPING)|(SERI ISKANDAR)|(BAGAN DATUK)|(BEAUFORT)|(BELURAN)|(KENINGAU)|(KOTA KINABATANGAN)|(KOTA BELUD)|(KOTA KINABALU)|(KOTA MARUDU)|(KUALA PENYU)|(KUDAT)|(KUNAK)|(LAHAD DATU)|(NABAWAN)|(PAPAR)|(DONGGONGON)|(PITAS)|(PUTATAN)|(RANAU)|(SANDAKAN)|(SEMPORNA)|(SIPITANG)|(TAMBUNAN)|(TAWAU)|(TELUPID)|(TENOM)|(TONGOD)|(TUARAN)|(ASAJAYA)|(BAU)|(BELAGA)|(BELUGU)|(BETONG)|(BINTULU)|(DALAT)|(MATU)|(JULAU)|(KABONG)|(KANOWIT)|(KAPIT)|(KUCHING)|(LAWAS)|(LIMBANG)|(LUBOK ANTU)|(LUNDU)|(MARUDI)|(MATU)|(BINTANGOR)|(MIRI)|(MUKAH)|(PAKAN)|(PUSA)|(KOTA SAMAHARAN)|(SARATOK)|(SARIKEI)|(SEBAUH)|(SELANGAU)|(SERIAN)|(SIBU)|(SIMUNJAN)|(SONG)|(SIMANGGANG)|(SUBIS)|(BELAWAI)|(TATAU)|(TEBEDU)|(LONG LAMA)|(BANDAR BARU SELAYANG)|(BANDAR BARU BANGI)|(KUALA KUBU BAHRU)|(KLANG)|(TELUK DATOK)|(KUALA SELANGOR)|(SUBANG)|(SABAK)|(SALAK TINGGI)|(KAMPUNG RAJA)|(KUALA DUNGUN)|(KUALA BERANG)|(CHUKAI)|(KUALA NERUS)|(KUALA TERENGGANU)|(MARANG)|(BANDAR PERMAISURI)|(KUALA LUMPUR)|(PUTRAJAYA)|(LABUAN))\\b'
       ) AS city,
-      addr.state_code AS state, /*	   regexp_extract(upper(addr.mailing_addr), '\\b(?:.*\\b)((JOHOR)|(KEDAH)|(KELANTAN)|(MELAKA)|(MALACCA)|(NEGERI SEMBILAN)|(PAHANG)|(PENANG)|(PERAK)|(SABAH)|(SARAWAK)|(SELANGOR)|(TERENGGANU)|(WILAYAH PERSEKUTUAN)|( W\\.*P\\.* )|( W\\.*P\.*$)|(^W\\.*P\\.* ))\\b', 1) as state, */ /* 20251013 */
+      addr.state_code AS state, /*	   regexp_extract(upper(addr.mailing_addr), '\\b(?:.*\\b)((JOHOR)|(KEDAH)|(KELANTAN)|(MELAKA)|(MALACCA)|(NEGERI SEMBILAN)|(PAHANG)|(PENANG)|(PERAK)|(SABAH)|(SARAWAK)|(SELANGOR)|(TERENGGANU)|(WILAYAH PERSEKUTUAN)|( W\\.*P\\.* )|( W\\.*P\.*$)|(^W\\.*P\\.* ))\\b', 1) as state, 
+     20251013 */
       COALESCE(addr.perm_addr1, addr.perm_addr2, addr.perm_addr3, addr.perm_addr4, '') AS perm_addr1,
       (
         CASE
@@ -2281,10 +2511,11 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_address_city
         THEN addr.perm_city
         ELSE REGEXP_EXTRACT(
           UPPER(addr.registered_addr),
-          '\\b(BATU PAHAT|JOHOR BAHRU|KLUANG|KOTA TINGGI|MERSING|MUAR|PONTIAN|SEGAMAT|LEDANG|KULAI|TANGKAK|BALING|SERDANG|ALOR SETAR|SUNGAI PETANI|JITRA|KULIM|KUAH|KUALA NERANG|PENDANG|POKOK SENA|SIK|YAM|BACHOK|GUA MUSANG|JELI|KOTA BHARU|KUALA KRAI|MACHANG|PASIR MAS|PASIR PUTEH|TANAH MERAH|TUMPAT|ALOR GAJAH|JASIN|AYER KEROH|KUALA KLAWANG|BANDAR SERI JEMPOL|KUALA PILAH|PORT DICKSON|REMBAU|SEREMBAN|TAMPIN|BENTONG|BANDAR BERA|TANAH RATA|JERANTUT|KUANTAN|KUALA LIPIS|MARAN|PEKAN|RAUB|KUALA ROMPIN|TEMERLOH|BUKIT MERTAJAM|KEPALA BATAS|GEORGE TOWN|SUNGAI JAWI|BALIK PULAU|TAPAH|TELUK INTAN|GERIK|KAMPAR|PARIT BUNTAR|BATU GAJAH|KUALA KANGSAR|SERI MANJUNG|TAIPING|SERI ISKANDAR|BAGAN DATUK|BEAUFORT|BELURAN|KENINGAU|KOTA KINABATANGAN|KOTA BELUD|KOTA KINABALU|KOTA MARUDU|KUALA PENYU|KUDAT|KUNAK|LAHAD DATU|NABAWAN|PAPAR|DONGGONGON|PITAS|PUTATAN|RANAU|SANDAKAN|SEMPORNA|SIPITANG|TAMBUNAN|TAWAU|TELUPID|TENOM|TONGOD|TUARAN|ASAJAYA|BAU|BELAGA|BELUGU|BETONG|BINTULU|DALAT|MATU|JULAU|KABONG|KANOWIT|KAPIT|KUCHING|LAWAS|LIMBANG|LUBOK ANTU|LUNDU|MARUDI|BINTANGOR|MIRI|MUKAH|PAKAN|PUSA|KOTA SAMARAHAN|SARATOK|SARIKEI|SEBAUH|SELANGAU|SERIAN|SIBU|SIMUNJAN|SONG|SIMANGGANG|SUBIS|BELAWAI|TATAU|TEBEDU|LONG LAMA|BANDAR BARU SELAYANG|BANDAR BARU BANGI|KUALA KUBU BAHRU|KLANG|TELUK DATOK|KUALA SELANGOR|SUBANG|SABAK|SALAK TINGGI|KAMPUNG RAJA|KUALA DUNGUN|KUALA BERANG|CHUKAI|KUALA NERUS|KUALA TERENGGANU|MARANG|BANDAR PERMAISURI|KUALA LUMPUR|PUTRAJAYA|LABUAN|AYER ITAM|BAGAN SERAI|CHEMOR|CHERAS|GELUGOR|GEORGETOWN|GOMBAK|GURUN|IPOH|JERAM|KAJANG|KUALA KEDAH|LENGGONG|MELAKA|NILAI|PETALING JAYA|PUCHONG|SELAYANG|SELEKOH|SERI KEMBANGAN|SHAH ALAM|SINGAPORE|SKUDAI|SUNGAI BULOH|YONG PENG|TANJONG KARANG|BATU CAVES|BAYAN LEPAS|BANTING|CYBERJAYA|ULU TIRAM|MASAI|PASIR GUDANG|KEMAMAN|TOKYO|ANGELES CITY|ARAU|BANDAR SERI BEGAWAN|BANGKOK|BERLIN|BIDOR|BUTTERWORTH|CANBERRA|CHICAGO|DUBAI|DUNGUN|GEMAS|HANOI|HONG KONG|ISKANDAR PUTERI|JEDDAH|JENGKA|KANGAR|KARAK|KLUANG|KUALA KLAWANG|KUALA KURAU|KUALA PERLIS|KUALA TERENGGANU|LANGKAWI|LONDON|LOS ANGELES|LUMUT|LUNAS|MADRID|MELBOURNE|MENTAKAB|NEW YORK|NIBONG TEBAL|PADANG BESAR|PADANG SERAI|PAKA|PANTAI REMIS|PARIS|PASIR GUDANG|PERTH|RANTAU PANJANG|PUSING|REMBAU|ROME|SABAK BERNAM|SELAMA|SETAPAK|SLIM RIVER|SITIAWAN|SHANGHAI|SUNGAI SIPUT|SYDNEY|TANJONG MALIM|TORONTO|TRIANG|VANCOUVER|WASHINGTON DC|YAN)\\b'
+          '\\b(?:.*\\b)((BATU PAHAT)|(JOHOR BAHRU)|(KLUANG)|(KOTA TINGGI)|(MERSING)|(MUAR)|(PONTIAN)|(SEGAMAT)|(LEDANG)|(KULAI)|(TANGKAK)|(BALING)|(SERDANG)|(ALOR SETAR)|(SUNGAI PETANI)|(JITRA)|(KULIM)|(KUAH)|(KUALA NERANG)|(PENDANG)|(POKOK SENA)|(SIK)|(YAM)|(BACHOK)|(GUA MUSANG)|(JELI)|(KOTA BHARU)|(KUALA KRAI)|(MACHANG)|(PASIR MAS)|(PASIR PUTEH)|(TANAH MERAH)|(TUMPAT)|(ALOR GAJAH)|(JASIN)|(AYER KEROH)|(KUALA KLAWANG)|(BANDAR SERI JEMPOL)|(KUALA PILAH)|(PORT DICKSON)|(REMBAU)|(SEREMBAN)|(TAMPIN)|(BENTONG)|(BANDAR BERA)|(TANAH RATA)|(JERANTUT)|(KUANTAN)|(KUALA LIPIS)|(MARAN)|(PEKAN)|(RAUB)|(KUALA ROMPIN)|(TEMERLOH)|(BUKIT MERTAJAM)|(KEPALA BATAS)|(GEORGE TOWN)|(SUNGAI JAWI)|(BALIK PULAU)|(TAPAH)|(TELUK INTAN)|(GERIK)|(KAMPAR)|(PARIT BUNTAR)|(BATU GAJAH)|(KUALA KANGSAR)|(SERI MANJUNG)|(TAIPING)|(SERI ISKANDAR)|(BAGAN DATUK)|(BEAUFORT)|(BELURAN)|(KENINGAU)|(KOTA KINABATANGAN)|(KOTA BELUD)|(KOTA KINABALU)|(KOTA MARUDU)|(KUALA PENYU)|(KUDAT)|(KUNAK)|(LAHAD DATU)|(NABAWAN)|(PAPAR)|(DONGGONGON)|(PITAS)|(PUTATAN)|(RANAU)|(SANDAKAN)|(SEMPORNA)|(SIPITANG)|(TAMBUNAN)|(TAWAU)|(TELUPID)|(TENOM)|(TONGOD)|(TUARAN)|(ASAJAYA)|(BAU)|(BELAGA)|(BELUGU)|(BETONG)|(BINTULU)|(DALAT)|(MATU)|(JULAU)|(KABONG)|(KANOWIT)|(KAPIT)|(KUCHING)|(LAWAS)|(LIMBANG)|(LUBOK ANTU)|(LUNDU)|(MARUDI)|(MATU)|(BINTANGOR)|(MIRI)|(MUKAH)|(PAKAN)|(PUSA)|(KOTA SAMAHARAN)|(SARATOK)|(SARIKEI)|(SEBAUH)|(SELANGAU)|(SERIAN)|(SIBU)|(SIMUNJAN)|(SONG)|(SIMANGGANG)|(SUBIS)|(BELAWAI)|(TATAU)|(TEBEDU)|(LONG LAMA)|(BANDAR BARU SELAYANG)|(BANDAR BARU BANGI)|(KUALA KUBU BAHRU)|(KLANG)|(TELUK DATOK)|(KUALA SELANGOR)|(SUBANG)|(SABAK)|(SALAK TINGGI)|(KAMPUNG RAJA)|(KUALA DUNGUN)|(KUALA BERANG)|(CHUKAI)|(KUALA NERUS)|(KUALA TERENGGANU)|(MARANG)|(BANDAR PERMAISURI)|(KUALA LUMPUR)|(PUTRAJAYA)|(LABUAN))\\b'
         )
       END AS perm_city, /* 20250715 */
-      addr.perm_state_code AS perm_state, /*	     case when nvl(trim(addr.perm_state_code),'') <> '' then addr.perm_state_code else regexp_extract(upper(addr.registered_addr), '\\b(?:.*\\b)((JOHOR)|(KEDAH)|(KELANTAN)|(MELAKA)|(MALACCA)|(NEGERI SEMBILAN)|(PAHANG)|(PENANG)|(PERAK)|(SABAH)|(SARAWAK)|(SELANGOR)|(TERENGGANU)|(WILAYAH PERSEKUTUAN)|( W\\.*P\\.* )|( W\\.*P\.*$)|(^W\\.*P\\.* ))\\b', 1) end as perm_state, -- 20250715 */ /* 20251013 */
+      addr.perm_state_code AS perm_state, /*	     case when nvl(trim(addr.perm_state_code),'') <> '' then addr.perm_state_code else regexp_extract(upper(addr.registered_addr), '\\b(?:.*\\b)((JOHOR)|(KEDAH)|(KELANTAN)|(MELAKA)|(MALACCA)|(NEGERI SEMBILAN)|(PAHANG)|(PENANG)|(PERAK)|(SABAH)|(SARAWAK)|(SELANGOR)|(TERENGGANU)|(WILAYAH PERSEKUTUAN)|( W\\.*P\\.* )|( W\\.*P\.*$)|(^W\\.*P\\.* ))\\b', 1) end as perm_state, -- 20250715 
+     20251013 */
       addr.perm_country /* 20250715 */
     FROM (
       SELECT
@@ -2382,7 +2613,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_address_info
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_address_info /* 2.1.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -2403,7 +2634,8 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_address_info
     			 when trim(addr.state) = 'W.P' then 'WILAYAH PERSEKUTUAN'
     			 when trim(addr.state) = 'W.P.' then 'WILAYAH PERSEKUTUAN'
     			 else addr.state end) as state,
-    */ /* 20251013 */
+
+     20251013 */
       addr.perm_addr1,
       addr.perm_addr2,
       addr.perm_addr3,
@@ -2418,7 +2650,8 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_address_info
     			 when trim(addr.perm_state) = 'W.P' then 'WILAYAH PERSEKUTUAN'
     			 when trim(addr.perm_state) = 'W.P.' then 'WILAYAH PERSEKUTUAN'
     			 else addr.perm_state end) as perm_state,
-    */ /* 20251013 */
+
+     20251013 */
       addr.perm_country
     FROM {params["com_schema"]}.temp_t_mhbos_m_client_address_city AS addr
     LEFT JOIN {params["com_schema"]}.t_ref_pub_cd_map AS mp1
@@ -2442,7 +2675,8 @@ DROP TABLE IF EXISTS {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_
 """)
 
 spark.sql(f"""
-/* 2.16 Detect the Kenanga nominees name from account_full_name and remove them */ /* create temporary table temp_t_mhbos_m_client_nominees_info_1 */
+/* 2.16 Detect the Kenanga nominees name from account_full_name and remove them 
+     create temporary table temp_t_mhbos_m_client_nominees_info_1 */
     CREATE TABLE IF NOT EXISTS {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_1 (
       `client_no` STRING,
       `client_type` STRING,
@@ -2568,7 +2802,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_1
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_1 /* truncate temporary table */
 """)
 
 spark.sql(f"""
@@ -2727,8 +2961,7 @@ spark.sql(f"""
         mmca.bene_type
       FROM {params["com_schema"]}.temp_t_mhbos_m_client_all AS cn
       LEFT JOIN {params["com_schema"]}.t_mhbos_m_mcd_client_addr AS mmca
-        ON cn.client_no = mmca.client_no
-        AND TO_DATE(mmca.dl_record_updated_date) = TO_DATE(FROM_UNIXTIME(UNIX_TIMESTAMP('{batch_date}', 'yyyyMMdd')))
+        ON cn.client_no = mmca.client_no AND mmca.etl_dt = '{batch_date}'
     ) AS t1
 """)
 
@@ -2753,7 +2986,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_2_1
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_2_1 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_2_1 */
 """)
 
 spark.sql(f"""
@@ -2906,7 +3139,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_2
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_2 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_2 */
 """)
 
 spark.sql(f"""
@@ -3217,7 +3450,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_3
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_3 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_3 */
 """)
 
 spark.sql(f"""
@@ -3304,7 +3537,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_4_1
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_4_1 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_4_1 */
 """)
 
 spark.sql(f"""
@@ -3390,7 +3623,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_4
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_4 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_4 */
 """)
 
 spark.sql(f"""
@@ -3615,7 +3848,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_5
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info_5 /* trunate temporary table temp_t_mhbos_m_client_nominees_info_5 */
 """)
 
 spark.sql(f"""
@@ -3681,7 +3914,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info /* trunate temporary table temp_t_mhbos_m_client_nominees_info_5 */
 """)
 
 spark.sql(f"""
@@ -3805,7 +4038,7 @@ CREATE TABLE IF NOT EXISTS {params["com_schema"]}.temp_t_mhbos_m_client_name_inf
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_name_info
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_name_info /* trunate temporary table temp_t_mhbos_m_client_name_info */
 """)
 
 spark.sql(f"""
@@ -3889,11 +4122,11 @@ spark.sql(f"""
             ELSE REGEXP_REPLACE(t1.customer_name, '^(SMT\\s+|INTRADAY A/C\\s+)', '')
           END
         ) AS customer_name,
-        t1.primary_identification_type /* added 20250313 */,
+        t1.primary_identification_type, /* added 20250313 */
         t1.primary_identification_no AS org_primary_identification_no,
         t1.primary_identification_no,
-        t1.secondary_identification_type /* added 20250620 */,
-        t1.secondary_identification_no /* added 20250620 */,
+        t1.secondary_identification_type, /* added 20250620 */
+        t1.secondary_identification_no, /* added 20250620 */
         t1.principal_name AS org_principal_name,
         TRIM(
           CASE
@@ -3936,10 +4169,10 @@ spark.sql(f"""
             THEN '@[]'
             ELSE cn.customer_name
           END AS customer_name,
-          id.primary_identification_type /* added 20250313 */,
+          id.primary_identification_type, /* added 20250313 */
           id.primary_identification_no,
-          id.secondary_identification_type /* added 20250620 */,
-          id.secondary_identification_no /* added 20250620 */,
+          id.secondary_identification_type, /* added 20250620 */
+          id.secondary_identification_no, /* added 20250620 */
           nom.principal_name,
           nom.beneficiary_name
         FROM {params["com_schema"]}.temp_t_mhbos_m_client_all AS mmca
@@ -4526,8 +4759,8 @@ spark.sql(f"""
       mmca.brokerage_type_leap_normal,
       mmca.brokerage_type_leap_etrade,
       CURRENT_TIMESTAMP() AS etl_timestamp,
-      step2.perm_country /* added new field 20250715 */,
-      mmca.type_of_account /* added new field 20250806 */,
+      step2.perm_country, /* added new field 20250715 */
+      mmca.type_of_account, /* added new field 20250806 */
       step2.einvoice_email /* 20250903 einvoice_email */
     FROM {params["com_schema"]}.temp_t_mhbos_m_client_all AS mmca
     LEFT JOIN {params["com_schema"]}.temp_t_mhbos_m_client_identification_info_step2 AS step2
@@ -4550,7 +4783,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_telephone_clean
+TRUNCATE TABLE   {params["com_schema"]}.temp_t_mhbos_m_client_telephone_clean /* 2.1.1 ddl-insert-sundexin */
 """)
 
 spark.sql(f"""
@@ -4667,7 +4900,310 @@ INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_telephone_clean /* modi
 """)
 
 spark.sql(f"""
-/* 3.1 Clear the day's data */ /* alter table ${com_schema}.t_mhbos_m_client drop if exists partition ( etl_dt = '${batch_date}' ); */ /* 3.2 Inserts the cleaned data into the specified partition of the target table */ /* insert into table ${com_schema}.t_mhbos_m_client partition ( etl_dt = '${batch_date}' ) */ /* select mmca.client_no */ /*        ,(id.primary_identification_type_flag || id.primary_identification_no_flag || */ /*           id.secondary_identification_type_flag ||id.secondary_identification_no_flag || */ /*           cn.client_name_flag || cn.client_name1_flag || cn.client_name2_flag || cn.client_name3_flag || */ /*           tel.mobile_no_flag || tel.fax_no_flag || tel.tel_no_home_flag || tel.tel_no_office_flag || */ /*           dob.date_of_birth_flag || tmmcr.race_flag || tmmcei.email_flag || tmmcgi.sex_flag) as clean_rule_flag */ /*        ,id.primary_identification_type */ /*        ,mn.primary_identification_no */ /*        ,replace(id.secondary_identification_type, '@[]', '') as secondary_identification_type */ /*        ,replace(id.secondary_identification_no, '@[]', '') as secondary_identification_no */ /* 	   ,mn.customer_name */ /*        ,cn.customer_name_concatenate */ /*        ,cn.client_name */ /*        ,cn.client_name1 */ /*        ,cn.client_name2 */ /*        ,cn.client_name3 */ /*        ,tel.mobile_no */ /*        ,tel.fax_no */ /*        ,tel.tel_no_home */ /*        ,tel.tel_no_office */ /*        ,dob.date_of_birth */ /*        ,tmmcr.race */ /*        ,tmmcei.email_1 */ /* 	   ,tmmcei.email_2 */ /* 	   ,tmmcei.email_3 */ /* 	   ,tmmcei.email_4 */ /* 	   ,tmmcei.email_5 */ /* 	   ,tmmcei.email_6 */ /* 	   ,tmmcei.email_7 */ /* 	   ,tmmcei.email_8 */ /* 	   ,tmmcei.email_9 */ /* 	   ,tmmcei.email_10 */ /*        ,tmmcgi.sex */ /*        ,ad.addr1 */ /*        ,ad.addr2 */ /*        ,ad.addr3 */ /*        ,ad.addr4 */ /*        ,ad.postcode */ /*        ,ad.city */ /*        ,ad.state */ /*        ,ad.perm_addr1 */ /*        ,ad.perm_addr2 */ /*        ,ad.perm_addr3 */ /*        ,ad.perm_addr4 */ /*        ,ad.perm_postcode */ /*        ,ad.perm_city */ /*        ,ad.perm_state */ /* 	   ,nvl(nom.noms_ind, 'N') as noms_ind */ /* 	   ,nom.cleaned_nominees_name */ /* 	   ,nom.principal_name */ /* 	   ,nom.intermediary_name */ /* 	   ,nom.beneficiary_name */ /* 	   ,nominees_type */ /* 	   ,pledged_securities_flag */ /*        ,mmca.id_type */ /*        ,mmca.ic_no_new */ /*        ,mmca.ic_no_old */ /*        ,mmca.secondary_id_type */ /*        ,mmca.secondary_id_no */ /*        ,mmca.client_name as source_client_name */ /*        ,mmca.client_name1 as source_client_name1 */ /*        ,mmca.client_name2 as source_client_name2 */ /*        ,mmca.client_name3 as source_client_name3 */ /*        ,mmca.mobile_no as source_mobile_no */ /*        ,mmca.fax_no as source_fax_no */ /*        ,mmca.tel_no_home as source_tel_no_home */ /*        ,mmca.tel_no_office as source_tel_no_office */ /*        ,mmca.date_of_birth as source_date_of_birth */ /*        ,mmca.race as source_race */ /*        ,mmca.email as source_email */ /*        ,mmca.sex as source_sex */ /*        ,mmca.client_group */ /*        ,mmca.cds_acc_no */ /*        ,mmca.tdr_code */ /*        ,mmca.client_type */ /*        ,mmca.margin */ /*        ,mmca.last_margin_date */ /*        ,mmca.int_rate */ /*        ,mmca.auto_ded */ /*        ,mmca.despatch_mode */ /*        ,mmca.copies */ /*        ,mmca.prohibit_trade */ /*        ,mmca.custody_status */ /*        ,mmca.country */ /*        ,mmca.margin_limit */ /*        ,mmca.margin_pct */ /*        ,mmca.rollover_rate */ /*        ,mmca.form_completed */ /*        ,mmca.last_tran_date */ /*        ,mmca.ytd_bvalue */ /*        ,mmca.ytd_svalue */ /*        ,mmca.ytd_brokerage */ /*        ,mmca.os_led_bal */ /*        ,mmca.title */ /*        ,mmca.date_created */ /*        ,mmca.stop_payt */ /*        ,mmca.acc_payee */ /*        ,mmca.category */ /*        ,mmca.auto_contra */ /*        ,mmca.pnl_acc_no */ /*        ,mmca.cr_limit */ /*        ,mmca.trust_bal */ /*        ,mmca.avg_ind */ /*        ,mmca.remarks */ /*        ,mmca.contact_person */ /*        ,mmca.date_closed */ /*        ,mmca.grace_period */ /*        ,mmca.acct_type */ /*        ,mmca.assoc_ind */ /*        ,mmca.short_sell_ind */ /*        ,mmca.short_name */ /*        ,mmca.mesdaq_pctlmt */ /*        ,mmca.date_change */ /*        ,mmca.resi_code */ /*        ,mmca.charge_int */ /*        ,mmca.bdebt */ /*        ,mmca.assets */ /*        ,mmca.liabilities */ /*        ,mmca.income */ /*        ,mmca.expenses */ /*        ,mmca.bdebt_his_ind */ /*        ,mmca.rel_ac1 */ /*        ,mmca.rel_ac2 */ /*        ,mmca.rel_ac3 */ /*        ,mmca.rel_ac4 */ /*        ,mmca.occupation */ /*        ,mmca.margin_int */ /*        ,mmca.lst_led_no */ /*        ,mmca.cur_led_no */ /*        ,mmca.remarks2 */ /*        ,mmca.acc_type */ /*        ,mmca.mas_accno */ /*        ,mmca.legal */ /*        ,mmca.sell_limit */ /*        ,mmca.brk_rate */ /*        ,mmca.brokerage_type */ /*        ,mmca.cds_acc_no1 */ /*        ,mmca.remarks1 */ /*        ,mmca.payment_bank_code */ /*        ,mmca.noms */ /*        ,mmca.dms_date */ /*        ,mmca.violation_date */ /*        ,mmca.mcd_branch */ /*        ,mmca.home_branch */ /*        ,mmca.eaf_code */ /*        ,mmca.call_warrant */ /*        ,mmca.user_id */ /*        ,mmca.credit_int_rate */ /*        ,mmca.min_eligible_amt */ /*        ,mmca.intraday_flag */ /*        ,mmca.intraday_rate */ /*        ,mmca.cta_weight */ /*        ,mmca.sta_weight */ /*        ,mmca.bo_cds_acc_no */ /*        ,mmca.ecos_form */ /*        ,mmca.custodian_no */ /*        ,mmca.prin_acc */ /*        ,mmca.armada_type */ /*        ,mmca.old_authorisee */ /*        ,mmca.etrade_rate */ /*        ,mmca.etf */ /*        ,mmca.cstamp_client_exempt */ /*        ,mmca.main_branch */ /*        ,mmca.prev_client_no */ /*        ,mmca.web_eds */ /*        ,mmca.place */ /*        ,mmca.excl_tdr_deduct */ /*        ,mmca.excl_auto_susp */ /*        ,mmca.trust_flag */ /*        ,mmca.mgn_new_int_rate */ /*        ,mmca.counter_concentration */ /*        ,mmca.auto_trust */ /*        ,mmca.margin_pct2 */ /*        ,mmca.df_flag */ /*        ,mmca.mgn_curr_int_rate */ /*        ,mmca.product_type */ /*        ,mmca.web_ecos */ /*        ,mmca.xeye_clt_grp */ /*        ,mmca.bursa_violation_date */ /*        ,mmca.brokerage_type_etrade */ /*        ,mmca.brokerage_type_odd_lot */ /*        ,mmca.omnibus */ /*        ,mmca.cg_tdr_code */ /*        ,mmca.limit_foreign */ /*        ,mmca.limit_bursa */ /*        ,mmca.brokerage_type_intraday */ /*        ,mmca.brokerage_type_intraday_etrade */ /*        ,mmca.bursa_violation_date1 */ /*        ,mmca.cif_no */ /*        ,mmca.brokerage_type_foreign */ /*        ,mmca.soft_copy */ /*        ,mmca.exclude_rollover */ /*        ,mmca.account_status */ /*        ,mmca.w8ben */ /*        ,mmca.ic_no_rel1 */ /*        ,mmca.ic_no_rel2 */ /*        ,mmca.ic_no_rel3 */ /*        ,mmca.ic_no_rel4 */ /*        ,mmca.ic_no_rel5 */ /*        ,mmca.rel1 */ /*        ,mmca.rel2 */ /*        ,mmca.rel3 */ /*        ,mmca.rel4 */ /*        ,mmca.rel5 */ /*        ,mmca.brokerage_type_etrade_b */ /*        ,mmca.brokerage_type_odd_lot_b */ /*        ,mmca.brokerage_type_b */ /*        ,mmca.brokerage_type_foreign_b */ /*        ,mmca.brokerage_type_intraday_b */ /*        ,mmca.brokerage_type_intraday_etrade_b */ /*        ,mmca.brokerage_type_etrade_s */ /*        ,mmca.brokerage_type_odd_lot_s */ /*        ,mmca.brokerage_type_s */ /*        ,mmca.brokerage_type_foreign_s */ /*        ,mmca.brokerage_type_intraday_s */ /*        ,mmca.brokerage_type_intraday_etrade_s */ /*        ,mmca.no_free_trade */ /*        ,mmca.sms */ /*        ,mmca.mobile_prefix */ /*        ,mmca.foreign_curr_set */ /*        ,mmca.num_free_trade */ /*        ,mmca.etrader_type */ /*        ,mmca.check_limit */ /*        ,mmca.auto_margin */ /*        ,mmca.margin_client_no */ /*        ,mmca.dup_despatch_mode */ /*        ,mmca.risk */ /*        ,mmca.exclude_trader_limit */ /*        ,mmca.sett_mode_date_change */ /*        ,mmca.pick_up_fee_pct */ /*        ,mmca.e_payment */ /*        ,mmca.mgn_new_int_rate2 */ /*        ,mmca.fund_cost_type */ /*        ,mmca.check_share */ /*        ,mmca.citibank_changes */ /*        ,mmca.citibank_charges */ /*        ,mmca.cq_market */ /*        ,mmca.exclude_margin_pro_rate */ /*        ,mmca.brokerage_type_cash_b */ /*        ,mmca.brokerage_type_etrade_cash_b */ /*        ,mmca.clt_consent */ /*        ,mmca.consent_start_date */ /*        ,mmca.portfolio */ /*        ,mmca.expiry_date */ /*        ,mmca.intraday_auto_contra_option */ /*        ,mmca.dcf_limit */ /*        ,mmca.brokerage_type_etb */ /*        ,mmca.mgn_force_sell_pct */ /*        ,mmca.mgn_tenure */ /*        ,mmca.mgn_expiry_date */ /*        ,mmca.loss_gl_acc_no */ /*        ,mmca.portfolio_date */ /*        ,mmca.day_prior_temp_susp */ /*        ,mmca.day_prior_perm_susp */ /*        ,mmca.gst_code */ /*        ,mmca.match_price_decimal_local */ /*        ,mmca.match_price_decimal_foreign */ /*        ,mmca.primary_id_expiry_date */ /*        ,mmca.secondary_id_expiry_date */ /*        ,mmca.mgn_int_tdr_spread_pct */ /*        ,mmca.mgn_base_int_rate */ /*        ,mmca.mgn_int_tdr_share */ /*        ,mmca.islamic_flag */ /*        ,mmca.mcd_resident_flag */ /*        ,mmca.chq_charges_flag */ /*        ,mmca.chq_charges_tdr_pct */ /*        ,mmca.brokerage_type_foreign_etrade */ /*        ,mmca.brokerage_type_foreign_etrade_b */ /*        ,mmca.brokerage_type_foreign_etrade_s */ /*        ,mmca.grp_exch_code */ /*        ,mmca.bdebt_ras */ /*        ,mmca.twse_declaration */ /*        ,mmca.joint_acc_amt */ /*        ,mmca.high_risk_market */ /*        ,mmca.brokerage_type_leap_normal */ /*        ,mmca.brokerage_type_leap_etrade */ /*        ,'${batch_timestamp}' as etl_timestamp */ /*   from ${com_schema}.temp_t_mhbos_m_client_all mmca */ /*   left join ${com_schema}.temp_t_mhbos_m_client_identification_info id */ /*     on mmca.client_no = id.client_no */ /*   left join ${com_schema}.temp_t_mhbos_m_client_customer_name_2 cn */ /*     on mmca.client_no = cn.client_no */ /*   left join ${com_schema}.temp_t_mhbos_m_client_telephone_number_info tel */ /*     on mmca.client_no = tel.client_no */ /*   left join ${com_schema}.temp_t_mhbos_m_client_dob_info dob */ /*     on mmca.client_no = dob.client_no */ /*   left join ${com_schema}.temp_t_mhbos_m_client_race_info tmmcr */ /*     on mmca.client_no = tmmcr.client_no */ /*   left join ${com_schema}.temp_t_mhbos_m_client_email_info tmmcei */ /*     on mmca.client_no = tmmcei.client_no */ /*   left join ${com_schema}.temp_t_mhbos_m_client_gender_info tmmcgi */ /*     on mmca.client_no = tmmcgi.client_no */ /*   left join ${com_schema}.temp_t_mhbos_m_client_address_info ad */ /*     on mmca.client_no = ad.client_no */ /*   left join ${com_schema}.temp_t_mhbos_m_client_nominees_info nom */ /*     on mmca.client_no = nom.client_no */ /*   left join ${com_schema}.temp_t_mhbos_m_client_name_info  mn						--add_20240321 */ /*     on mmca.client_no = mn.client_no */ /* ; */ /* 3.2.1 step1 */
+/* 3.1 Clear the day's data 
+     alter table {params["com_schema"]}.t_mhbos_m_client drop if exists partition ( etl_dt = '{batch_date}' ); 
+     3.2 Inserts the cleaned data into the specified partition of the target table 
+     insert into table {params["com_schema"]}.t_mhbos_m_client partition ( etl_dt = '{batch_date}' ) 
+     select mmca.client_no 
+            ,(id.primary_identification_type_flag || id.primary_identification_no_flag || 
+               id.secondary_identification_type_flag ||id.secondary_identification_no_flag || 
+               cn.client_name_flag || cn.client_name1_flag || cn.client_name2_flag || cn.client_name3_flag || 
+               tel.mobile_no_flag || tel.fax_no_flag || tel.tel_no_home_flag || tel.tel_no_office_flag || 
+               dob.date_of_birth_flag || tmmcr.race_flag || tmmcei.email_flag || tmmcgi.sex_flag) as clean_rule_flag 
+            ,id.primary_identification_type 
+            ,mn.primary_identification_no 
+            ,replace(id.secondary_identification_type, '@[]', '') as secondary_identification_type 
+            ,replace(id.secondary_identification_no, '@[]', '') as secondary_identification_no 
+     	   ,mn.customer_name 
+            ,cn.customer_name_concatenate 
+            ,cn.client_name 
+            ,cn.client_name1 
+            ,cn.client_name2 
+            ,cn.client_name3 
+            ,tel.mobile_no 
+            ,tel.fax_no 
+            ,tel.tel_no_home 
+            ,tel.tel_no_office 
+            ,dob.date_of_birth 
+            ,tmmcr.race 
+            ,tmmcei.email_1 
+     	   ,tmmcei.email_2 
+     	   ,tmmcei.email_3 
+     	   ,tmmcei.email_4 
+     	   ,tmmcei.email_5 
+     	   ,tmmcei.email_6 
+     	   ,tmmcei.email_7 
+     	   ,tmmcei.email_8 
+     	   ,tmmcei.email_9 
+     	   ,tmmcei.email_10 
+            ,tmmcgi.sex 
+            ,ad.addr1 
+            ,ad.addr2 
+            ,ad.addr3 
+            ,ad.addr4 
+            ,ad.postcode 
+            ,ad.city 
+            ,ad.state 
+            ,ad.perm_addr1 
+            ,ad.perm_addr2 
+            ,ad.perm_addr3 
+            ,ad.perm_addr4 
+            ,ad.perm_postcode 
+            ,ad.perm_city 
+            ,ad.perm_state 
+     	   ,nvl(nom.noms_ind, 'N') as noms_ind 
+     	   ,nom.cleaned_nominees_name 
+     	   ,nom.principal_name 
+     	   ,nom.intermediary_name 
+     	   ,nom.beneficiary_name 
+     	   ,nominees_type 
+     	   ,pledged_securities_flag 
+            ,mmca.id_type 
+            ,mmca.ic_no_new 
+            ,mmca.ic_no_old 
+            ,mmca.secondary_id_type 
+            ,mmca.secondary_id_no 
+            ,mmca.client_name as source_client_name 
+            ,mmca.client_name1 as source_client_name1 
+            ,mmca.client_name2 as source_client_name2 
+            ,mmca.client_name3 as source_client_name3 
+            ,mmca.mobile_no as source_mobile_no 
+            ,mmca.fax_no as source_fax_no 
+            ,mmca.tel_no_home as source_tel_no_home 
+            ,mmca.tel_no_office as source_tel_no_office 
+            ,mmca.date_of_birth as source_date_of_birth 
+            ,mmca.race as source_race 
+            ,mmca.email as source_email 
+            ,mmca.sex as source_sex 
+            ,mmca.client_group 
+            ,mmca.cds_acc_no 
+            ,mmca.tdr_code 
+            ,mmca.client_type 
+            ,mmca.margin 
+            ,mmca.last_margin_date 
+            ,mmca.int_rate 
+            ,mmca.auto_ded 
+            ,mmca.despatch_mode 
+            ,mmca.copies 
+            ,mmca.prohibit_trade 
+            ,mmca.custody_status 
+            ,mmca.country 
+            ,mmca.margin_limit 
+            ,mmca.margin_pct 
+            ,mmca.rollover_rate 
+            ,mmca.form_completed 
+            ,mmca.last_tran_date 
+            ,mmca.ytd_bvalue 
+            ,mmca.ytd_svalue 
+            ,mmca.ytd_brokerage 
+            ,mmca.os_led_bal 
+            ,mmca.title 
+            ,mmca.date_created 
+            ,mmca.stop_payt 
+            ,mmca.acc_payee 
+            ,mmca.category 
+            ,mmca.auto_contra 
+            ,mmca.pnl_acc_no 
+            ,mmca.cr_limit 
+            ,mmca.trust_bal 
+            ,mmca.avg_ind 
+            ,mmca.remarks 
+            ,mmca.contact_person 
+            ,mmca.date_closed 
+            ,mmca.grace_period 
+            ,mmca.acct_type 
+            ,mmca.assoc_ind 
+            ,mmca.short_sell_ind 
+            ,mmca.short_name 
+            ,mmca.mesdaq_pctlmt 
+            ,mmca.date_change 
+            ,mmca.resi_code 
+            ,mmca.charge_int 
+            ,mmca.bdebt 
+            ,mmca.assets 
+            ,mmca.liabilities 
+            ,mmca.income 
+            ,mmca.expenses 
+            ,mmca.bdebt_his_ind 
+            ,mmca.rel_ac1 
+            ,mmca.rel_ac2 
+            ,mmca.rel_ac3 
+            ,mmca.rel_ac4 
+            ,mmca.occupation 
+            ,mmca.margin_int 
+            ,mmca.lst_led_no 
+            ,mmca.cur_led_no 
+            ,mmca.remarks2 
+            ,mmca.acc_type 
+            ,mmca.mas_accno 
+            ,mmca.legal 
+            ,mmca.sell_limit 
+            ,mmca.brk_rate 
+            ,mmca.brokerage_type 
+            ,mmca.cds_acc_no1 
+            ,mmca.remarks1 
+            ,mmca.payment_bank_code 
+            ,mmca.noms 
+            ,mmca.dms_date 
+            ,mmca.violation_date 
+            ,mmca.mcd_branch 
+            ,mmca.home_branch 
+            ,mmca.eaf_code 
+            ,mmca.call_warrant 
+            ,mmca.user_id 
+            ,mmca.credit_int_rate 
+            ,mmca.min_eligible_amt 
+            ,mmca.intraday_flag 
+            ,mmca.intraday_rate 
+            ,mmca.cta_weight 
+            ,mmca.sta_weight 
+            ,mmca.bo_cds_acc_no 
+            ,mmca.ecos_form 
+            ,mmca.custodian_no 
+            ,mmca.prin_acc 
+            ,mmca.armada_type 
+            ,mmca.old_authorisee 
+            ,mmca.etrade_rate 
+            ,mmca.etf 
+            ,mmca.cstamp_client_exempt 
+            ,mmca.main_branch 
+            ,mmca.prev_client_no 
+            ,mmca.web_eds 
+            ,mmca.place 
+            ,mmca.excl_tdr_deduct 
+            ,mmca.excl_auto_susp 
+            ,mmca.trust_flag 
+            ,mmca.mgn_new_int_rate 
+            ,mmca.counter_concentration 
+            ,mmca.auto_trust 
+            ,mmca.margin_pct2 
+            ,mmca.df_flag 
+            ,mmca.mgn_curr_int_rate 
+            ,mmca.product_type 
+            ,mmca.web_ecos 
+            ,mmca.xeye_clt_grp 
+            ,mmca.bursa_violation_date 
+            ,mmca.brokerage_type_etrade 
+            ,mmca.brokerage_type_odd_lot 
+            ,mmca.omnibus 
+            ,mmca.cg_tdr_code 
+            ,mmca.limit_foreign 
+            ,mmca.limit_bursa 
+            ,mmca.brokerage_type_intraday 
+            ,mmca.brokerage_type_intraday_etrade 
+            ,mmca.bursa_violation_date1 
+            ,mmca.cif_no 
+            ,mmca.brokerage_type_foreign 
+            ,mmca.soft_copy 
+            ,mmca.exclude_rollover 
+            ,mmca.account_status 
+            ,mmca.w8ben 
+            ,mmca.ic_no_rel1 
+            ,mmca.ic_no_rel2 
+            ,mmca.ic_no_rel3 
+            ,mmca.ic_no_rel4 
+            ,mmca.ic_no_rel5 
+            ,mmca.rel1 
+            ,mmca.rel2 
+            ,mmca.rel3 
+            ,mmca.rel4 
+            ,mmca.rel5 
+            ,mmca.brokerage_type_etrade_b 
+            ,mmca.brokerage_type_odd_lot_b 
+            ,mmca.brokerage_type_b 
+            ,mmca.brokerage_type_foreign_b 
+            ,mmca.brokerage_type_intraday_b 
+            ,mmca.brokerage_type_intraday_etrade_b 
+            ,mmca.brokerage_type_etrade_s 
+            ,mmca.brokerage_type_odd_lot_s 
+            ,mmca.brokerage_type_s 
+            ,mmca.brokerage_type_foreign_s 
+            ,mmca.brokerage_type_intraday_s 
+            ,mmca.brokerage_type_intraday_etrade_s 
+            ,mmca.no_free_trade 
+            ,mmca.sms 
+            ,mmca.mobile_prefix 
+            ,mmca.foreign_curr_set 
+            ,mmca.num_free_trade 
+            ,mmca.etrader_type 
+            ,mmca.check_limit 
+            ,mmca.auto_margin 
+            ,mmca.margin_client_no 
+            ,mmca.dup_despatch_mode 
+            ,mmca.risk 
+            ,mmca.exclude_trader_limit 
+            ,mmca.sett_mode_date_change 
+            ,mmca.pick_up_fee_pct 
+            ,mmca.e_payment 
+            ,mmca.mgn_new_int_rate2 
+            ,mmca.fund_cost_type 
+            ,mmca.check_share 
+            ,mmca.citibank_changes 
+            ,mmca.citibank_charges 
+            ,mmca.cq_market 
+            ,mmca.exclude_margin_pro_rate 
+            ,mmca.brokerage_type_cash_b 
+            ,mmca.brokerage_type_etrade_cash_b 
+            ,mmca.clt_consent 
+            ,mmca.consent_start_date 
+            ,mmca.portfolio 
+            ,mmca.expiry_date 
+            ,mmca.intraday_auto_contra_option 
+            ,mmca.dcf_limit 
+            ,mmca.brokerage_type_etb 
+            ,mmca.mgn_force_sell_pct 
+            ,mmca.mgn_tenure 
+            ,mmca.mgn_expiry_date 
+            ,mmca.loss_gl_acc_no 
+            ,mmca.portfolio_date 
+            ,mmca.day_prior_temp_susp 
+            ,mmca.day_prior_perm_susp 
+            ,mmca.gst_code 
+            ,mmca.match_price_decimal_local 
+            ,mmca.match_price_decimal_foreign 
+            ,mmca.primary_id_expiry_date 
+            ,mmca.secondary_id_expiry_date 
+            ,mmca.mgn_int_tdr_spread_pct 
+            ,mmca.mgn_base_int_rate 
+            ,mmca.mgn_int_tdr_share 
+            ,mmca.islamic_flag 
+            ,mmca.mcd_resident_flag 
+            ,mmca.chq_charges_flag 
+            ,mmca.chq_charges_tdr_pct 
+            ,mmca.brokerage_type_foreign_etrade 
+            ,mmca.brokerage_type_foreign_etrade_b 
+            ,mmca.brokerage_type_foreign_etrade_s 
+            ,mmca.grp_exch_code 
+            ,mmca.bdebt_ras 
+            ,mmca.twse_declaration 
+            ,mmca.joint_acc_amt 
+            ,mmca.high_risk_market 
+            ,mmca.brokerage_type_leap_normal 
+            ,mmca.brokerage_type_leap_etrade 
+            ,'current_timestamp()' as etl_timestamp 
+       from {params["com_schema"]}.temp_t_mhbos_m_client_all mmca 
+       left join {params["com_schema"]}.temp_t_mhbos_m_client_identification_info id 
+         on mmca.client_no = id.client_no 
+       left join {params["com_schema"]}.temp_t_mhbos_m_client_customer_name_2 cn 
+         on mmca.client_no = cn.client_no 
+       left join {params["com_schema"]}.temp_t_mhbos_m_client_telephone_number_info tel 
+         on mmca.client_no = tel.client_no 
+       left join {params["com_schema"]}.temp_t_mhbos_m_client_dob_info dob 
+         on mmca.client_no = dob.client_no 
+       left join {params["com_schema"]}.temp_t_mhbos_m_client_race_info tmmcr 
+         on mmca.client_no = tmmcr.client_no 
+       left join {params["com_schema"]}.temp_t_mhbos_m_client_email_info tmmcei 
+         on mmca.client_no = tmmcei.client_no 
+       left join {params["com_schema"]}.temp_t_mhbos_m_client_gender_info tmmcgi 
+         on mmca.client_no = tmmcgi.client_no 
+       left join {params["com_schema"]}.temp_t_mhbos_m_client_address_info ad 
+         on mmca.client_no = ad.client_no 
+       left join {params["com_schema"]}.temp_t_mhbos_m_client_nominees_info nom 
+         on mmca.client_no = nom.client_no 
+       left join {params["com_schema"]}.temp_t_mhbos_m_client_name_info  mn						--add_20240321 
+         on mmca.client_no = mn.client_no 
+     ; 
+     3.2.1 step1 */
     DROP TABLE IF EXISTS {params["com_schema"]}.temp_t_mhbos_m_client_identification_info_step1
 """)
 
@@ -4677,7 +5213,11 @@ CREATE TABLE {params["com_schema"]}.temp_t_mhbos_m_client_identification_info_st
       id.client_no,
       (
         id.primary_identification_type_flag || id.primary_identification_no_flag || id.secondary_identification_type_flag || id.secondary_identification_no_flag || cn.client_name_flag || cn.client_name1_flag || cn.client_name2_flag || cn.client_name3_flag || tel.mobile_no_flag || tel.fax_no_flag || tel.tel_no_home_flag || tel.tel_no_office_flag || dob.date_of_birth_flag || tmmcr.race_flag || tmmcei.email_flag || tmmcgi.sex_flag
-      ) AS clean_rule_flag, /* ,id.primary_identification_type -- 20250313 */ /* ,mn.primary_identification_no */ /* ,replace(id.secondary_identification_type, '@[]', '') as secondary_identification_type -- 20250620 */ /* ,replace(id.secondary_identification_no, '@[]', '') as secondary_identification_no -- 20250620 */ /* ,mn.customer_name */
+      ) AS clean_rule_flag, /* ,id.primary_identification_type -- 20250313 
+     ,mn.primary_identification_no 
+     ,replace(id.secondary_identification_type, '@[]', '') as secondary_identification_type -- 20250620 
+     ,replace(id.secondary_identification_no, '@[]', '') as secondary_identification_no -- 20250620 
+     ,mn.customer_name */
       cn.customer_name_concatenate,
       cn.client_name,
       cn.client_name1,
@@ -4689,7 +5229,7 @@ CREATE TABLE {params["com_schema"]}.temp_t_mhbos_m_client_identification_info_st
       tel.tel_no_office,
       dob.date_of_birth,
       tmmcr.race,
-      tmmcei.einvoice_email /* 20250903 einvoice_email */,
+      tmmcei.einvoice_email, /* 20250903 einvoice_email */
       tmmcei.email_1,
       tmmcei.email_2,
       tmmcei.email_3,
@@ -4726,10 +5266,10 @@ CREATE TABLE {params["com_schema"]}.temp_t_mhbos_m_client_identification_info_st
     SELECT
       step1.client_no, /* 2025/09/08: Add customer_name_flag */
       step1.clean_rule_flag || mn.customer_name_flag AS clean_rule_flag,
-      mn.primary_identification_type /* modify 20250313 */,
+      mn.primary_identification_type, /* modify 20250313 */
       mn.primary_identification_no,
-      mn.secondary_identification_type /* modify from step1. to mn. 20250620 */,
-      mn.secondary_identification_no /* modify from step1. to mn. 20250620 */,
+      mn.secondary_identification_type, /* modify from step1. to mn. 20250620 */
+      mn.secondary_identification_no, /* modify from step1. to mn. 20250620 */
       mn.customer_name,
       step1.customer_name_concatenate,
       step1.client_name,
@@ -4767,12 +5307,12 @@ CREATE TABLE {params["com_schema"]}.temp_t_mhbos_m_client_identification_info_st
       ad.perm_postcode,
       ad.perm_city,
       ad.perm_state,
-      ad.perm_country /* added new field 20250715 */,
+      ad.perm_country, /* added new field 20250715 */
       COALESCE(nom.noms_ind, 'N') AS noms_ind,
       nom.cleaned_nominees_name,
-      mn.principal_name /* modify 20240518 */,
+      mn.principal_name, /* modify 20240518 */
       nom.intermediary_name,
-      mn.beneficiary_name /* modify 20240518 */,
+      mn.beneficiary_name, /* modify 20240518 */
       nom.nominees_type,
       nom.pledged_securities_flag,
       step1.einvoice_email /* 20250903 einvoice_email */
@@ -4786,1161 +5326,2023 @@ CREATE TABLE {params["com_schema"]}.temp_t_mhbos_m_client_identification_info_st
 """)
 
 
+# ─── CONSOLIDATED TABLE SETUP ────────────────────────────────────────────────────────
+spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_t_mhbos_m_client_consolidated""")
+
+spark.sql(f"""
+    CREATE TABLE {params["com_schema"]}.temp_t_mhbos_m_client_consolidated (
+        client_no VARCHAR(9)
+        , clean_rule_flag VARCHAR(60)
+        , primary_identification_type VARCHAR(10)
+        , primary_identification_no VARCHAR(60)
+        , secondary_identification_type VARCHAR(10)
+        , secondary_identification_no VARCHAR(60)
+        , customer_name VARCHAR(250)
+        , customer_name_concatenate VARCHAR(250)
+        , client_name VARCHAR(60)
+        , client_name1 VARCHAR(60)
+        , client_name2 VARCHAR(60)
+        , client_name3 VARCHAR(60)
+        , mobile_no VARCHAR(20)
+        , fax_no VARCHAR(20)
+        , tel_no_home VARCHAR(20)
+        , tel_no_office VARCHAR(20)
+        , date_of_birth TIMESTAMP
+        , race VARCHAR(30)
+        , email_1 VARCHAR(300)
+        , email_2 VARCHAR(300)
+        , email_3 VARCHAR(300)
+        , email_4 VARCHAR(300)
+        , email_5 VARCHAR(300)
+        , email_6 VARCHAR(300)
+        , email_7 VARCHAR(300)
+        , email_8 VARCHAR(300)
+        , email_9 VARCHAR(300)
+        , email_10 VARCHAR(300)
+        , sex VARCHAR(10)
+        , addr1 VARCHAR(45)
+        , addr2 VARCHAR(45)
+        , addr3 VARCHAR(45)
+        , addr4 VARCHAR(45)
+        , postcode VARCHAR(6)
+        , city VARCHAR(255)
+        , state VARCHAR(50)
+        , perm_addr1 VARCHAR(45)
+        , perm_addr2 VARCHAR(45)
+        , perm_addr3 VARCHAR(45)
+        , perm_addr4 VARCHAR(45)
+        , perm_postcode VARCHAR(6)
+        , perm_city VARCHAR(255)
+        , perm_state VARCHAR(50)
+        , noms_ind VARCHAR(1)
+        , cleaned_nominees_name VARCHAR(300)
+        , principal_name VARCHAR(300)
+        , intermediary_name VARCHAR(300)
+        , beneficiary_name VARCHAR(300)
+        , nominees_type VARCHAR(10)
+        , pledged_securities_flag VARCHAR(1)
+        , id_type VARCHAR(10)
+        , ic_no_new VARCHAR(15)
+        , ic_no_old VARCHAR(14)
+        , secondary_id_type VARCHAR(2)
+        , secondary_id_no VARCHAR(15)
+        , source_client_name VARCHAR(50)
+        , source_client_name1 VARCHAR(50)
+        , source_client_name2 VARCHAR(50)
+        , source_client_name3 VARCHAR(50)
+        , source_mobile_no VARCHAR(15)
+        , source_fax_no VARCHAR(15)
+        , source_tel_no_home VARCHAR(15)
+        , source_tel_no_office VARCHAR(15)
+        , source_date_of_birth TIMESTAMP
+        , source_race VARCHAR(20)
+        , source_email VARCHAR(300)
+        , source_sex VARCHAR(10)
+        , client_group VARCHAR(14)
+        , cds_acc_no VARCHAR(9)
+        , tdr_code VARCHAR(5)
+        , client_type VARCHAR(3)
+        , margin VARCHAR(1)
+        , last_margin_date TIMESTAMP
+        , int_rate DECIMAL(5, 2)
+        , auto_ded VARCHAR(1)
+        , despatch_mode VARCHAR(2)
+        , copies DECIMAL(2, 0)
+        , prohibit_trade VARCHAR(1)
+        , custody_status VARCHAR(1)
+        , country VARCHAR(3)
+        , margin_limit DECIMAL(9, 0)
+        , margin_pct DECIMAL(5, 2)
+        , rollover_rate DECIMAL(6, 3)
+        , form_completed VARCHAR(1)
+        , last_tran_date TIMESTAMP
+        , ytd_bvalue DECIMAL(12, 2)
+        , ytd_svalue DECIMAL(12, 2)
+        , ytd_brokerage DECIMAL(11, 2)
+        , os_led_bal DECIMAL(12, 2)
+        , title VARCHAR(20)
+        , date_created TIMESTAMP
+        , stop_payt VARCHAR(1)
+        , acc_payee VARCHAR(100)
+        , category VARCHAR(1)
+        , auto_contra VARCHAR(1)
+        , pnl_acc_no VARCHAR(18)
+        , cr_limit DECIMAL(9, 0)
+        , trust_bal DECIMAL(12, 2)
+        , avg_ind VARCHAR(8)
+        , remarks VARCHAR(60)
+        , contact_person VARCHAR(40)
+        , date_closed TIMESTAMP
+        , grace_period DECIMAL(3, 0)
+        , acct_type DECIMAL(2, 0)
+        , assoc_ind VARCHAR(1)
+        , short_sell_ind VARCHAR(1)
+        , short_name VARCHAR(10)
+        , mesdaq_pctlmt DECIMAL(5, 2)
+        , date_change TIMESTAMP
+        , resi_code VARCHAR(5)
+        , charge_int VARCHAR(1)
+        , bdebt VARCHAR(1)
+        , assets DECIMAL(12, 2)
+        , liabilities DECIMAL(12, 2)
+        , income DECIMAL(12, 2)
+        , expenses DECIMAL(12, 2)
+        , bdebt_his_ind VARCHAR(3)
+        , rel_ac1 VARCHAR(9)
+        , rel_ac2 VARCHAR(9)
+        , rel_ac3 VARCHAR(9)
+        , rel_ac4 VARCHAR(9)
+        , occupation VARCHAR(60)
+        , margin_int DECIMAL(12, 2)
+        , lst_led_no DECIMAL(9, 0)
+        , cur_led_no DECIMAL(9, 0)
+        , remarks2 VARCHAR(60)
+        , acc_type VARCHAR(1)
+        , mas_accno VARCHAR(9)
+        , legal VARCHAR(1)
+        , sell_limit DECIMAL(9, 0)
+        , brk_rate DECIMAL(9, 4)
+        , brokerage_type VARCHAR(3)
+        , cds_acc_no1 VARCHAR(9)
+        , remarks1 VARCHAR(60)
+        , payment_bank_code VARCHAR(5)
+        , noms VARCHAR(1)
+        , dms_date TIMESTAMP
+        , violation_date TIMESTAMP
+        , mcd_branch VARCHAR(3)
+        , home_branch VARCHAR(3)
+        , eaf_code VARCHAR(1)
+        , call_warrant VARCHAR(1)
+        , user_id VARCHAR(20)
+        , credit_int_rate DECIMAL(5, 2)
+        , min_eligible_amt DECIMAL(18, 4)
+        , intraday_flag VARCHAR(1)
+        , intraday_rate DECIMAL(5, 4)
+        , cta_weight DECIMAL(3, 0)
+        , sta_weight DECIMAL(3, 0)
+        , bo_cds_acc_no VARCHAR(20)
+        , ecos_form VARCHAR(1)
+        , custodian_no VARCHAR(7)
+        , prin_acc VARCHAR(2)
+        , armada_type VARCHAR(8)
+        , old_authorisee VARCHAR(5)
+        , etrade_rate DECIMAL(9, 4)
+        , etf VARCHAR(1)
+        , cstamp_client_exempt VARCHAR(1)
+        , main_branch VARCHAR(3)
+        , prev_client_no VARCHAR(9)
+        , web_eds VARCHAR(1)
+        , place VARCHAR(5)
+        , excl_tdr_deduct VARCHAR(1)
+        , excl_auto_susp VARCHAR(1)
+        , trust_flag VARCHAR(1)
+        , mgn_new_int_rate DECIMAL(5, 2)
+        , counter_concentration DECIMAL(5, 2)
+        , auto_trust VARCHAR(1)
+        , margin_pct2 DECIMAL(5, 2)
+        , df_flag VARCHAR(1)
+        , mgn_curr_int_rate DECIMAL(5, 2)
+        , product_type VARCHAR(1)
+        , web_ecos VARCHAR(1)
+        , xeye_clt_grp VARCHAR(14)
+        , bursa_violation_date TIMESTAMP
+        , brokerage_type_etrade VARCHAR(3)
+        , brokerage_type_odd_lot VARCHAR(3)
+        , omnibus VARCHAR(1)
+        , cg_tdr_code VARCHAR(7)
+        , limit_foreign DECIMAL(9, 4)
+        , limit_bursa DECIMAL(9, 4)
+        , brokerage_type_intraday VARCHAR(3)
+        , brokerage_type_intraday_etrade VARCHAR(3)
+        , bursa_violation_date1 TIMESTAMP
+        , cif_no VARCHAR(20)
+        , brokerage_type_foreign VARCHAR(3)
+        , soft_copy VARCHAR(1)
+        , exclude_rollover VARCHAR(1)
+        , account_status VARCHAR(1)
+        , w8ben VARCHAR(1)
+        , ic_no_rel1 VARCHAR(15)
+        , ic_no_rel2 VARCHAR(15)
+        , ic_no_rel3 VARCHAR(15)
+        , ic_no_rel4 VARCHAR(15)
+        , ic_no_rel5 VARCHAR(15)
+        , rel1 VARCHAR(15)
+        , rel2 VARCHAR(15)
+        , rel3 VARCHAR(15)
+        , rel4 VARCHAR(15)
+        , rel5 VARCHAR(15)
+        , brokerage_type_etrade_b VARCHAR(3)
+        , brokerage_type_odd_lot_b VARCHAR(3)
+        , brokerage_type_b VARCHAR(3)
+        , brokerage_type_foreign_b VARCHAR(3)
+        , brokerage_type_intraday_b VARCHAR(3)
+        , brokerage_type_intraday_etrade_b VARCHAR(3)
+        , brokerage_type_etrade_s VARCHAR(3)
+        , brokerage_type_odd_lot_s VARCHAR(3)
+        , brokerage_type_s VARCHAR(3)
+        , brokerage_type_foreign_s VARCHAR(3)
+        , brokerage_type_intraday_s VARCHAR(3)
+        , brokerage_type_intraday_etrade_s VARCHAR(3)
+        , no_free_trade DECIMAL(2, 0)
+        , sms VARCHAR(1)
+        , mobile_prefix VARCHAR(5)
+        , foreign_curr_set VARCHAR(1)
+        , num_free_trade DECIMAL(2, 0)
+        , etrader_type VARCHAR(2)
+        , check_limit VARCHAR(1)
+        , auto_margin VARCHAR(1)
+        , margin_client_no VARCHAR(9)
+        , dup_despatch_mode VARCHAR(1)
+        , risk VARCHAR(1)
+        , exclude_trader_limit VARCHAR(1)
+        , sett_mode_date_change TIMESTAMP
+        , pick_up_fee_pct DECIMAL(5, 2)
+        , e_payment VARCHAR(1)
+        , mgn_new_int_rate2 DECIMAL(5, 2)
+        , fund_cost_type VARCHAR(1)
+        , check_share VARCHAR(1)
+        , citibank_changes VARCHAR(1)
+        , citibank_charges VARCHAR(1)
+        , cq_market VARCHAR(1)
+        , exclude_margin_pro_rate VARCHAR(1)
+        , brokerage_type_cash_b VARCHAR(3)
+        , brokerage_type_etrade_cash_b VARCHAR(3)
+        , clt_consent VARCHAR(1)
+        , consent_start_date TIMESTAMP
+        , portfolio VARCHAR(1)
+        , expiry_date TIMESTAMP
+        , intraday_auto_contra_option VARCHAR(1)
+        , dcf_limit DECIMAL(9, 0)
+        , brokerage_type_etb VARCHAR(3)
+        , mgn_force_sell_pct DECIMAL(5, 2)
+        , mgn_tenure DECIMAL(3, 0)
+        , mgn_expiry_date TIMESTAMP
+        , loss_gl_acc_no VARCHAR(18)
+        , portfolio_date TIMESTAMP
+        , day_prior_temp_susp DECIMAL(4, 0)
+        , day_prior_perm_susp DECIMAL(4, 0)
+        , gst_code VARCHAR(3)
+        , match_price_decimal_local DECIMAL(1, 0)
+        , match_price_decimal_foreign DECIMAL(1, 0)
+        , primary_id_expiry_date TIMESTAMP
+        , secondary_id_expiry_date TIMESTAMP
+        , mgn_int_tdr_spread_pct DECIMAL(5, 2)
+        , mgn_base_int_rate DECIMAL(5, 2)
+        , mgn_int_tdr_share DECIMAL(5, 2)
+        , islamic_flag VARCHAR(1)
+        , mcd_resident_flag VARCHAR(1)
+        , chq_charges_flag VARCHAR(1)
+        , chq_charges_tdr_pct DECIMAL(9, 2)
+        , brokerage_type_foreign_etrade VARCHAR(3)
+        , brokerage_type_foreign_etrade_b VARCHAR(3)
+        , brokerage_type_foreign_etrade_s VARCHAR(3)
+        , grp_exch_code VARCHAR(5)
+        , bdebt_ras VARCHAR(1)
+        , twse_declaration VARCHAR(1)
+        , joint_acc_amt DECIMAL(12, 2)
+        , high_risk_market VARCHAR(2)
+        , brokerage_type_leap_normal VARCHAR(3)
+        , brokerage_type_leap_etrade VARCHAR(3)
+        , perm_country VARCHAR(3)
+        , type_of_account STRING
+        , einvoice_email STRING
+    )
+    stored as parquet
+    tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
+""")
+
+# ─── INSERT INTO CONSOLIDATED TABLE ────────────────────────────────────────────────────────
+
+spark.sql(f"""
+/* 3.2 insert data to target table */
+    WITH today_accounts AS (
+      SELECT DISTINCT
+        client_no
+      FROM {params["com_schema"]}.temp_t_mhbos_m_client
+    )
+    INSERT INTO {params["com_schema"]}.temp_t_mhbos_m_client_consolidated
+    SELECT
+      client_no,
+      clean_rule_flag,
+      primary_identification_type,
+      primary_identification_no,
+      secondary_identification_type,
+      secondary_identification_no,
+      customer_name,
+      customer_name_concatenate,
+      client_name,
+      client_name1,
+      client_name2,
+      client_name3,
+      mobile_no,
+      fax_no,
+      tel_no_home,
+      tel_no_office,
+      date_of_birth,
+      race,
+      email_1,
+      email_2,
+      email_3,
+      email_4,
+      email_5,
+      email_6,
+      email_7,
+      email_8,
+      email_9,
+      email_10,
+      sex,
+      addr1,
+      addr2,
+      addr3,
+      addr4,
+      postcode,
+      city,
+      state,
+      perm_addr1,
+      perm_addr2,
+      perm_addr3,
+      perm_addr4,
+      perm_postcode,
+      perm_city,
+      perm_state,
+      noms_ind,
+      cleaned_nominees_name,
+      principal_name,
+      intermediary_name,
+      beneficiary_name,
+      nominees_type,
+      pledged_securities_flag,
+      id_type,
+      ic_no_new,
+      ic_no_old,
+      secondary_id_type,
+      secondary_id_no,
+      source_client_name,
+      source_client_name1,
+      source_client_name2,
+      source_client_name3,
+      source_mobile_no,
+      source_fax_no,
+      source_tel_no_home,
+      source_tel_no_office,
+      source_date_of_birth,
+      source_race,
+      source_email,
+      source_sex,
+      client_group,
+      cds_acc_no,
+      tdr_code,
+      client_type,
+      margin,
+      last_margin_date,
+      int_rate,
+      auto_ded,
+      despatch_mode,
+      copies,
+      prohibit_trade,
+      custody_status,
+      country,
+      margin_limit,
+      margin_pct,
+      rollover_rate,
+      form_completed,
+      last_tran_date,
+      ytd_bvalue,
+      ytd_svalue,
+      ytd_brokerage,
+      os_led_bal,
+      title,
+      date_created,
+      stop_payt,
+      acc_payee,
+      category,
+      auto_contra,
+      pnl_acc_no,
+      cr_limit,
+      trust_bal,
+      avg_ind,
+      remarks,
+      contact_person,
+      date_closed,
+      grace_period,
+      acct_type,
+      assoc_ind,
+      short_sell_ind,
+      short_name,
+      mesdaq_pctlmt,
+      date_change,
+      resi_code,
+      charge_int,
+      bdebt,
+      assets,
+      liabilities,
+      income,
+      expenses,
+      bdebt_his_ind,
+      rel_ac1,
+      rel_ac2,
+      rel_ac3,
+      rel_ac4,
+      occupation,
+      margin_int,
+      lst_led_no,
+      cur_led_no,
+      remarks2,
+      acc_type,
+      mas_accno,
+      legal,
+      sell_limit,
+      brk_rate,
+      brokerage_type,
+      cds_acc_no1,
+      remarks1,
+      payment_bank_code,
+      noms,
+      dms_date,
+      violation_date,
+      mcd_branch,
+      home_branch,
+      eaf_code,
+      call_warrant,
+      user_id,
+      credit_int_rate,
+      min_eligible_amt,
+      intraday_flag,
+      intraday_rate,
+      cta_weight,
+      sta_weight,
+      bo_cds_acc_no,
+      ecos_form,
+      custodian_no,
+      prin_acc,
+      armada_type,
+      old_authorisee,
+      etrade_rate,
+      etf,
+      cstamp_client_exempt,
+      main_branch,
+      prev_client_no,
+      web_eds,
+      place,
+      excl_tdr_deduct,
+      excl_auto_susp,
+      trust_flag,
+      mgn_new_int_rate,
+      counter_concentration,
+      auto_trust,
+      margin_pct2,
+      df_flag,
+      mgn_curr_int_rate,
+      product_type,
+      web_ecos,
+      xeye_clt_grp,
+      bursa_violation_date,
+      brokerage_type_etrade,
+      brokerage_type_odd_lot,
+      omnibus,
+      cg_tdr_code,
+      limit_foreign,
+      limit_bursa,
+      brokerage_type_intraday,
+      brokerage_type_intraday_etrade,
+      bursa_violation_date1,
+      cif_no,
+      brokerage_type_foreign,
+      soft_copy,
+      exclude_rollover,
+      account_status,
+      w8ben,
+      ic_no_rel1,
+      ic_no_rel2,
+      ic_no_rel3,
+      ic_no_rel4,
+      ic_no_rel5,
+      rel1,
+      rel2,
+      rel3,
+      rel4,
+      rel5,
+      brokerage_type_etrade_b,
+      brokerage_type_odd_lot_b,
+      brokerage_type_b,
+      brokerage_type_foreign_b,
+      brokerage_type_intraday_b,
+      brokerage_type_intraday_etrade_b,
+      brokerage_type_etrade_s,
+      brokerage_type_odd_lot_s,
+      brokerage_type_s,
+      brokerage_type_foreign_s,
+      brokerage_type_intraday_s,
+      brokerage_type_intraday_etrade_s,
+      no_free_trade,
+      sms,
+      mobile_prefix,
+      foreign_curr_set,
+      num_free_trade,
+      etrader_type,
+      check_limit,
+      auto_margin,
+      margin_client_no,
+      dup_despatch_mode,
+      risk,
+      exclude_trader_limit,
+      sett_mode_date_change,
+      pick_up_fee_pct,
+      e_payment,
+      mgn_new_int_rate2,
+      fund_cost_type,
+      check_share,
+      citibank_changes,
+      citibank_charges,
+      cq_market,
+      exclude_margin_pro_rate,
+      brokerage_type_cash_b,
+      brokerage_type_etrade_cash_b,
+      clt_consent,
+      consent_start_date,
+      portfolio,
+      expiry_date,
+      intraday_auto_contra_option,
+      dcf_limit,
+      brokerage_type_etb,
+      mgn_force_sell_pct,
+      mgn_tenure,
+      mgn_expiry_date,
+      loss_gl_acc_no,
+      portfolio_date,
+      day_prior_temp_susp,
+      day_prior_perm_susp,
+      gst_code,
+      match_price_decimal_local,
+      match_price_decimal_foreign,
+      primary_id_expiry_date,
+      secondary_id_expiry_date,
+      mgn_int_tdr_spread_pct,
+      mgn_base_int_rate,
+      mgn_int_tdr_share,
+      islamic_flag,
+      mcd_resident_flag,
+      chq_charges_flag,
+      chq_charges_tdr_pct,
+      brokerage_type_foreign_etrade,
+      brokerage_type_foreign_etrade_b,
+      brokerage_type_foreign_etrade_s,
+      grp_exch_code,
+      bdebt_ras,
+      twse_declaration,
+      joint_acc_amt,
+      high_risk_market,
+      brokerage_type_leap_normal,
+      brokerage_type_leap_etrade,
+      CURRENT_TIMESTAMP() AS etl_timestamp,
+      perm_country,
+      type_of_account,
+      einvoice_email
+    FROM {params["com_schema"]}.temp_t_mhbos_m_client_consolidated AS t
+    WHERE
+      etl_dt = '{last_date}'
+      AND NOT EXISTS(
+        SELECT
+          1
+        FROM today_accounts AS ta
+        WHERE
+          ta.client_no = t.client_no
+      )
+    UNION ALL
+    SELECT
+      client_no,
+      clean_rule_flag,
+      primary_identification_type,
+      primary_identification_no,
+      secondary_identification_type,
+      secondary_identification_no,
+      customer_name,
+      customer_name_concatenate,
+      client_name,
+      client_name1,
+      client_name2,
+      client_name3,
+      mobile_no,
+      fax_no,
+      tel_no_home,
+      tel_no_office,
+      date_of_birth,
+      race,
+      email_1,
+      email_2,
+      email_3,
+      email_4,
+      email_5,
+      email_6,
+      email_7,
+      email_8,
+      email_9,
+      email_10,
+      sex,
+      addr1,
+      addr2,
+      addr3,
+      addr4,
+      postcode,
+      city,
+      state,
+      perm_addr1,
+      perm_addr2,
+      perm_addr3,
+      perm_addr4,
+      perm_postcode,
+      perm_city,
+      perm_state,
+      noms_ind,
+      cleaned_nominees_name,
+      principal_name,
+      intermediary_name,
+      beneficiary_name,
+      nominees_type,
+      pledged_securities_flag,
+      id_type,
+      ic_no_new,
+      ic_no_old,
+      secondary_id_type,
+      secondary_id_no,
+      source_client_name,
+      source_client_name1,
+      source_client_name2,
+      source_client_name3,
+      source_mobile_no,
+      source_fax_no,
+      source_tel_no_home,
+      source_tel_no_office,
+      source_date_of_birth,
+      source_race,
+      source_email,
+      source_sex,
+      client_group,
+      cds_acc_no,
+      tdr_code,
+      client_type,
+      margin,
+      last_margin_date,
+      int_rate,
+      auto_ded,
+      despatch_mode,
+      copies,
+      prohibit_trade,
+      custody_status,
+      country,
+      margin_limit,
+      margin_pct,
+      rollover_rate,
+      form_completed,
+      last_tran_date,
+      ytd_bvalue,
+      ytd_svalue,
+      ytd_brokerage,
+      os_led_bal,
+      title,
+      date_created,
+      stop_payt,
+      acc_payee,
+      category,
+      auto_contra,
+      pnl_acc_no,
+      cr_limit,
+      trust_bal,
+      avg_ind,
+      remarks,
+      contact_person,
+      date_closed,
+      grace_period,
+      acct_type,
+      assoc_ind,
+      short_sell_ind,
+      short_name,
+      mesdaq_pctlmt,
+      date_change,
+      resi_code,
+      charge_int,
+      bdebt,
+      assets,
+      liabilities,
+      income,
+      expenses,
+      bdebt_his_ind,
+      rel_ac1,
+      rel_ac2,
+      rel_ac3,
+      rel_ac4,
+      occupation,
+      margin_int,
+      lst_led_no,
+      cur_led_no,
+      remarks2,
+      acc_type,
+      mas_accno,
+      legal,
+      sell_limit,
+      brk_rate,
+      brokerage_type,
+      cds_acc_no1,
+      remarks1,
+      payment_bank_code,
+      noms,
+      dms_date,
+      violation_date,
+      mcd_branch,
+      home_branch,
+      eaf_code,
+      call_warrant,
+      user_id,
+      credit_int_rate,
+      min_eligible_amt,
+      intraday_flag,
+      intraday_rate,
+      cta_weight,
+      sta_weight,
+      bo_cds_acc_no,
+      ecos_form,
+      custodian_no,
+      prin_acc,
+      armada_type,
+      old_authorisee,
+      etrade_rate,
+      etf,
+      cstamp_client_exempt,
+      main_branch,
+      prev_client_no,
+      web_eds,
+      place,
+      excl_tdr_deduct,
+      excl_auto_susp,
+      trust_flag,
+      mgn_new_int_rate,
+      counter_concentration,
+      auto_trust,
+      margin_pct2,
+      df_flag,
+      mgn_curr_int_rate,
+      product_type,
+      web_ecos,
+      xeye_clt_grp,
+      bursa_violation_date,
+      brokerage_type_etrade,
+      brokerage_type_odd_lot,
+      omnibus,
+      cg_tdr_code,
+      limit_foreign,
+      limit_bursa,
+      brokerage_type_intraday,
+      brokerage_type_intraday_etrade,
+      bursa_violation_date1,
+      cif_no,
+      brokerage_type_foreign,
+      soft_copy,
+      exclude_rollover,
+      account_status,
+      w8ben,
+      ic_no_rel1,
+      ic_no_rel2,
+      ic_no_rel3,
+      ic_no_rel4,
+      ic_no_rel5,
+      rel1,
+      rel2,
+      rel3,
+      rel4,
+      rel5,
+      brokerage_type_etrade_b,
+      brokerage_type_odd_lot_b,
+      brokerage_type_b,
+      brokerage_type_foreign_b,
+      brokerage_type_intraday_b,
+      brokerage_type_intraday_etrade_b,
+      brokerage_type_etrade_s,
+      brokerage_type_odd_lot_s,
+      brokerage_type_s,
+      brokerage_type_foreign_s,
+      brokerage_type_intraday_s,
+      brokerage_type_intraday_etrade_s,
+      no_free_trade,
+      sms,
+      mobile_prefix,
+      foreign_curr_set,
+      num_free_trade,
+      etrader_type,
+      check_limit,
+      auto_margin,
+      margin_client_no,
+      dup_despatch_mode,
+      risk,
+      exclude_trader_limit,
+      sett_mode_date_change,
+      pick_up_fee_pct,
+      e_payment,
+      mgn_new_int_rate2,
+      fund_cost_type,
+      check_share,
+      citibank_changes,
+      citibank_charges,
+      cq_market,
+      exclude_margin_pro_rate,
+      brokerage_type_cash_b,
+      brokerage_type_etrade_cash_b,
+      clt_consent,
+      consent_start_date,
+      portfolio,
+      expiry_date,
+      intraday_auto_contra_option,
+      dcf_limit,
+      brokerage_type_etb,
+      mgn_force_sell_pct,
+      mgn_tenure,
+      mgn_expiry_date,
+      loss_gl_acc_no,
+      portfolio_date,
+      day_prior_temp_susp,
+      day_prior_perm_susp,
+      gst_code,
+      match_price_decimal_local,
+      match_price_decimal_foreign,
+      primary_id_expiry_date,
+      secondary_id_expiry_date,
+      mgn_int_tdr_spread_pct,
+      mgn_base_int_rate,
+      mgn_int_tdr_share,
+      islamic_flag,
+      mcd_resident_flag,
+      chq_charges_flag,
+      chq_charges_tdr_pct,
+      brokerage_type_foreign_etrade,
+      brokerage_type_foreign_etrade_b,
+      brokerage_type_foreign_etrade_s,
+      grp_exch_code,
+      bdebt_ras,
+      twse_declaration,
+      joint_acc_amt,
+      high_risk_market,
+      brokerage_type_leap_normal,
+      brokerage_type_leap_etrade,
+      CURRENT_TIMESTAMP() AS etl_timestamp,
+      perm_country,
+      type_of_account,
+      einvoice_email
+    FROM temp_t_mhbos_m_client
+""")
+
+
 # ─── TEMP TABLE SETUP ────────────────────────────────────────────────────────
 spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_t_mhbos_m_client_updated""")
 
 spark.sql(f"""
-CREATE TABLE {params["com_schema"]}.temp_t_mhbos_m_client_updated (
-    client_no VARCHAR(9)
-    , clean_rule_flag VARCHAR(60)
-    , primary_identification_type VARCHAR(10)
-    , primary_identification_no VARCHAR(60)
-    , secondary_identification_type VARCHAR(10)
-    , secondary_identification_no VARCHAR(60)
-    , customer_name VARCHAR(250)
-    , customer_name_concatenate VARCHAR(250)
-    , client_name VARCHAR(60)
-    , client_name1 VARCHAR(60)
-    , client_name2 VARCHAR(60)
-    , client_name3 VARCHAR(60)
-    , mobile_no VARCHAR(20)
-    , fax_no VARCHAR(20)
-    , tel_no_home VARCHAR(20)
-    , tel_no_office VARCHAR(20)
-    , date_of_birth TIMESTAMP
-    , race VARCHAR(30)
-    , email_1 VARCHAR(300)
-    , email_2 VARCHAR(300)
-    , email_3 VARCHAR(300)
-    , email_4 VARCHAR(300)
-    , email_5 VARCHAR(300)
-    , email_6 VARCHAR(300)
-    , email_7 VARCHAR(300)
-    , email_8 VARCHAR(300)
-    , email_9 VARCHAR(300)
-    , email_10 VARCHAR(300)
-    , sex VARCHAR(10)
-    , addr1 VARCHAR(45)
-    , addr2 VARCHAR(45)
-    , addr3 VARCHAR(45)
-    , addr4 VARCHAR(45)
-    , postcode VARCHAR(6)
-    , city VARCHAR(255)
-    , state VARCHAR(50)
-    , perm_addr1 VARCHAR(45)
-    , perm_addr2 VARCHAR(45)
-    , perm_addr3 VARCHAR(45)
-    , perm_addr4 VARCHAR(45)
-    , perm_postcode VARCHAR(6)
-    , perm_city VARCHAR(255)
-    , perm_state VARCHAR(50)
-    , noms_ind VARCHAR(1)
-    , cleaned_nominees_name VARCHAR(300)
-    , principal_name VARCHAR(300)
-    , intermediary_name VARCHAR(300)
-    , beneficiary_name VARCHAR(300)
-    , nominees_type VARCHAR(10)
-    , pledged_securities_flag VARCHAR(1)
-    , id_type VARCHAR(10)
-    , ic_no_new VARCHAR(15)
-    , ic_no_old VARCHAR(14)
-    , secondary_id_type VARCHAR(2)
-    , secondary_id_no VARCHAR(15)
-    , source_client_name VARCHAR(50)
-    , source_client_name1 VARCHAR(50)
-    , source_client_name2 VARCHAR(50)
-    , source_client_name3 VARCHAR(50)
-    , source_mobile_no VARCHAR(15)
-    , source_fax_no VARCHAR(15)
-    , source_tel_no_home VARCHAR(15)
-    , source_tel_no_office VARCHAR(15)
-    , source_date_of_birth TIMESTAMP
-    , source_race VARCHAR(20)
-    , source_email VARCHAR(300)
-    , source_sex VARCHAR(10)
-    , client_group VARCHAR(14)
-    , cds_acc_no VARCHAR(9)
-    , tdr_code VARCHAR(5)
-    , client_type VARCHAR(3)
-    , margin VARCHAR(1)
-    , last_margin_date TIMESTAMP
-    , int_rate DECIMAL(5, 2)
-    , auto_ded VARCHAR(1)
-    , despatch_mode VARCHAR(2)
-    , copies DECIMAL(2, 0)
-    , prohibit_trade VARCHAR(1)
-    , custody_status VARCHAR(1)
-    , country VARCHAR(3)
-    , margin_limit DECIMAL(9, 0)
-    , margin_pct DECIMAL(5, 2)
-    , rollover_rate DECIMAL(6, 3)
-    , form_completed VARCHAR(1)
-    , last_tran_date TIMESTAMP
-    , ytd_bvalue DECIMAL(12, 2)
-    , ytd_svalue DECIMAL(12, 2)
-    , ytd_brokerage DECIMAL(11, 2)
-    , os_led_bal DECIMAL(12, 2)
-    , title VARCHAR(20)
-    , date_created TIMESTAMP
-    , stop_payt VARCHAR(1)
-    , acc_payee VARCHAR(100)
-    , category VARCHAR(1)
-    , auto_contra VARCHAR(1)
-    , pnl_acc_no VARCHAR(18)
-    , cr_limit DECIMAL(9, 0)
-    , trust_bal DECIMAL(12, 2)
-    , avg_ind VARCHAR(8)
-    , remarks VARCHAR(60)
-    , contact_person VARCHAR(40)
-    , date_closed TIMESTAMP
-    , grace_period DECIMAL(3, 0)
-    , acct_type DECIMAL(2, 0)
-    , assoc_ind VARCHAR(1)
-    , short_sell_ind VARCHAR(1)
-    , short_name VARCHAR(10)
-    , mesdaq_pctlmt DECIMAL(5, 2)
-    , date_change TIMESTAMP
-    , resi_code VARCHAR(5)
-    , charge_int VARCHAR(1)
-    , bdebt VARCHAR(1)
-    , assets DECIMAL(12, 2)
-    , liabilities DECIMAL(12, 2)
-    , income DECIMAL(12, 2)
-    , expenses DECIMAL(12, 2)
-    , bdebt_his_ind VARCHAR(3)
-    , rel_ac1 VARCHAR(9)
-    , rel_ac2 VARCHAR(9)
-    , rel_ac3 VARCHAR(9)
-    , rel_ac4 VARCHAR(9)
-    , occupation VARCHAR(60)
-    , margin_int DECIMAL(12, 2)
-    , lst_led_no DECIMAL(9, 0)
-    , cur_led_no DECIMAL(9, 0)
-    , remarks2 VARCHAR(60)
-    , acc_type VARCHAR(1)
-    , mas_accno VARCHAR(9)
-    , legal VARCHAR(1)
-    , sell_limit DECIMAL(9, 0)
-    , brk_rate DECIMAL(9, 4)
-    , brokerage_type VARCHAR(3)
-    , cds_acc_no1 VARCHAR(9)
-    , remarks1 VARCHAR(60)
-    , payment_bank_code VARCHAR(5)
-    , noms VARCHAR(1)
-    , dms_date TIMESTAMP
-    , violation_date TIMESTAMP
-    , mcd_branch VARCHAR(3)
-    , home_branch VARCHAR(3)
-    , eaf_code VARCHAR(1)
-    , call_warrant VARCHAR(1)
-    , user_id VARCHAR(20)
-    , credit_int_rate DECIMAL(5, 2)
-    , min_eligible_amt DECIMAL(18, 4)
-    , intraday_flag VARCHAR(1)
-    , intraday_rate DECIMAL(5, 4)
-    , cta_weight DECIMAL(3, 0)
-    , sta_weight DECIMAL(3, 0)
-    , bo_cds_acc_no VARCHAR(20)
-    , ecos_form VARCHAR(1)
-    , custodian_no VARCHAR(7)
-    , prin_acc VARCHAR(2)
-    , armada_type VARCHAR(8)
-    , old_authorisee VARCHAR(5)
-    , etrade_rate DECIMAL(9, 4)
-    , etf VARCHAR(1)
-    , cstamp_client_exempt VARCHAR(1)
-    , main_branch VARCHAR(3)
-    , prev_client_no VARCHAR(9)
-    , web_eds VARCHAR(1)
-    , place VARCHAR(5)
-    , excl_tdr_deduct VARCHAR(1)
-    , excl_auto_susp VARCHAR(1)
-    , trust_flag VARCHAR(1)
-    , mgn_new_int_rate DECIMAL(5, 2)
-    , counter_concentration DECIMAL(5, 2)
-    , auto_trust VARCHAR(1)
-    , margin_pct2 DECIMAL(5, 2)
-    , df_flag VARCHAR(1)
-    , mgn_curr_int_rate DECIMAL(5, 2)
-    , product_type VARCHAR(1)
-    , web_ecos VARCHAR(1)
-    , xeye_clt_grp VARCHAR(14)
-    , bursa_violation_date TIMESTAMP
-    , brokerage_type_etrade VARCHAR(3)
-    , brokerage_type_odd_lot VARCHAR(3)
-    , omnibus VARCHAR(1)
-    , cg_tdr_code VARCHAR(7)
-    , limit_foreign DECIMAL(9, 4)
-    , limit_bursa DECIMAL(9, 4)
-    , brokerage_type_intraday VARCHAR(3)
-    , brokerage_type_intraday_etrade VARCHAR(3)
-    , bursa_violation_date1 TIMESTAMP
-    , cif_no VARCHAR(20)
-    , brokerage_type_foreign VARCHAR(3)
-    , soft_copy VARCHAR(1)
-    , exclude_rollover VARCHAR(1)
-    , account_status VARCHAR(1)
-    , w8ben VARCHAR(1)
-    , ic_no_rel1 VARCHAR(15)
-    , ic_no_rel2 VARCHAR(15)
-    , ic_no_rel3 VARCHAR(15)
-    , ic_no_rel4 VARCHAR(15)
-    , ic_no_rel5 VARCHAR(15)
-    , rel1 VARCHAR(15)
-    , rel2 VARCHAR(15)
-    , rel3 VARCHAR(15)
-    , rel4 VARCHAR(15)
-    , rel5 VARCHAR(15)
-    , brokerage_type_etrade_b VARCHAR(3)
-    , brokerage_type_odd_lot_b VARCHAR(3)
-    , brokerage_type_b VARCHAR(3)
-    , brokerage_type_foreign_b VARCHAR(3)
-    , brokerage_type_intraday_b VARCHAR(3)
-    , brokerage_type_intraday_etrade_b VARCHAR(3)
-    , brokerage_type_etrade_s VARCHAR(3)
-    , brokerage_type_odd_lot_s VARCHAR(3)
-    , brokerage_type_s VARCHAR(3)
-    , brokerage_type_foreign_s VARCHAR(3)
-    , brokerage_type_intraday_s VARCHAR(3)
-    , brokerage_type_intraday_etrade_s VARCHAR(3)
-    , no_free_trade DECIMAL(2, 0)
-    , sms VARCHAR(1)
-    , mobile_prefix VARCHAR(5)
-    , foreign_curr_set VARCHAR(1)
-    , num_free_trade DECIMAL(2, 0)
-    , etrader_type VARCHAR(2)
-    , check_limit VARCHAR(1)
-    , auto_margin VARCHAR(1)
-    , margin_client_no VARCHAR(9)
-    , dup_despatch_mode VARCHAR(1)
-    , risk VARCHAR(1)
-    , exclude_trader_limit VARCHAR(1)
-    , sett_mode_date_change TIMESTAMP
-    , pick_up_fee_pct DECIMAL(5, 2)
-    , e_payment VARCHAR(1)
-    , mgn_new_int_rate2 DECIMAL(5, 2)
-    , fund_cost_type VARCHAR(1)
-    , check_share VARCHAR(1)
-    , citibank_changes VARCHAR(1)
-    , citibank_charges VARCHAR(1)
-    , cq_market VARCHAR(1)
-    , exclude_margin_pro_rate VARCHAR(1)
-    , brokerage_type_cash_b VARCHAR(3)
-    , brokerage_type_etrade_cash_b VARCHAR(3)
-    , clt_consent VARCHAR(1)
-    , consent_start_date TIMESTAMP
-    , portfolio VARCHAR(1)
-    , expiry_date TIMESTAMP
-    , intraday_auto_contra_option VARCHAR(1)
-    , dcf_limit DECIMAL(9, 0)
-    , brokerage_type_etb VARCHAR(3)
-    , mgn_force_sell_pct DECIMAL(5, 2)
-    , mgn_tenure DECIMAL(3, 0)
-    , mgn_expiry_date TIMESTAMP
-    , loss_gl_acc_no VARCHAR(18)
-    , portfolio_date TIMESTAMP
-    , day_prior_temp_susp DECIMAL(4, 0)
-    , day_prior_perm_susp DECIMAL(4, 0)
-    , gst_code VARCHAR(3)
-    , match_price_decimal_local DECIMAL(1, 0)
-    , match_price_decimal_foreign DECIMAL(1, 0)
-    , primary_id_expiry_date TIMESTAMP
-    , secondary_id_expiry_date TIMESTAMP
-    , mgn_int_tdr_spread_pct DECIMAL(5, 2)
-    , mgn_base_int_rate DECIMAL(5, 2)
-    , mgn_int_tdr_share DECIMAL(5, 2)
-    , islamic_flag VARCHAR(1)
-    , mcd_resident_flag VARCHAR(1)
-    , chq_charges_flag VARCHAR(1)
-    , chq_charges_tdr_pct DECIMAL(9, 2)
-    , brokerage_type_foreign_etrade VARCHAR(3)
-    , brokerage_type_foreign_etrade_b VARCHAR(3)
-    , brokerage_type_foreign_etrade_s VARCHAR(3)
-    , grp_exch_code VARCHAR(5)
-    , bdebt_ras VARCHAR(1)
-    , twse_declaration VARCHAR(1)
-    , joint_acc_amt DECIMAL(12, 2)
-    , high_risk_market VARCHAR(2)
-    , brokerage_type_leap_normal VARCHAR(3)
-    , brokerage_type_leap_etrade VARCHAR(3)
-    , perm_country VARCHAR(3)
-    , type_of_account STRING
-    , einvoice_email STRING
-    , dl_record_status       VARCHAR(10)
-    , dl_record_created_date TIMESTAMP
-    , dl_record_updated_date TIMESTAMP
-)
-stored as parquet
-tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
+    CREATE TABLE {params["com_schema"]}.temp_t_mhbos_m_client_updated (
+        client_no VARCHAR(9)
+        , clean_rule_flag VARCHAR(60)
+        , primary_identification_type VARCHAR(10)
+        , primary_identification_no VARCHAR(60)
+        , secondary_identification_type VARCHAR(10)
+        , secondary_identification_no VARCHAR(60)
+        , customer_name VARCHAR(250)
+        , customer_name_concatenate VARCHAR(250)
+        , client_name VARCHAR(60)
+        , client_name1 VARCHAR(60)
+        , client_name2 VARCHAR(60)
+        , client_name3 VARCHAR(60)
+        , mobile_no VARCHAR(20)
+        , fax_no VARCHAR(20)
+        , tel_no_home VARCHAR(20)
+        , tel_no_office VARCHAR(20)
+        , date_of_birth TIMESTAMP
+        , race VARCHAR(30)
+        , email_1 VARCHAR(300)
+        , email_2 VARCHAR(300)
+        , email_3 VARCHAR(300)
+        , email_4 VARCHAR(300)
+        , email_5 VARCHAR(300)
+        , email_6 VARCHAR(300)
+        , email_7 VARCHAR(300)
+        , email_8 VARCHAR(300)
+        , email_9 VARCHAR(300)
+        , email_10 VARCHAR(300)
+        , sex VARCHAR(10)
+        , addr1 VARCHAR(45)
+        , addr2 VARCHAR(45)
+        , addr3 VARCHAR(45)
+        , addr4 VARCHAR(45)
+        , postcode VARCHAR(6)
+        , city VARCHAR(255)
+        , state VARCHAR(50)
+        , perm_addr1 VARCHAR(45)
+        , perm_addr2 VARCHAR(45)
+        , perm_addr3 VARCHAR(45)
+        , perm_addr4 VARCHAR(45)
+        , perm_postcode VARCHAR(6)
+        , perm_city VARCHAR(255)
+        , perm_state VARCHAR(50)
+        , noms_ind VARCHAR(1)
+        , cleaned_nominees_name VARCHAR(300)
+        , principal_name VARCHAR(300)
+        , intermediary_name VARCHAR(300)
+        , beneficiary_name VARCHAR(300)
+        , nominees_type VARCHAR(10)
+        , pledged_securities_flag VARCHAR(1)
+        , id_type VARCHAR(10)
+        , ic_no_new VARCHAR(15)
+        , ic_no_old VARCHAR(14)
+        , secondary_id_type VARCHAR(2)
+        , secondary_id_no VARCHAR(15)
+        , source_client_name VARCHAR(50)
+        , source_client_name1 VARCHAR(50)
+        , source_client_name2 VARCHAR(50)
+        , source_client_name3 VARCHAR(50)
+        , source_mobile_no VARCHAR(15)
+        , source_fax_no VARCHAR(15)
+        , source_tel_no_home VARCHAR(15)
+        , source_tel_no_office VARCHAR(15)
+        , source_date_of_birth TIMESTAMP
+        , source_race VARCHAR(20)
+        , source_email VARCHAR(300)
+        , source_sex VARCHAR(10)
+        , client_group VARCHAR(14)
+        , cds_acc_no VARCHAR(9)
+        , tdr_code VARCHAR(5)
+        , client_type VARCHAR(3)
+        , margin VARCHAR(1)
+        , last_margin_date TIMESTAMP
+        , int_rate DECIMAL(5, 2)
+        , auto_ded VARCHAR(1)
+        , despatch_mode VARCHAR(2)
+        , copies DECIMAL(2, 0)
+        , prohibit_trade VARCHAR(1)
+        , custody_status VARCHAR(1)
+        , country VARCHAR(3)
+        , margin_limit DECIMAL(9, 0)
+        , margin_pct DECIMAL(5, 2)
+        , rollover_rate DECIMAL(6, 3)
+        , form_completed VARCHAR(1)
+        , last_tran_date TIMESTAMP
+        , ytd_bvalue DECIMAL(12, 2)
+        , ytd_svalue DECIMAL(12, 2)
+        , ytd_brokerage DECIMAL(11, 2)
+        , os_led_bal DECIMAL(12, 2)
+        , title VARCHAR(20)
+        , date_created TIMESTAMP
+        , stop_payt VARCHAR(1)
+        , acc_payee VARCHAR(100)
+        , category VARCHAR(1)
+        , auto_contra VARCHAR(1)
+        , pnl_acc_no VARCHAR(18)
+        , cr_limit DECIMAL(9, 0)
+        , trust_bal DECIMAL(12, 2)
+        , avg_ind VARCHAR(8)
+        , remarks VARCHAR(60)
+        , contact_person VARCHAR(40)
+        , date_closed TIMESTAMP
+        , grace_period DECIMAL(3, 0)
+        , acct_type DECIMAL(2, 0)
+        , assoc_ind VARCHAR(1)
+        , short_sell_ind VARCHAR(1)
+        , short_name VARCHAR(10)
+        , mesdaq_pctlmt DECIMAL(5, 2)
+        , date_change TIMESTAMP
+        , resi_code VARCHAR(5)
+        , charge_int VARCHAR(1)
+        , bdebt VARCHAR(1)
+        , assets DECIMAL(12, 2)
+        , liabilities DECIMAL(12, 2)
+        , income DECIMAL(12, 2)
+        , expenses DECIMAL(12, 2)
+        , bdebt_his_ind VARCHAR(3)
+        , rel_ac1 VARCHAR(9)
+        , rel_ac2 VARCHAR(9)
+        , rel_ac3 VARCHAR(9)
+        , rel_ac4 VARCHAR(9)
+        , occupation VARCHAR(60)
+        , margin_int DECIMAL(12, 2)
+        , lst_led_no DECIMAL(9, 0)
+        , cur_led_no DECIMAL(9, 0)
+        , remarks2 VARCHAR(60)
+        , acc_type VARCHAR(1)
+        , mas_accno VARCHAR(9)
+        , legal VARCHAR(1)
+        , sell_limit DECIMAL(9, 0)
+        , brk_rate DECIMAL(9, 4)
+        , brokerage_type VARCHAR(3)
+        , cds_acc_no1 VARCHAR(9)
+        , remarks1 VARCHAR(60)
+        , payment_bank_code VARCHAR(5)
+        , noms VARCHAR(1)
+        , dms_date TIMESTAMP
+        , violation_date TIMESTAMP
+        , mcd_branch VARCHAR(3)
+        , home_branch VARCHAR(3)
+        , eaf_code VARCHAR(1)
+        , call_warrant VARCHAR(1)
+        , user_id VARCHAR(20)
+        , credit_int_rate DECIMAL(5, 2)
+        , min_eligible_amt DECIMAL(18, 4)
+        , intraday_flag VARCHAR(1)
+        , intraday_rate DECIMAL(5, 4)
+        , cta_weight DECIMAL(3, 0)
+        , sta_weight DECIMAL(3, 0)
+        , bo_cds_acc_no VARCHAR(20)
+        , ecos_form VARCHAR(1)
+        , custodian_no VARCHAR(7)
+        , prin_acc VARCHAR(2)
+        , armada_type VARCHAR(8)
+        , old_authorisee VARCHAR(5)
+        , etrade_rate DECIMAL(9, 4)
+        , etf VARCHAR(1)
+        , cstamp_client_exempt VARCHAR(1)
+        , main_branch VARCHAR(3)
+        , prev_client_no VARCHAR(9)
+        , web_eds VARCHAR(1)
+        , place VARCHAR(5)
+        , excl_tdr_deduct VARCHAR(1)
+        , excl_auto_susp VARCHAR(1)
+        , trust_flag VARCHAR(1)
+        , mgn_new_int_rate DECIMAL(5, 2)
+        , counter_concentration DECIMAL(5, 2)
+        , auto_trust VARCHAR(1)
+        , margin_pct2 DECIMAL(5, 2)
+        , df_flag VARCHAR(1)
+        , mgn_curr_int_rate DECIMAL(5, 2)
+        , product_type VARCHAR(1)
+        , web_ecos VARCHAR(1)
+        , xeye_clt_grp VARCHAR(14)
+        , bursa_violation_date TIMESTAMP
+        , brokerage_type_etrade VARCHAR(3)
+        , brokerage_type_odd_lot VARCHAR(3)
+        , omnibus VARCHAR(1)
+        , cg_tdr_code VARCHAR(7)
+        , limit_foreign DECIMAL(9, 4)
+        , limit_bursa DECIMAL(9, 4)
+        , brokerage_type_intraday VARCHAR(3)
+        , brokerage_type_intraday_etrade VARCHAR(3)
+        , bursa_violation_date1 TIMESTAMP
+        , cif_no VARCHAR(20)
+        , brokerage_type_foreign VARCHAR(3)
+        , soft_copy VARCHAR(1)
+        , exclude_rollover VARCHAR(1)
+        , account_status VARCHAR(1)
+        , w8ben VARCHAR(1)
+        , ic_no_rel1 VARCHAR(15)
+        , ic_no_rel2 VARCHAR(15)
+        , ic_no_rel3 VARCHAR(15)
+        , ic_no_rel4 VARCHAR(15)
+        , ic_no_rel5 VARCHAR(15)
+        , rel1 VARCHAR(15)
+        , rel2 VARCHAR(15)
+        , rel3 VARCHAR(15)
+        , rel4 VARCHAR(15)
+        , rel5 VARCHAR(15)
+        , brokerage_type_etrade_b VARCHAR(3)
+        , brokerage_type_odd_lot_b VARCHAR(3)
+        , brokerage_type_b VARCHAR(3)
+        , brokerage_type_foreign_b VARCHAR(3)
+        , brokerage_type_intraday_b VARCHAR(3)
+        , brokerage_type_intraday_etrade_b VARCHAR(3)
+        , brokerage_type_etrade_s VARCHAR(3)
+        , brokerage_type_odd_lot_s VARCHAR(3)
+        , brokerage_type_s VARCHAR(3)
+        , brokerage_type_foreign_s VARCHAR(3)
+        , brokerage_type_intraday_s VARCHAR(3)
+        , brokerage_type_intraday_etrade_s VARCHAR(3)
+        , no_free_trade DECIMAL(2, 0)
+        , sms VARCHAR(1)
+        , mobile_prefix VARCHAR(5)
+        , foreign_curr_set VARCHAR(1)
+        , num_free_trade DECIMAL(2, 0)
+        , etrader_type VARCHAR(2)
+        , check_limit VARCHAR(1)
+        , auto_margin VARCHAR(1)
+        , margin_client_no VARCHAR(9)
+        , dup_despatch_mode VARCHAR(1)
+        , risk VARCHAR(1)
+        , exclude_trader_limit VARCHAR(1)
+        , sett_mode_date_change TIMESTAMP
+        , pick_up_fee_pct DECIMAL(5, 2)
+        , e_payment VARCHAR(1)
+        , mgn_new_int_rate2 DECIMAL(5, 2)
+        , fund_cost_type VARCHAR(1)
+        , check_share VARCHAR(1)
+        , citibank_changes VARCHAR(1)
+        , citibank_charges VARCHAR(1)
+        , cq_market VARCHAR(1)
+        , exclude_margin_pro_rate VARCHAR(1)
+        , brokerage_type_cash_b VARCHAR(3)
+        , brokerage_type_etrade_cash_b VARCHAR(3)
+        , clt_consent VARCHAR(1)
+        , consent_start_date TIMESTAMP
+        , portfolio VARCHAR(1)
+        , expiry_date TIMESTAMP
+        , intraday_auto_contra_option VARCHAR(1)
+        , dcf_limit DECIMAL(9, 0)
+        , brokerage_type_etb VARCHAR(3)
+        , mgn_force_sell_pct DECIMAL(5, 2)
+        , mgn_tenure DECIMAL(3, 0)
+        , mgn_expiry_date TIMESTAMP
+        , loss_gl_acc_no VARCHAR(18)
+        , portfolio_date TIMESTAMP
+        , day_prior_temp_susp DECIMAL(4, 0)
+        , day_prior_perm_susp DECIMAL(4, 0)
+        , gst_code VARCHAR(3)
+        , match_price_decimal_local DECIMAL(1, 0)
+        , match_price_decimal_foreign DECIMAL(1, 0)
+        , primary_id_expiry_date TIMESTAMP
+        , secondary_id_expiry_date TIMESTAMP
+        , mgn_int_tdr_spread_pct DECIMAL(5, 2)
+        , mgn_base_int_rate DECIMAL(5, 2)
+        , mgn_int_tdr_share DECIMAL(5, 2)
+        , islamic_flag VARCHAR(1)
+        , mcd_resident_flag VARCHAR(1)
+        , chq_charges_flag VARCHAR(1)
+        , chq_charges_tdr_pct DECIMAL(9, 2)
+        , brokerage_type_foreign_etrade VARCHAR(3)
+        , brokerage_type_foreign_etrade_b VARCHAR(3)
+        , brokerage_type_foreign_etrade_s VARCHAR(3)
+        , grp_exch_code VARCHAR(5)
+        , bdebt_ras VARCHAR(1)
+        , twse_declaration VARCHAR(1)
+        , joint_acc_amt DECIMAL(12, 2)
+        , high_risk_market VARCHAR(2)
+        , brokerage_type_leap_normal VARCHAR(3)
+        , brokerage_type_leap_etrade VARCHAR(3)
+        , perm_country VARCHAR(3)
+        , type_of_account STRING
+        , einvoice_email STRING
+        , dl_record_status       VARCHAR(10)
+        , dl_record_created_date TIMESTAMP
+        , dl_record_updated_date TIMESTAMP
+    )
+    stored as parquet
+    tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
 """)
 
 # ─── STEP 1: Keep unchanged records ──────────────────────────────────────────
 spark.sql(f"""
-INSERT INTO TABLE {params["com_schema"]}.temp_t_mhbos_m_client_updated
-SELECT
-    client_no
-    , clean_rule_flag
-    , primary_identification_type
-    , primary_identification_no
-    , secondary_identification_type
-    , secondary_identification_no
-    , customer_name
-    , customer_name_concatenate
-    , client_name
-    , client_name1
-    , client_name2
-    , client_name3
-    , mobile_no
-    , fax_no
-    , tel_no_home
-    , tel_no_office
-    , date_of_birth
-    , race
-    , email_1
-    , email_2
-    , email_3
-    , email_4
-    , email_5
-    , email_6
-    , email_7
-    , email_8
-    , email_9
-    , email_10
-    , sex
-    , addr1
-    , addr2
-    , addr3
-    , addr4
-    , postcode
-    , city
-    , state
-    , perm_addr1
-    , perm_addr2
-    , perm_addr3
-    , perm_addr4
-    , perm_postcode
-    , perm_city
-    , perm_state
-    , noms_ind
-    , cleaned_nominees_name
-    , principal_name
-    , intermediary_name
-    , beneficiary_name
-    , nominees_type
-    , pledged_securities_flag
-    , id_type
-    , ic_no_new
-    , ic_no_old
-    , secondary_id_type
-    , secondary_id_no
-    , source_client_name
-    , source_client_name1
-    , source_client_name2
-    , source_client_name3
-    , source_mobile_no
-    , source_fax_no
-    , source_tel_no_home
-    , source_tel_no_office
-    , source_date_of_birth
-    , source_race
-    , source_email
-    , source_sex
-    , client_group
-    , cds_acc_no
-    , tdr_code
-    , client_type
-    , margin
-    , last_margin_date
-    , int_rate
-    , auto_ded
-    , despatch_mode
-    , copies
-    , prohibit_trade
-    , custody_status
-    , country
-    , margin_limit
-    , margin_pct
-    , rollover_rate
-    , form_completed
-    , last_tran_date
-    , ytd_bvalue
-    , ytd_svalue
-    , ytd_brokerage
-    , os_led_bal
-    , title
-    , date_created
-    , stop_payt
-    , acc_payee
-    , category
-    , auto_contra
-    , pnl_acc_no
-    , cr_limit
-    , trust_bal
-    , avg_ind
-    , remarks
-    , contact_person
-    , date_closed
-    , grace_period
-    , acct_type
-    , assoc_ind
-    , short_sell_ind
-    , short_name
-    , mesdaq_pctlmt
-    , date_change
-    , resi_code
-    , charge_int
-    , bdebt
-    , assets
-    , liabilities
-    , income
-    , expenses
-    , bdebt_his_ind
-    , rel_ac1
-    , rel_ac2
-    , rel_ac3
-    , rel_ac4
-    , occupation
-    , margin_int
-    , lst_led_no
-    , cur_led_no
-    , remarks2
-    , acc_type
-    , mas_accno
-    , legal
-    , sell_limit
-    , brk_rate
-    , brokerage_type
-    , cds_acc_no1
-    , remarks1
-    , payment_bank_code
-    , noms
-    , dms_date
-    , violation_date
-    , mcd_branch
-    , home_branch
-    , eaf_code
-    , call_warrant
-    , user_id
-    , credit_int_rate
-    , min_eligible_amt
-    , intraday_flag
-    , intraday_rate
-    , cta_weight
-    , sta_weight
-    , bo_cds_acc_no
-    , ecos_form
-    , custodian_no
-    , prin_acc
-    , armada_type
-    , old_authorisee
-    , etrade_rate
-    , etf
-    , cstamp_client_exempt
-    , main_branch
-    , prev_client_no
-    , web_eds
-    , place
-    , excl_tdr_deduct
-    , excl_auto_susp
-    , trust_flag
-    , mgn_new_int_rate
-    , counter_concentration
-    , auto_trust
-    , margin_pct2
-    , df_flag
-    , mgn_curr_int_rate
-    , product_type
-    , web_ecos
-    , xeye_clt_grp
-    , bursa_violation_date
-    , brokerage_type_etrade
-    , brokerage_type_odd_lot
-    , omnibus
-    , cg_tdr_code
-    , limit_foreign
-    , limit_bursa
-    , brokerage_type_intraday
-    , brokerage_type_intraday_etrade
-    , bursa_violation_date1
-    , cif_no
-    , brokerage_type_foreign
-    , soft_copy
-    , exclude_rollover
-    , account_status
-    , w8ben
-    , ic_no_rel1
-    , ic_no_rel2
-    , ic_no_rel3
-    , ic_no_rel4
-    , ic_no_rel5
-    , rel1
-    , rel2
-    , rel3
-    , rel4
-    , rel5
-    , brokerage_type_etrade_b
-    , brokerage_type_odd_lot_b
-    , brokerage_type_b
-    , brokerage_type_foreign_b
-    , brokerage_type_intraday_b
-    , brokerage_type_intraday_etrade_b
-    , brokerage_type_etrade_s
-    , brokerage_type_odd_lot_s
-    , brokerage_type_s
-    , brokerage_type_foreign_s
-    , brokerage_type_intraday_s
-    , brokerage_type_intraday_etrade_s
-    , no_free_trade
-    , sms
-    , mobile_prefix
-    , foreign_curr_set
-    , num_free_trade
-    , etrader_type
-    , check_limit
-    , auto_margin
-    , margin_client_no
-    , dup_despatch_mode
-    , risk
-    , exclude_trader_limit
-    , sett_mode_date_change
-    , pick_up_fee_pct
-    , e_payment
-    , mgn_new_int_rate2
-    , fund_cost_type
-    , check_share
-    , citibank_changes
-    , citibank_charges
-    , cq_market
-    , exclude_margin_pro_rate
-    , brokerage_type_cash_b
-    , brokerage_type_etrade_cash_b
-    , clt_consent
-    , consent_start_date
-    , portfolio
-    , expiry_date
-    , intraday_auto_contra_option
-    , dcf_limit
-    , brokerage_type_etb
-    , mgn_force_sell_pct
-    , mgn_tenure
-    , mgn_expiry_date
-    , loss_gl_acc_no
-    , portfolio_date
-    , day_prior_temp_susp
-    , day_prior_perm_susp
-    , gst_code
-    , match_price_decimal_local
-    , match_price_decimal_foreign
-    , primary_id_expiry_date
-    , secondary_id_expiry_date
-    , mgn_int_tdr_spread_pct
-    , mgn_base_int_rate
-    , mgn_int_tdr_share
-    , islamic_flag
-    , mcd_resident_flag
-    , chq_charges_flag
-    , chq_charges_tdr_pct
-    , brokerage_type_foreign_etrade
-    , brokerage_type_foreign_etrade_b
-    , brokerage_type_foreign_etrade_s
-    , grp_exch_code
-    , bdebt_ras
-    , twse_declaration
-    , joint_acc_amt
-    , high_risk_market
-    , brokerage_type_leap_normal
-    , brokerage_type_leap_etrade
-    , perm_country
-    , type_of_account
-    , einvoice_email
-    , 'A' AS dl_record_status
-    , dl_record_created_date
-    , dl_record_updated_date
-FROM {params["com_schema"]}.t_mhbos_m_client com_t
-WHERE NOT EXISTS (
-    SELECT 1 FROM {params["raw_schema"]}.mhbos_m_client r
-    WHERE r.etl_dt = '{batch_date}'
-      AND r.user_id = com_t.user_id
-)
+    INSERT INTO TABLE {params["com_schema"]}.temp_t_mhbos_m_client_updated
+    SELECT
+        client_no
+        , clean_rule_flag
+        , primary_identification_type
+        , primary_identification_no
+        , secondary_identification_type
+        , secondary_identification_no
+        , customer_name
+        , customer_name_concatenate
+        , client_name
+        , client_name1
+        , client_name2
+        , client_name3
+        , mobile_no
+        , fax_no
+        , tel_no_home
+        , tel_no_office
+        , date_of_birth
+        , race
+        , email_1
+        , email_2
+        , email_3
+        , email_4
+        , email_5
+        , email_6
+        , email_7
+        , email_8
+        , email_9
+        , email_10
+        , sex
+        , addr1
+        , addr2
+        , addr3
+        , addr4
+        , postcode
+        , city
+        , state
+        , perm_addr1
+        , perm_addr2
+        , perm_addr3
+        , perm_addr4
+        , perm_postcode
+        , perm_city
+        , perm_state
+        , noms_ind
+        , cleaned_nominees_name
+        , principal_name
+        , intermediary_name
+        , beneficiary_name
+        , nominees_type
+        , pledged_securities_flag
+        , id_type
+        , ic_no_new
+        , ic_no_old
+        , secondary_id_type
+        , secondary_id_no
+        , source_client_name
+        , source_client_name1
+        , source_client_name2
+        , source_client_name3
+        , source_mobile_no
+        , source_fax_no
+        , source_tel_no_home
+        , source_tel_no_office
+        , source_date_of_birth
+        , source_race
+        , source_email
+        , source_sex
+        , client_group
+        , cds_acc_no
+        , tdr_code
+        , client_type
+        , margin
+        , last_margin_date
+        , int_rate
+        , auto_ded
+        , despatch_mode
+        , copies
+        , prohibit_trade
+        , custody_status
+        , country
+        , margin_limit
+        , margin_pct
+        , rollover_rate
+        , form_completed
+        , last_tran_date
+        , ytd_bvalue
+        , ytd_svalue
+        , ytd_brokerage
+        , os_led_bal
+        , title
+        , date_created
+        , stop_payt
+        , acc_payee
+        , category
+        , auto_contra
+        , pnl_acc_no
+        , cr_limit
+        , trust_bal
+        , avg_ind
+        , remarks
+        , contact_person
+        , date_closed
+        , grace_period
+        , acct_type
+        , assoc_ind
+        , short_sell_ind
+        , short_name
+        , mesdaq_pctlmt
+        , date_change
+        , resi_code
+        , charge_int
+        , bdebt
+        , assets
+        , liabilities
+        , income
+        , expenses
+        , bdebt_his_ind
+        , rel_ac1
+        , rel_ac2
+        , rel_ac3
+        , rel_ac4
+        , occupation
+        , margin_int
+        , lst_led_no
+        , cur_led_no
+        , remarks2
+        , acc_type
+        , mas_accno
+        , legal
+        , sell_limit
+        , brk_rate
+        , brokerage_type
+        , cds_acc_no1
+        , remarks1
+        , payment_bank_code
+        , noms
+        , dms_date
+        , violation_date
+        , mcd_branch
+        , home_branch
+        , eaf_code
+        , call_warrant
+        , user_id
+        , credit_int_rate
+        , min_eligible_amt
+        , intraday_flag
+        , intraday_rate
+        , cta_weight
+        , sta_weight
+        , bo_cds_acc_no
+        , ecos_form
+        , custodian_no
+        , prin_acc
+        , armada_type
+        , old_authorisee
+        , etrade_rate
+        , etf
+        , cstamp_client_exempt
+        , main_branch
+        , prev_client_no
+        , web_eds
+        , place
+        , excl_tdr_deduct
+        , excl_auto_susp
+        , trust_flag
+        , mgn_new_int_rate
+        , counter_concentration
+        , auto_trust
+        , margin_pct2
+        , df_flag
+        , mgn_curr_int_rate
+        , product_type
+        , web_ecos
+        , xeye_clt_grp
+        , bursa_violation_date
+        , brokerage_type_etrade
+        , brokerage_type_odd_lot
+        , omnibus
+        , cg_tdr_code
+        , limit_foreign
+        , limit_bursa
+        , brokerage_type_intraday
+        , brokerage_type_intraday_etrade
+        , bursa_violation_date1
+        , cif_no
+        , brokerage_type_foreign
+        , soft_copy
+        , exclude_rollover
+        , account_status
+        , w8ben
+        , ic_no_rel1
+        , ic_no_rel2
+        , ic_no_rel3
+        , ic_no_rel4
+        , ic_no_rel5
+        , rel1
+        , rel2
+        , rel3
+        , rel4
+        , rel5
+        , brokerage_type_etrade_b
+        , brokerage_type_odd_lot_b
+        , brokerage_type_b
+        , brokerage_type_foreign_b
+        , brokerage_type_intraday_b
+        , brokerage_type_intraday_etrade_b
+        , brokerage_type_etrade_s
+        , brokerage_type_odd_lot_s
+        , brokerage_type_s
+        , brokerage_type_foreign_s
+        , brokerage_type_intraday_s
+        , brokerage_type_intraday_etrade_s
+        , no_free_trade
+        , sms
+        , mobile_prefix
+        , foreign_curr_set
+        , num_free_trade
+        , etrader_type
+        , check_limit
+        , auto_margin
+        , margin_client_no
+        , dup_despatch_mode
+        , risk
+        , exclude_trader_limit
+        , sett_mode_date_change
+        , pick_up_fee_pct
+        , e_payment
+        , mgn_new_int_rate2
+        , fund_cost_type
+        , check_share
+        , citibank_changes
+        , citibank_charges
+        , cq_market
+        , exclude_margin_pro_rate
+        , brokerage_type_cash_b
+        , brokerage_type_etrade_cash_b
+        , clt_consent
+        , consent_start_date
+        , portfolio
+        , expiry_date
+        , intraday_auto_contra_option
+        , dcf_limit
+        , brokerage_type_etb
+        , mgn_force_sell_pct
+        , mgn_tenure
+        , mgn_expiry_date
+        , loss_gl_acc_no
+        , portfolio_date
+        , day_prior_temp_susp
+        , day_prior_perm_susp
+        , gst_code
+        , match_price_decimal_local
+        , match_price_decimal_foreign
+        , primary_id_expiry_date
+        , secondary_id_expiry_date
+        , mgn_int_tdr_spread_pct
+        , mgn_base_int_rate
+        , mgn_int_tdr_share
+        , islamic_flag
+        , mcd_resident_flag
+        , chq_charges_flag
+        , chq_charges_tdr_pct
+        , brokerage_type_foreign_etrade
+        , brokerage_type_foreign_etrade_b
+        , brokerage_type_foreign_etrade_s
+        , grp_exch_code
+        , bdebt_ras
+        , twse_declaration
+        , joint_acc_amt
+        , high_risk_market
+        , brokerage_type_leap_normal
+        , brokerage_type_leap_etrade
+        , perm_country
+        , type_of_account
+        , einvoice_email
+        , 'A' AS dl_record_status
+        , dl_record_created_date
+        , dl_record_updated_date
+    FROM {params["com_schema"]}.t_mhbos_m_client com_t
+    WHERE NOT EXISTS (
+        SELECT 1 FROM {params["com_schema"]}.temp_t_mhbos_m_client_consolidated r
+        WHERE r.client_no = com_t.client_no    )
 """)
 
 # ─── STEP 2: Upsert changed/new records ──────────────────────────────────────
 spark.sql(f"""
-INSERT INTO TABLE {params["com_schema"]}.temp_t_mhbos_m_client_updated
-SELECT
-    r.client_no
-    , r.clean_rule_flag
-    , r.primary_identification_type
-    , r.primary_identification_no
-    , r.secondary_identification_type
-    , r.secondary_identification_no
-    , r.customer_name
-    , r.customer_name_concatenate
-    , r.client_name
-    , r.client_name1
-    , r.client_name2
-    , r.client_name3
-    , r.mobile_no
-    , r.fax_no
-    , r.tel_no_home
-    , r.tel_no_office
-    , r.date_of_birth
-    , r.race
-    , r.email_1
-    , r.email_2
-    , r.email_3
-    , r.email_4
-    , r.email_5
-    , r.email_6
-    , r.email_7
-    , r.email_8
-    , r.email_9
-    , r.email_10
-    , r.sex
-    , r.addr1
-    , r.addr2
-    , r.addr3
-    , r.addr4
-    , r.postcode
-    , r.city
-    , r.state
-    , r.perm_addr1
-    , r.perm_addr2
-    , r.perm_addr3
-    , r.perm_addr4
-    , r.perm_postcode
-    , r.perm_city
-    , r.perm_state
-    , r.noms_ind
-    , r.cleaned_nominees_name
-    , r.principal_name
-    , r.intermediary_name
-    , r.beneficiary_name
-    , r.nominees_type
-    , r.pledged_securities_flag
-    , r.id_type
-    , r.ic_no_new
-    , r.ic_no_old
-    , r.secondary_id_type
-    , r.secondary_id_no
-    , r.source_client_name
-    , r.source_client_name1
-    , r.source_client_name2
-    , r.source_client_name3
-    , r.source_mobile_no
-    , r.source_fax_no
-    , r.source_tel_no_home
-    , r.source_tel_no_office
-    , r.source_date_of_birth
-    , r.source_race
-    , r.source_email
-    , r.source_sex
-    , r.client_group
-    , r.cds_acc_no
-    , r.tdr_code
-    , r.client_type
-    , r.margin
-    , r.last_margin_date
-    , r.int_rate
-    , r.auto_ded
-    , r.despatch_mode
-    , r.copies
-    , r.prohibit_trade
-    , r.custody_status
-    , r.country
-    , r.margin_limit
-    , r.margin_pct
-    , r.rollover_rate
-    , r.form_completed
-    , r.last_tran_date
-    , r.ytd_bvalue
-    , r.ytd_svalue
-    , r.ytd_brokerage
-    , r.os_led_bal
-    , r.title
-    , r.date_created
-    , r.stop_payt
-    , r.acc_payee
-    , r.category
-    , r.auto_contra
-    , r.pnl_acc_no
-    , r.cr_limit
-    , r.trust_bal
-    , r.avg_ind
-    , r.remarks
-    , r.contact_person
-    , r.date_closed
-    , r.grace_period
-    , r.acct_type
-    , r.assoc_ind
-    , r.short_sell_ind
-    , r.short_name
-    , r.mesdaq_pctlmt
-    , r.date_change
-    , r.resi_code
-    , r.charge_int
-    , r.bdebt
-    , r.assets
-    , r.liabilities
-    , r.income
-    , r.expenses
-    , r.bdebt_his_ind
-    , r.rel_ac1
-    , r.rel_ac2
-    , r.rel_ac3
-    , r.rel_ac4
-    , r.occupation
-    , r.margin_int
-    , r.lst_led_no
-    , r.cur_led_no
-    , r.remarks2
-    , r.acc_type
-    , r.mas_accno
-    , r.legal
-    , r.sell_limit
-    , r.brk_rate
-    , r.brokerage_type
-    , r.cds_acc_no1
-    , r.remarks1
-    , r.payment_bank_code
-    , r.noms
-    , r.dms_date
-    , r.violation_date
-    , r.mcd_branch
-    , r.home_branch
-    , r.eaf_code
-    , r.call_warrant
-    , r.user_id
-    , r.credit_int_rate
-    , r.min_eligible_amt
-    , r.intraday_flag
-    , r.intraday_rate
-    , r.cta_weight
-    , r.sta_weight
-    , r.bo_cds_acc_no
-    , r.ecos_form
-    , r.custodian_no
-    , r.prin_acc
-    , r.armada_type
-    , r.old_authorisee
-    , r.etrade_rate
-    , r.etf
-    , r.cstamp_client_exempt
-    , r.main_branch
-    , r.prev_client_no
-    , r.web_eds
-    , r.place
-    , r.excl_tdr_deduct
-    , r.excl_auto_susp
-    , r.trust_flag
-    , r.mgn_new_int_rate
-    , r.counter_concentration
-    , r.auto_trust
-    , r.margin_pct2
-    , r.df_flag
-    , r.mgn_curr_int_rate
-    , r.product_type
-    , r.web_ecos
-    , r.xeye_clt_grp
-    , r.bursa_violation_date
-    , r.brokerage_type_etrade
-    , r.brokerage_type_odd_lot
-    , r.omnibus
-    , r.cg_tdr_code
-    , r.limit_foreign
-    , r.limit_bursa
-    , r.brokerage_type_intraday
-    , r.brokerage_type_intraday_etrade
-    , r.bursa_violation_date1
-    , r.cif_no
-    , r.brokerage_type_foreign
-    , r.soft_copy
-    , r.exclude_rollover
-    , r.account_status
-    , r.w8ben
-    , r.ic_no_rel1
-    , r.ic_no_rel2
-    , r.ic_no_rel3
-    , r.ic_no_rel4
-    , r.ic_no_rel5
-    , r.rel1
-    , r.rel2
-    , r.rel3
-    , r.rel4
-    , r.rel5
-    , r.brokerage_type_etrade_b
-    , r.brokerage_type_odd_lot_b
-    , r.brokerage_type_b
-    , r.brokerage_type_foreign_b
-    , r.brokerage_type_intraday_b
-    , r.brokerage_type_intraday_etrade_b
-    , r.brokerage_type_etrade_s
-    , r.brokerage_type_odd_lot_s
-    , r.brokerage_type_s
-    , r.brokerage_type_foreign_s
-    , r.brokerage_type_intraday_s
-    , r.brokerage_type_intraday_etrade_s
-    , r.no_free_trade
-    , r.sms
-    , r.mobile_prefix
-    , r.foreign_curr_set
-    , r.num_free_trade
-    , r.etrader_type
-    , r.check_limit
-    , r.auto_margin
-    , r.margin_client_no
-    , r.dup_despatch_mode
-    , r.risk
-    , r.exclude_trader_limit
-    , r.sett_mode_date_change
-    , r.pick_up_fee_pct
-    , r.e_payment
-    , r.mgn_new_int_rate2
-    , r.fund_cost_type
-    , r.check_share
-    , r.citibank_changes
-    , r.citibank_charges
-    , r.cq_market
-    , r.exclude_margin_pro_rate
-    , r.brokerage_type_cash_b
-    , r.brokerage_type_etrade_cash_b
-    , r.clt_consent
-    , r.consent_start_date
-    , r.portfolio
-    , r.expiry_date
-    , r.intraday_auto_contra_option
-    , r.dcf_limit
-    , r.brokerage_type_etb
-    , r.mgn_force_sell_pct
-    , r.mgn_tenure
-    , r.mgn_expiry_date
-    , r.loss_gl_acc_no
-    , r.portfolio_date
-    , r.day_prior_temp_susp
-    , r.day_prior_perm_susp
-    , r.gst_code
-    , r.match_price_decimal_local
-    , r.match_price_decimal_foreign
-    , r.primary_id_expiry_date
-    , r.secondary_id_expiry_date
-    , r.mgn_int_tdr_spread_pct
-    , r.mgn_base_int_rate
-    , r.mgn_int_tdr_share
-    , r.islamic_flag
-    , r.mcd_resident_flag
-    , r.chq_charges_flag
-    , r.chq_charges_tdr_pct
-    , r.brokerage_type_foreign_etrade
-    , r.brokerage_type_foreign_etrade_b
-    , r.brokerage_type_foreign_etrade_s
-    , r.grp_exch_code
-    , r.bdebt_ras
-    , r.twse_declaration
-    , r.joint_acc_amt
-    , r.high_risk_market
-    , r.brokerage_type_leap_normal
-    , r.brokerage_type_leap_etrade
-    , r.perm_country
-    , r.type_of_account
-    , r.einvoice_email
-    , 'A' AS dl_record_status
-    , CASE
-        WHEN com_t.user_id IS NOT NULL THEN com_t.dl_record_created_date
-        ELSE current_timestamp() END AS dl_record_created_date
-    , current_timestamp() AS dl_record_updated_date
-FROM {params["raw_schema"]}.mhbos_m_client r
-LEFT JOIN {params["com_schema"]}.t_mhbos_m_client com_t
-    ON r.user_id = com_t.user_id
-WHERE r.etl_dt = '{batch_date}'
-""")
+    INSERT INTO TABLE {params["com_schema"]}.temp_t_mhbos_m_client_updated
+    SELECT
+        r.client_no
+        , r.clean_rule_flag
+        , r.primary_identification_type
+        , r.primary_identification_no
+        , r.secondary_identification_type
+        , r.secondary_identification_no
+        , r.customer_name
+        , r.customer_name_concatenate
+        , r.client_name
+        , r.client_name1
+        , r.client_name2
+        , r.client_name3
+        , r.mobile_no
+        , r.fax_no
+        , r.tel_no_home
+        , r.tel_no_office
+        , r.date_of_birth
+        , r.race
+        , r.email_1
+        , r.email_2
+        , r.email_3
+        , r.email_4
+        , r.email_5
+        , r.email_6
+        , r.email_7
+        , r.email_8
+        , r.email_9
+        , r.email_10
+        , r.sex
+        , r.addr1
+        , r.addr2
+        , r.addr3
+        , r.addr4
+        , r.postcode
+        , r.city
+        , r.state
+        , r.perm_addr1
+        , r.perm_addr2
+        , r.perm_addr3
+        , r.perm_addr4
+        , r.perm_postcode
+        , r.perm_city
+        , r.perm_state
+        , r.noms_ind
+        , r.cleaned_nominees_name
+        , r.principal_name
+        , r.intermediary_name
+        , r.beneficiary_name
+        , r.nominees_type
+        , r.pledged_securities_flag
+        , r.id_type
+        , r.ic_no_new
+        , r.ic_no_old
+        , r.secondary_id_type
+        , r.secondary_id_no
+        , r.source_client_name
+        , r.source_client_name1
+        , r.source_client_name2
+        , r.source_client_name3
+        , r.source_mobile_no
+        , r.source_fax_no
+        , r.source_tel_no_home
+        , r.source_tel_no_office
+        , r.source_date_of_birth
+        , r.source_race
+        , r.source_email
+        , r.source_sex
+        , r.client_group
+        , r.cds_acc_no
+        , r.tdr_code
+        , r.client_type
+        , r.margin
+        , r.last_margin_date
+        , r.int_rate
+        , r.auto_ded
+        , r.despatch_mode
+        , r.copies
+        , r.prohibit_trade
+        , r.custody_status
+        , r.country
+        , r.margin_limit
+        , r.margin_pct
+        , r.rollover_rate
+        , r.form_completed
+        , r.last_tran_date
+        , r.ytd_bvalue
+        , r.ytd_svalue
+        , r.ytd_brokerage
+        , r.os_led_bal
+        , r.title
+        , r.date_created
+        , r.stop_payt
+        , r.acc_payee
+        , r.category
+        , r.auto_contra
+        , r.pnl_acc_no
+        , r.cr_limit
+        , r.trust_bal
+        , r.avg_ind
+        , r.remarks
+        , r.contact_person
+        , r.date_closed
+        , r.grace_period
+        , r.acct_type
+        , r.assoc_ind
+        , r.short_sell_ind
+        , r.short_name
+        , r.mesdaq_pctlmt
+        , r.date_change
+        , r.resi_code
+        , r.charge_int
+        , r.bdebt
+        , r.assets
+        , r.liabilities
+        , r.income
+        , r.expenses
+        , r.bdebt_his_ind
+        , r.rel_ac1
+        , r.rel_ac2
+        , r.rel_ac3
+        , r.rel_ac4
+        , r.occupation
+        , r.margin_int
+        , r.lst_led_no
+        , r.cur_led_no
+        , r.remarks2
+        , r.acc_type
+        , r.mas_accno
+        , r.legal
+        , r.sell_limit
+        , r.brk_rate
+        , r.brokerage_type
+        , r.cds_acc_no1
+        , r.remarks1
+        , r.payment_bank_code
+        , r.noms
+        , r.dms_date
+        , r.violation_date
+        , r.mcd_branch
+        , r.home_branch
+        , r.eaf_code
+        , r.call_warrant
+        , r.user_id
+        , r.credit_int_rate
+        , r.min_eligible_amt
+        , r.intraday_flag
+        , r.intraday_rate
+        , r.cta_weight
+        , r.sta_weight
+        , r.bo_cds_acc_no
+        , r.ecos_form
+        , r.custodian_no
+        , r.prin_acc
+        , r.armada_type
+        , r.old_authorisee
+        , r.etrade_rate
+        , r.etf
+        , r.cstamp_client_exempt
+        , r.main_branch
+        , r.prev_client_no
+        , r.web_eds
+        , r.place
+        , r.excl_tdr_deduct
+        , r.excl_auto_susp
+        , r.trust_flag
+        , r.mgn_new_int_rate
+        , r.counter_concentration
+        , r.auto_trust
+        , r.margin_pct2
+        , r.df_flag
+        , r.mgn_curr_int_rate
+        , r.product_type
+        , r.web_ecos
+        , r.xeye_clt_grp
+        , r.bursa_violation_date
+        , r.brokerage_type_etrade
+        , r.brokerage_type_odd_lot
+        , r.omnibus
+        , r.cg_tdr_code
+        , r.limit_foreign
+        , r.limit_bursa
+        , r.brokerage_type_intraday
+        , r.brokerage_type_intraday_etrade
+        , r.bursa_violation_date1
+        , r.cif_no
+        , r.brokerage_type_foreign
+        , r.soft_copy
+        , r.exclude_rollover
+        , r.account_status
+        , r.w8ben
+        , r.ic_no_rel1
+        , r.ic_no_rel2
+        , r.ic_no_rel3
+        , r.ic_no_rel4
+        , r.ic_no_rel5
+        , r.rel1
+        , r.rel2
+        , r.rel3
+        , r.rel4
+        , r.rel5
+        , r.brokerage_type_etrade_b
+        , r.brokerage_type_odd_lot_b
+        , r.brokerage_type_b
+        , r.brokerage_type_foreign_b
+        , r.brokerage_type_intraday_b
+        , r.brokerage_type_intraday_etrade_b
+        , r.brokerage_type_etrade_s
+        , r.brokerage_type_odd_lot_s
+        , r.brokerage_type_s
+        , r.brokerage_type_foreign_s
+        , r.brokerage_type_intraday_s
+        , r.brokerage_type_intraday_etrade_s
+        , r.no_free_trade
+        , r.sms
+        , r.mobile_prefix
+        , r.foreign_curr_set
+        , r.num_free_trade
+        , r.etrader_type
+        , r.check_limit
+        , r.auto_margin
+        , r.margin_client_no
+        , r.dup_despatch_mode
+        , r.risk
+        , r.exclude_trader_limit
+        , r.sett_mode_date_change
+        , r.pick_up_fee_pct
+        , r.e_payment
+        , r.mgn_new_int_rate2
+        , r.fund_cost_type
+        , r.check_share
+        , r.citibank_changes
+        , r.citibank_charges
+        , r.cq_market
+        , r.exclude_margin_pro_rate
+        , r.brokerage_type_cash_b
+        , r.brokerage_type_etrade_cash_b
+        , r.clt_consent
+        , r.consent_start_date
+        , r.portfolio
+        , r.expiry_date
+        , r.intraday_auto_contra_option
+        , r.dcf_limit
+        , r.brokerage_type_etb
+        , r.mgn_force_sell_pct
+        , r.mgn_tenure
+        , r.mgn_expiry_date
+        , r.loss_gl_acc_no
+        , r.portfolio_date
+        , r.day_prior_temp_susp
+        , r.day_prior_perm_susp
+        , r.gst_code
+        , r.match_price_decimal_local
+        , r.match_price_decimal_foreign
+        , r.primary_id_expiry_date
+        , r.secondary_id_expiry_date
+        , r.mgn_int_tdr_spread_pct
+        , r.mgn_base_int_rate
+        , r.mgn_int_tdr_share
+        , r.islamic_flag
+        , r.mcd_resident_flag
+        , r.chq_charges_flag
+        , r.chq_charges_tdr_pct
+        , r.brokerage_type_foreign_etrade
+        , r.brokerage_type_foreign_etrade_b
+        , r.brokerage_type_foreign_etrade_s
+        , r.grp_exch_code
+        , r.bdebt_ras
+        , r.twse_declaration
+        , r.joint_acc_amt
+        , r.high_risk_market
+        , r.brokerage_type_leap_normal
+        , r.brokerage_type_leap_etrade
+        , r.perm_country
+        , r.type_of_account
+        , r.einvoice_email
+        , 'A' AS dl_record_status
+        , CASE
+            WHEN com_t.client_no IS NOT NULL THEN com_t.dl_record_created_date
+            ELSE current_timestamp() END AS dl_record_created_date
+        , current_timestamp() AS dl_record_updated_date
+    FROM {params["com_schema"]}.temp_t_mhbos_m_client_consolidated r
+    LEFT JOIN {params["com_schema"]}.t_mhbos_m_client com_t
+        ON r.client_no = com_t.client_no""")
 
 # ─── STEP 3: Overwrite target table ──────────────────────────────────────────
 spark.sql(f"""
-INSERT OVERWRITE TABLE {params["com_schema"]}.t_mhbos_m_client
-SELECT
-    client_no
-    , clean_rule_flag
-    , primary_identification_type
-    , primary_identification_no
-    , secondary_identification_type
-    , secondary_identification_no
-    , customer_name
-    , customer_name_concatenate
-    , client_name
-    , client_name1
-    , client_name2
-    , client_name3
-    , mobile_no
-    , fax_no
-    , tel_no_home
-    , tel_no_office
-    , date_of_birth
-    , race
-    , email_1
-    , email_2
-    , email_3
-    , email_4
-    , email_5
-    , email_6
-    , email_7
-    , email_8
-    , email_9
-    , email_10
-    , sex
-    , addr1
-    , addr2
-    , addr3
-    , addr4
-    , postcode
-    , city
-    , state
-    , perm_addr1
-    , perm_addr2
-    , perm_addr3
-    , perm_addr4
-    , perm_postcode
-    , perm_city
-    , perm_state
-    , noms_ind
-    , cleaned_nominees_name
-    , principal_name
-    , intermediary_name
-    , beneficiary_name
-    , nominees_type
-    , pledged_securities_flag
-    , id_type
-    , ic_no_new
-    , ic_no_old
-    , secondary_id_type
-    , secondary_id_no
-    , source_client_name
-    , source_client_name1
-    , source_client_name2
-    , source_client_name3
-    , source_mobile_no
-    , source_fax_no
-    , source_tel_no_home
-    , source_tel_no_office
-    , source_date_of_birth
-    , source_race
-    , source_email
-    , source_sex
-    , client_group
-    , cds_acc_no
-    , tdr_code
-    , client_type
-    , margin
-    , last_margin_date
-    , int_rate
-    , auto_ded
-    , despatch_mode
-    , copies
-    , prohibit_trade
-    , custody_status
-    , country
-    , margin_limit
-    , margin_pct
-    , rollover_rate
-    , form_completed
-    , last_tran_date
-    , ytd_bvalue
-    , ytd_svalue
-    , ytd_brokerage
-    , os_led_bal
-    , title
-    , date_created
-    , stop_payt
-    , acc_payee
-    , category
-    , auto_contra
-    , pnl_acc_no
-    , cr_limit
-    , trust_bal
-    , avg_ind
-    , remarks
-    , contact_person
-    , date_closed
-    , grace_period
-    , acct_type
-    , assoc_ind
-    , short_sell_ind
-    , short_name
-    , mesdaq_pctlmt
-    , date_change
-    , resi_code
-    , charge_int
-    , bdebt
-    , assets
-    , liabilities
-    , income
-    , expenses
-    , bdebt_his_ind
-    , rel_ac1
-    , rel_ac2
-    , rel_ac3
-    , rel_ac4
-    , occupation
-    , margin_int
-    , lst_led_no
-    , cur_led_no
-    , remarks2
-    , acc_type
-    , mas_accno
-    , legal
-    , sell_limit
-    , brk_rate
-    , brokerage_type
-    , cds_acc_no1
-    , remarks1
-    , payment_bank_code
-    , noms
-    , dms_date
-    , violation_date
-    , mcd_branch
-    , home_branch
-    , eaf_code
-    , call_warrant
-    , user_id
-    , credit_int_rate
-    , min_eligible_amt
-    , intraday_flag
-    , intraday_rate
-    , cta_weight
-    , sta_weight
-    , bo_cds_acc_no
-    , ecos_form
-    , custodian_no
-    , prin_acc
-    , armada_type
-    , old_authorisee
-    , etrade_rate
-    , etf
-    , cstamp_client_exempt
-    , main_branch
-    , prev_client_no
-    , web_eds
-    , place
-    , excl_tdr_deduct
-    , excl_auto_susp
-    , trust_flag
-    , mgn_new_int_rate
-    , counter_concentration
-    , auto_trust
-    , margin_pct2
-    , df_flag
-    , mgn_curr_int_rate
-    , product_type
-    , web_ecos
-    , xeye_clt_grp
-    , bursa_violation_date
-    , brokerage_type_etrade
-    , brokerage_type_odd_lot
-    , omnibus
-    , cg_tdr_code
-    , limit_foreign
-    , limit_bursa
-    , brokerage_type_intraday
-    , brokerage_type_intraday_etrade
-    , bursa_violation_date1
-    , cif_no
-    , brokerage_type_foreign
-    , soft_copy
-    , exclude_rollover
-    , account_status
-    , w8ben
-    , ic_no_rel1
-    , ic_no_rel2
-    , ic_no_rel3
-    , ic_no_rel4
-    , ic_no_rel5
-    , rel1
-    , rel2
-    , rel3
-    , rel4
-    , rel5
-    , brokerage_type_etrade_b
-    , brokerage_type_odd_lot_b
-    , brokerage_type_b
-    , brokerage_type_foreign_b
-    , brokerage_type_intraday_b
-    , brokerage_type_intraday_etrade_b
-    , brokerage_type_etrade_s
-    , brokerage_type_odd_lot_s
-    , brokerage_type_s
-    , brokerage_type_foreign_s
-    , brokerage_type_intraday_s
-    , brokerage_type_intraday_etrade_s
-    , no_free_trade
-    , sms
-    , mobile_prefix
-    , foreign_curr_set
-    , num_free_trade
-    , etrader_type
-    , check_limit
-    , auto_margin
-    , margin_client_no
-    , dup_despatch_mode
-    , risk
-    , exclude_trader_limit
-    , sett_mode_date_change
-    , pick_up_fee_pct
-    , e_payment
-    , mgn_new_int_rate2
-    , fund_cost_type
-    , check_share
-    , citibank_changes
-    , citibank_charges
-    , cq_market
-    , exclude_margin_pro_rate
-    , brokerage_type_cash_b
-    , brokerage_type_etrade_cash_b
-    , clt_consent
-    , consent_start_date
-    , portfolio
-    , expiry_date
-    , intraday_auto_contra_option
-    , dcf_limit
-    , brokerage_type_etb
-    , mgn_force_sell_pct
-    , mgn_tenure
-    , mgn_expiry_date
-    , loss_gl_acc_no
-    , portfolio_date
-    , day_prior_temp_susp
-    , day_prior_perm_susp
-    , gst_code
-    , match_price_decimal_local
-    , match_price_decimal_foreign
-    , primary_id_expiry_date
-    , secondary_id_expiry_date
-    , mgn_int_tdr_spread_pct
-    , mgn_base_int_rate
-    , mgn_int_tdr_share
-    , islamic_flag
-    , mcd_resident_flag
-    , chq_charges_flag
-    , chq_charges_tdr_pct
-    , brokerage_type_foreign_etrade
-    , brokerage_type_foreign_etrade_b
-    , brokerage_type_foreign_etrade_s
-    , grp_exch_code
-    , bdebt_ras
-    , twse_declaration
-    , joint_acc_amt
-    , high_risk_market
-    , brokerage_type_leap_normal
-    , brokerage_type_leap_etrade
-    , perm_country
-    , type_of_account
-    , einvoice_email
-    , dl_record_status
-    , dl_record_created_date
-    , dl_record_updated_date
-    , '{batch_date}'       AS etl_dt
-    , current_timestamp()  AS etl_timestamp
-FROM {params["com_schema"]}.temp_t_mhbos_m_client_updated
+    INSERT OVERWRITE TABLE {params["com_schema"]}.t_mhbos_m_client
+    SELECT
+        client_no
+        , clean_rule_flag
+        , primary_identification_type
+        , primary_identification_no
+        , secondary_identification_type
+        , secondary_identification_no
+        , customer_name
+        , customer_name_concatenate
+        , client_name
+        , client_name1
+        , client_name2
+        , client_name3
+        , mobile_no
+        , fax_no
+        , tel_no_home
+        , tel_no_office
+        , date_of_birth
+        , race
+        , email_1
+        , email_2
+        , email_3
+        , email_4
+        , email_5
+        , email_6
+        , email_7
+        , email_8
+        , email_9
+        , email_10
+        , sex
+        , addr1
+        , addr2
+        , addr3
+        , addr4
+        , postcode
+        , city
+        , state
+        , perm_addr1
+        , perm_addr2
+        , perm_addr3
+        , perm_addr4
+        , perm_postcode
+        , perm_city
+        , perm_state
+        , noms_ind
+        , cleaned_nominees_name
+        , principal_name
+        , intermediary_name
+        , beneficiary_name
+        , nominees_type
+        , pledged_securities_flag
+        , id_type
+        , ic_no_new
+        , ic_no_old
+        , secondary_id_type
+        , secondary_id_no
+        , source_client_name
+        , source_client_name1
+        , source_client_name2
+        , source_client_name3
+        , source_mobile_no
+        , source_fax_no
+        , source_tel_no_home
+        , source_tel_no_office
+        , source_date_of_birth
+        , source_race
+        , source_email
+        , source_sex
+        , client_group
+        , cds_acc_no
+        , tdr_code
+        , client_type
+        , margin
+        , last_margin_date
+        , int_rate
+        , auto_ded
+        , despatch_mode
+        , copies
+        , prohibit_trade
+        , custody_status
+        , country
+        , margin_limit
+        , margin_pct
+        , rollover_rate
+        , form_completed
+        , last_tran_date
+        , ytd_bvalue
+        , ytd_svalue
+        , ytd_brokerage
+        , os_led_bal
+        , title
+        , date_created
+        , stop_payt
+        , acc_payee
+        , category
+        , auto_contra
+        , pnl_acc_no
+        , cr_limit
+        , trust_bal
+        , avg_ind
+        , remarks
+        , contact_person
+        , date_closed
+        , grace_period
+        , acct_type
+        , assoc_ind
+        , short_sell_ind
+        , short_name
+        , mesdaq_pctlmt
+        , date_change
+        , resi_code
+        , charge_int
+        , bdebt
+        , assets
+        , liabilities
+        , income
+        , expenses
+        , bdebt_his_ind
+        , rel_ac1
+        , rel_ac2
+        , rel_ac3
+        , rel_ac4
+        , occupation
+        , margin_int
+        , lst_led_no
+        , cur_led_no
+        , remarks2
+        , acc_type
+        , mas_accno
+        , legal
+        , sell_limit
+        , brk_rate
+        , brokerage_type
+        , cds_acc_no1
+        , remarks1
+        , payment_bank_code
+        , noms
+        , dms_date
+        , violation_date
+        , mcd_branch
+        , home_branch
+        , eaf_code
+        , call_warrant
+        , user_id
+        , credit_int_rate
+        , min_eligible_amt
+        , intraday_flag
+        , intraday_rate
+        , cta_weight
+        , sta_weight
+        , bo_cds_acc_no
+        , ecos_form
+        , custodian_no
+        , prin_acc
+        , armada_type
+        , old_authorisee
+        , etrade_rate
+        , etf
+        , cstamp_client_exempt
+        , main_branch
+        , prev_client_no
+        , web_eds
+        , place
+        , excl_tdr_deduct
+        , excl_auto_susp
+        , trust_flag
+        , mgn_new_int_rate
+        , counter_concentration
+        , auto_trust
+        , margin_pct2
+        , df_flag
+        , mgn_curr_int_rate
+        , product_type
+        , web_ecos
+        , xeye_clt_grp
+        , bursa_violation_date
+        , brokerage_type_etrade
+        , brokerage_type_odd_lot
+        , omnibus
+        , cg_tdr_code
+        , limit_foreign
+        , limit_bursa
+        , brokerage_type_intraday
+        , brokerage_type_intraday_etrade
+        , bursa_violation_date1
+        , cif_no
+        , brokerage_type_foreign
+        , soft_copy
+        , exclude_rollover
+        , account_status
+        , w8ben
+        , ic_no_rel1
+        , ic_no_rel2
+        , ic_no_rel3
+        , ic_no_rel4
+        , ic_no_rel5
+        , rel1
+        , rel2
+        , rel3
+        , rel4
+        , rel5
+        , brokerage_type_etrade_b
+        , brokerage_type_odd_lot_b
+        , brokerage_type_b
+        , brokerage_type_foreign_b
+        , brokerage_type_intraday_b
+        , brokerage_type_intraday_etrade_b
+        , brokerage_type_etrade_s
+        , brokerage_type_odd_lot_s
+        , brokerage_type_s
+        , brokerage_type_foreign_s
+        , brokerage_type_intraday_s
+        , brokerage_type_intraday_etrade_s
+        , no_free_trade
+        , sms
+        , mobile_prefix
+        , foreign_curr_set
+        , num_free_trade
+        , etrader_type
+        , check_limit
+        , auto_margin
+        , margin_client_no
+        , dup_despatch_mode
+        , risk
+        , exclude_trader_limit
+        , sett_mode_date_change
+        , pick_up_fee_pct
+        , e_payment
+        , mgn_new_int_rate2
+        , fund_cost_type
+        , check_share
+        , citibank_changes
+        , citibank_charges
+        , cq_market
+        , exclude_margin_pro_rate
+        , brokerage_type_cash_b
+        , brokerage_type_etrade_cash_b
+        , clt_consent
+        , consent_start_date
+        , portfolio
+        , expiry_date
+        , intraday_auto_contra_option
+        , dcf_limit
+        , brokerage_type_etb
+        , mgn_force_sell_pct
+        , mgn_tenure
+        , mgn_expiry_date
+        , loss_gl_acc_no
+        , portfolio_date
+        , day_prior_temp_susp
+        , day_prior_perm_susp
+        , gst_code
+        , match_price_decimal_local
+        , match_price_decimal_foreign
+        , primary_id_expiry_date
+        , secondary_id_expiry_date
+        , mgn_int_tdr_spread_pct
+        , mgn_base_int_rate
+        , mgn_int_tdr_share
+        , islamic_flag
+        , mcd_resident_flag
+        , chq_charges_flag
+        , chq_charges_tdr_pct
+        , brokerage_type_foreign_etrade
+        , brokerage_type_foreign_etrade_b
+        , brokerage_type_foreign_etrade_s
+        , grp_exch_code
+        , bdebt_ras
+        , twse_declaration
+        , joint_acc_amt
+        , high_risk_market
+        , brokerage_type_leap_normal
+        , brokerage_type_leap_etrade
+        , perm_country
+        , type_of_account
+        , einvoice_email
+        , dl_record_status
+        , dl_record_created_date
+        , dl_record_updated_date
+        , '{batch_date}'       AS etl_dt
+        , current_timestamp()  AS etl_timestamp
+    FROM {params["com_schema"]}.temp_t_mhbos_m_client_updated
 """)
 
-spark.sql(f"""ANALYZE TABLE {params["com_schema"]}.t_mhbos_m_client COMPUTE STATISTICS""")
+spark.sql(f"""
+    ANALYZE TABLE {params["com_schema"]}.t_mhbos_m_client COMPUTE STATISTICS
+""")
 
 spark.stop()

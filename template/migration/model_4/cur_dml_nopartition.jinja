@@ -47,9 +47,9 @@ spark.sql(f"""
     tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
 """)
 
-# main_sql should include the WHERE DATE_FORMAT(record_updated_date, 'yyyyMMdd') = '{batch_date}' logic
+# main_processing_sqls should include the WHERE DATE_FORMAT(record_updated_date, 'yyyyMMdd') = '{batch_date}' logic
 spark.sql(f"""
-{{ main_sql | indent(4) }}
+{{ main_processing_sqls | indent(4) }}
 """)
 
 # ─── UPDATED TABLE SETUP ─────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ spark.sql(f"""
         {% if partition_key %}cur.{{ partition_key }} = '{{ partition_value }}' AND {% endif %}
         NOT EXISTS (
             SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_delta delta
-            WHERE {% for k in keys %}{% if not loop.first %} AND {% endif %}delta.{{ k }} = cur.{{ k }}{% endfor %}
+            WHERE {% for k in primary_key %}{% if not loop.first %} AND {% endif %}delta.{{ k }} = cur.{{ k }}{% endfor %}
         )
 """)
 
@@ -95,12 +95,12 @@ spark.sql(f"""
         {% endfor %}
         COALESCE(delta.dl_record_status, 'A') AS dl_record_status,
         CASE
-            WHEN cur.{{ keys[0] }} IS NOT NULL THEN cur.dl_record_created_date
+            WHEN cur.{{ primary_key[0] }} IS NOT NULL THEN cur.dl_record_created_date
             ELSE current_timestamp() END AS dl_record_created_date,
         current_timestamp() AS dl_record_updated_date
     FROM {params["com_schema"]}.temp_{{ target_table_name }}_delta delta
     LEFT JOIN {params["cur_schema"]}.{{ target_table_name }} cur
-        ON {% if partition_key %}cur.{{ partition_key }} = '{{ partition_value }}' AND {% endif %}{% for k in keys %}{% if not loop.first %} AND {% endif %}delta.{{ k }} = cur.{{ k }}{% endfor %}
+        ON {% if partition_key %}cur.{{ partition_key }} = '{{ partition_value }}' AND {% endif %}{% for k in primary_key %}{% if not loop.first %} AND {% endif %}delta.{{ k }} = cur.{{ k }}{% endfor %}
 """)
 
 # ─── STEP 3: Insert previous state of changed records into History table ─────
@@ -122,7 +122,7 @@ spark.sql(f"""
         {% if partition_key %}cur.{{ partition_key }} = '{{ partition_value }}' AND {% endif %}
         EXISTS (
             SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_delta delta
-            WHERE {% for k in keys %}{% if not loop.first %} AND {% endif %}delta.{{ k }} = cur.{{ k }}{% endfor %}
+            WHERE {% for k in primary_key %}{% if not loop.first %} AND {% endif %}delta.{{ k }} = cur.{{ k }}{% endfor %}
         )
 """)
 

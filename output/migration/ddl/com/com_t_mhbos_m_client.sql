@@ -1,5 +1,5 @@
 -- Purpose:    DDL/COM STATUS
--- Generated:  2026-05-13 09:38:30
+-- Generated:  2026-05-21 07:23:32
 -- Source:     com_t_mhbos_m_client
 
 DROP TABLE IF EXISTS ${com_schema}.t_mhbos_m_client;

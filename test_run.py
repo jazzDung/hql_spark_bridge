@@ -1,7 +1,7 @@
 import subprocess
 import sys
 from sqlglot import parse_one, exp
-from src.transformers.utils import transform_outdated_com_raw_references
+from src.transformers.utils import refactor_ast_for_com_layer
 from src.context.sql_conversion_context import SqlConversionContext
 
 sql = """WITH filtered_clients AS (
@@ -37,5 +37,5 @@ context = SqlConversionContext(
     layer="com",
     sub_layer="m"
 )
-transform_outdated_com_raw_references(node, context)
+refactor_ast_for_com_layer(node, context)
 print(node.sql(dialect="spark", pretty=True))

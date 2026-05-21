@@ -1,0 +1,168 @@
+[Insert(
+   is_function=False,
+   this=Table(
+     this=Identifier(this=temp_t_mhbos_m_client_all, quoted=False),
+     db=Parameter(
+       this=Var(this=com_schema),
+       expression=False)),
+   stored=False,
+   by_name=False,
+   exists=False,
+   where=False,
+   partition=False,
+   settings=False,
+   default=False,
+   expression=Select(
+     expressions=[
+       Star()],
+     from_=From(
+       this=Table(
+         this=Identifier(this=mhbos_m_client, quoted=False),
+         db=Parameter(
+           this=Var(this=raw_schema),
+           expression=False),
+         alias=TableAlias(
+           this=Identifier(this=mmc, quoted=False)))),
+     joins=[
+       Join(
+         this=Table(
+           this=Identifier(this=latest_clients, quoted=False),
+           alias=TableAlias(
+             this=Identifier(this=lc, quoted=False))),
+         side=LEFT,
+         on=And(
+           this=EQ(
+             this=Column(
+               this=Identifier(this=client_no, quoted=False),
+               table=Identifier(this=mmc, quoted=False)),
+             expression=Column(
+               this=Identifier(this=client_no, quoted=False),
+               table=Identifier(this=lc, quoted=False))),
+           expression=EQ(
+             this=Column(
+               this=Identifier(this=rn, quoted=False),
+               table=Identifier(this=lc, quoted=False)),
+             expression=Literal(this=1, is_string=False)))),
+       Join(
+         this=Table(
+           this=Identifier(this=t_mhbos_m_client_ext, quoted=False),
+           db=Parameter(
+             this=Var(this=com_schema),
+             expression=False),
+           alias=TableAlias(
+             this=Identifier(this=mmce, quoted=False))),
+         side=LEFT,
+         on=And(
+           this=EQ(
+             this=Column(
+               this=Identifier(this=client_no, quoted=False),
+               table=Identifier(this=mmc, quoted=False)),
+             expression=Column(
+               this=Identifier(this=client_no, quoted=False),
+               table=Identifier(this=mmce, quoted=False))),
+           expression=EQ(
+             this=Column(
+               this=Identifier(this=etl_dt, quoted=False),
+               table=Identifier(this=mmce, quoted=False)),
+             expression=Literal(this='${batch_date}', is_string=True))))],
+     where=Where(
+       this=EQ(
+         this=Column(
+           this=Identifier(this=etl_dt, quoted=False),
+           table=Identifier(this=mmc, quoted=False)),
+         expression=Literal(this='${batch_date}', is_string=True)))),
+   overwrite=False,
+   ignore=False,
+   source=False,
+   with_=With(
+     expressions=[
+       CTE(
+         this=Union(
+           this=Select(
+             distinct=Distinct(),
+             expressions=[
+               Column(
+                 this=Identifier(this=client_no, quoted=False))],
+             from_=From(
+               this=Table(
+                 this=Identifier(this=mhbos_m_client, quoted=False),
+                 db=Parameter(
+                   this=Var(this=raw_schema),
+                   expression=False))),
+             where=Where(
+               this=EQ(
+                 this=Column(
+                   this=Identifier(this=etl_dt, quoted=False)),
+                 expression=Literal(this='${batch_date}', is_string=True)))),
+           distinct=True,
+           expression=Select(
+             distinct=Distinct(),
+             expressions=[
+               Column(
+                 this=Identifier(this=client_no, quoted=False))],
+             from_=From(
+               this=Table(
+                 this=Identifier(this=mhbos_m_client_ext, quoted=False),
+                 db=Parameter(
+                   this=Var(this=raw_schema),
+                   expression=False))),
+             where=Where(
+               this=EQ(
+                 this=Column(
+                   this=Identifier(this=etl_dt, quoted=False)),
+                 expression=Literal(this='${batch_date}', is_string=True))))),
+         alias=TableAlias(
+           this=Identifier(this=filtered_clients, quoted=False))),
+       CTE(
+         this=Select(
+           expressions=[
+             Column(
+               this=Star(),
+               table=Identifier(this=mmc, quoted=False)),
+             Alias(
+               this=Window(
+                 this=RowNumber(),
+                 partition_by=[
+                   Column(
+                     this=Identifier(this=client_no, quoted=False),
+                     table=Identifier(this=mmc, quoted=False))],
+                 order=Order(
+                   expressions=[
+                     Ordered(
+                       this=Column(
+                         this=Identifier(this=etl_dt, quoted=False),
+                         table=Identifier(this=mmc, quoted=False)),
+                       desc=True,
+                       nulls_first=False)]),
+                 over=OVER),
+               alias=Identifier(this=rn, quoted=False))],
+           from_=From(
+             this=Table(
+               this=Identifier(this=mhbos_m_client, quoted=False),
+               db=Parameter(
+                 this=Var(this=raw_schema),
+                 expression=False),
+               alias=TableAlias(
+                 this=Identifier(this=mmc, quoted=False)))),
+           joins=[
+             Join(
+               this=Table(
+                 this=Identifier(this=filtered_clients, quoted=False),
+                 alias=TableAlias(
+                   this=Identifier(this=fc, quoted=False))),
+               kind=INNER,
+               on=EQ(
+                 this=Column(
+                   this=Identifier(this=client_no, quoted=False),
+                   table=Identifier(this=mmc, quoted=False)),
+                 expression=Column(
+                   this=Identifier(this=client_no, quoted=False),
+                   table=Identifier(this=fc, quoted=False))))],
+           where=Where(
+             this=LTE(
+               this=Column(
+                 this=Identifier(this=etl_dt, quoted=False),
+                 table=Identifier(this=mmc, quoted=False)),
+               expression=Literal(this='${batch_date}', is_string=True)))),
+         alias=TableAlias(
+           this=Identifier(this=latest_clients, quoted=False)))]))]
