@@ -25,7 +25,7 @@ params = set_parameter(spark)
 # ─── PRE-PROCESSING (Temp tables logic from legacy script) ───────────────────
 {% for step_sql in pre_processing_sqls %}
 spark.sql(f"""
-{{ step_sql | indent(4) }}
+{{ step_sql | comment_formatting | indent(4) }}
 """)
 {% endfor %}
 {% endif %}
@@ -44,9 +44,16 @@ spark.sql(f"""
 """)
 
 # The main_processing_sqls for Model 2A is expected to read from raw_schema and perform transformations
+# ─── INSERT INTO CONSOLIDATED TABLE ────────────────────────────────────────────────────────
+
+{% if main_processing_sqls %}
+{% for main_sql in main_processing_sqls %}
 spark.sql(f"""
-{{ main_processing_sqls | indent(4) }}
+{{ main_sql  | comment_formatting  | indent(4) }}
 """)
+
+{% endfor %}
+{% endif %}
 
 # ─── STEP 1: Overwrite target table with transformed data ───────────────────
 spark.sql(f"""

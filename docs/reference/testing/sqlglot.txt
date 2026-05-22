@@ -1,0 +1,693 @@
+Union(
+  this=Union(
+    this=Union(
+      this=Union(
+        this=Union(
+          this=Select(
+            expressions=[
+              Alias(
+                this=DPipe(
+                  this=Literal(this='LMS_', is_string=True),
+                  expression=Column(
+                    this=Identifier(this=ACCOUNT_NUMBER, quoted=False),
+                    table=Identifier(this=T1, quoted=False)),
+                  safe=True),
+                alias=Identifier(this=OWNER_ID, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Literal(this='ACCOUNT', is_string=True),
+                alias=Identifier(this=CONTACT_OWNER_TYPE, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Literal(this='MOBILE', is_string=True),
+                alias=Identifier(this=CONTACT_TYPE, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Upper(
+                  this=Trim(
+                    this=Column(
+                      this=Identifier(this=CUSTOMER_MOBILE_PHONE, quoted=False),
+                      table=Identifier(this=T1, quoted=False)))),
+                alias=Identifier(this=CONTACT_VALUE, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Upper(
+                  this=Trim(
+                    this=Column(
+                      this=Identifier(this=CUSTOMER_NAME, quoted=False),
+                      table=Identifier(this=T1, quoted=False)))),
+                alias=Identifier(this=CONTACT_NAME, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Null(),
+                alias=Identifier(this=CONTACT_CREATE_DATE, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Coalesce(
+                  this=Column(
+                    this=Identifier(this=LAST_GENERATED_DATETIME, quoted=False),
+                    table=Identifier(this=T1, quoted=False)),
+                  expressions=[
+                    Literal(this='1900-01-01', is_string=True)]),
+                alias=Identifier(this=CONTACT_UPDATE_DATE, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Literal(this='CB', is_string=True),
+                alias=Identifier(this=LINE_OF_BUSINESS, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Literal(this='LMS', is_string=True),
+                alias=Identifier(this=SOURCE_NAME, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Column(
+                  this=Identifier(this=ACCOUNT_NUMBER, quoted=False),
+                  table=Identifier(this=T1, quoted=False)),
+                alias=Identifier(this=SOURCE_RECORD_ID, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Literal(this=1, is_string=False),
+                alias=Identifier(this=SEQUENCE_NO, quoted=False),
+                _comments=[
+                  None])],
+            from_=From(
+              this=Table(
+                this=Identifier(this=T_LMS_TBL_EINVOICING_CLIENTDATA, quoted=False),
+                db=Parameter(
+                  this=Var(this=com_schema),
+                  expression=False),
+                alias=TableAlias(
+                  this=Identifier(this=T1, quoted=False),
+                  _comments=[
+                    None]))),
+            where=Where(
+              this=And(
+                this=And(
+                  this=And(
+                    this=EQ(
+                      this=Column(
+                        this=Identifier(this=ETL_DT, quoted=False),
+                        table=Identifier(this=T1, quoted=False)),
+                      expression=Literal(this='${batch_date}', is_string=True)),
+                    expression=NEQ(
+                      this=Trim(
+                        this=Coalesce(
+                          this=Column(
+                            this=Identifier(this=CUSTOMER_MOBILE_PHONE, quoted=False),
+                            table=Identifier(this=T1, quoted=False)),
+                          expressions=[
+                            Literal(this='', is_string=True)])),
+                      expression=Literal(this='', is_string=True))),
+                  expression=Not(
+                    this=Like(
+                      this=Column(
+                        this=Identifier(this=CUSTOMER_MOBILE_PHONE, quoted=False),
+                        table=Identifier(this=T1, quoted=False)),
+                      expression=Literal(this='@[%]', is_string=True)))),
+                expression=Not(
+                  this=Like(
+                    this=Column(
+                      this=Identifier(this=CLEAN_RULE_FLAG, quoted=False),
+                      table=Identifier(this=T1, quoted=False)),
+                    expression=Literal(this='%1%', is_string=True))))),
+            _comments=[
+              MOBILE PHONE]),
+          distinct=False,
+          expression=Select(
+            expressions=[
+              Alias(
+                this=DPipe(
+                  this=Literal(this='LMS_', is_string=True),
+                  expression=Column(
+                    this=Identifier(this=ACCOUNT_NUMBER, quoted=False),
+                    table=Identifier(this=T1, quoted=False)),
+                  safe=True),
+                alias=Identifier(this=OWNER_ID, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Literal(this='ACCOUNT', is_string=True),
+                alias=Identifier(this=CONTACT_OWNER_TYPE, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Literal(this='MOBILE', is_string=True),
+                alias=Identifier(this=CONTACT_TYPE, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Upper(
+                  this=Trim(
+                    this=Column(
+                      this=Identifier(this=PHONE_NO, quoted=False),
+                      table=Identifier(this=T1, quoted=False)))),
+                alias=Identifier(this=CONTACT_VALUE, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Upper(
+                  this=Trim(
+                    this=Column(
+                      this=Identifier(this=COUNTERPARTY_NAME, quoted=False),
+                      table=Identifier(this=T1, quoted=False)))),
+                alias=Identifier(this=CONTACT_NAME, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Null(),
+                alias=Identifier(this=CONTACT_CREATE_DATE, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Greatest(
+                  this=Coalesce(
+                    this=Column(
+                      this=Identifier(this=system_updated_datetime, quoted=False),
+                      table=Identifier(this=T1, quoted=False)),
+                    expressions=[
+                      Literal(this='1900-01-01', is_string=True)]),
+                  expressions=[
+                    Coalesce(
+                      this=Column(
+                        this=Identifier(this=last_action_datetime, quoted=False),
+                        table=Identifier(this=T1, quoted=False)),
+                      expressions=[
+                        Literal(this='1900-01-01', is_string=True)])],
+                  ignore_nulls=True),
+                alias=Identifier(this=CONTACT_UPDATE_DATE, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Literal(this='CB', is_string=True),
+                alias=Identifier(this=LINE_OF_BUSINESS, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Literal(this='LMS', is_string=True),
+                alias=Identifier(this=SOURCE_NAME, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Column(
+                  this=Identifier(this=ACCOUNT_NUMBER, quoted=False),
+                  table=Identifier(this=T1, quoted=False)),
+                alias=Identifier(this=SOURCE_RECORD_ID, quoted=False),
+                _comments=[
+                  None]),
+              Alias(
+                this=Literal(this=1, is_string=False),
+                alias=Identifier(this=SEQUENCE_NO, quoted=False),
+                _comments=[
+                  None])],
+            from_=From(
+              this=Table(
+                this=Identifier(this=LMS_COUNTERPARTY, quoted=False),
+                alias=TableAlias(
+                  this=Identifier(this=T1, quoted=False),
+                  _comments=[
+                    None]))),
+            where=Where(
+              this=And(
+                this=NEQ(
+                  this=Trim(
+                    this=Coalesce(
+                      this=Column(
+                        this=Identifier(this=PHONE_NO, quoted=False),
+                        table=Identifier(this=T1, quoted=False)),
+                      expressions=[
+                        Literal(this='', is_string=True)])),
+                  expression=Literal(this='', is_string=True)),
+                expression=Not(
+                  this=Like(
+                    this=Column(
+                      this=Identifier(this=PHONE_NO, quoted=False),
+                      table=Identifier(this=T1, quoted=False)),
+                    expression=Literal(this='@[%]', is_string=True))))))),
+        distinct=False,
+        expression=Select(
+          expressions=[
+            Alias(
+              this=DPipe(
+                this=Literal(this='LMS_', is_string=True),
+                expression=Column(
+                  this=Identifier(this=ACCOUNT_NUMBER, quoted=False),
+                  table=Identifier(this=T1, quoted=False)),
+                safe=True),
+              alias=Identifier(this=OWNER_ID, quoted=False),
+              _comments=[
+                None]),
+            Alias(
+              this=Literal(this='ACCOUNT', is_string=True),
+              alias=Identifier(this=CONTACT_OWNER_TYPE, quoted=False),
+              _comments=[
+                None]),
+            Alias(
+              this=Literal(this='HOME', is_string=True),
+              alias=Identifier(this=CONTACT_TYPE, quoted=False),
+              _comments=[
+                None]),
+            Alias(
+              this=Upper(
+                this=Trim(
+                  this=Column(
+                    this=Identifier(this=CUSTOMER_HOME_PHONE, quoted=False),
+                    table=Identifier(this=T1, quoted=False)))),
+              alias=Identifier(this=CONTACT_VALUE, quoted=False),
+              _comments=[
+                None]),
+            Alias(
+              this=Upper(
+                this=Trim(
+                  this=Column(
+                    this=Identifier(this=CUSTOMER_NAME, quoted=False),
+                    table=Identifier(this=T1, quoted=False)))),
+              alias=Identifier(this=CONTACT_NAME, quoted=False),
+              _comments=[
+                None]),
+            Alias(
+              this=Null(),
+              alias=Identifier(this=CONTACT_CREATE_DATE, quoted=False),
+              _comments=[
+                None]),
+            Alias(
+              this=Coalesce(
+                this=Column(
+                  this=Identifier(this=LAST_GENERATED_DATETIME, quoted=False),
+                  table=Identifier(this=T1, quoted=False)),
+                expressions=[
+                  Literal(this='1900-01-01', is_string=True)]),
+              alias=Identifier(this=CONTACT_UPDATE_DATE, quoted=False),
+              _comments=[
+                None]),
+            Alias(
+              this=Literal(this='CB', is_string=True),
+              alias=Identifier(this=LINE_OF_BUSINESS, quoted=False),
+              _comments=[
+                None]),
+            Alias(
+              this=Literal(this='LMS', is_string=True),
+              alias=Identifier(this=SOURCE_NAME, quoted=False),
+              _comments=[
+                None]),
+            Alias(
+              this=Column(
+                this=Identifier(this=ACCOUNT_NUMBER, quoted=False),
+                table=Identifier(this=T1, quoted=False)),
+              alias=Identifier(this=SOURCE_RECORD_ID, quoted=False),
+              _comments=[
+                None]),
+            Alias(
+              this=Literal(this=1, is_string=False),
+              alias=Identifier(this=SEQUENCE_NO, quoted=False),
+              _comments=[
+                None])],
+          from_=From(
+            this=Table(
+              this=Identifier(this=T_LMS_TBL_EINVOICING_CLIENTDATA, quoted=False),
+              db=Parameter(
+                this=Var(this=com_schema),
+                expression=False),
+              alias=TableAlias(
+                this=Identifier(this=T1, quoted=False),
+                _comments=[
+                  None]))),
+          where=Where(
+            this=And(
+              this=And(
+                this=And(
+                  this=EQ(
+                    this=Column(
+                      this=Identifier(this=ETL_DT, quoted=False),
+                      table=Identifier(this=T1, quoted=False)),
+                    expression=Literal(this='${batch_date}', is_string=True)),
+                  expression=NEQ(
+                    this=Coalesce(
+                      this=Column(
+                        this=Identifier(this=CUSTOMER_HOME_PHONE, quoted=False),
+                        table=Identifier(this=T1, quoted=False)),
+                      expressions=[
+                        Literal(this='', is_string=True)]),
+                    expression=Literal(this='', is_string=True))),
+                expression=Not(
+                  this=Like(
+                    this=Column(
+                      this=Identifier(this=CUSTOMER_HOME_PHONE, quoted=False),
+                      table=Identifier(this=T1, quoted=False)),
+                    expression=Literal(this='@[%]', is_string=True)))),
+              expression=Not(
+                this=Like(
+                  this=Column(
+                    this=Identifier(this=CLEAN_RULE_FLAG, quoted=False),
+                    table=Identifier(this=T1, quoted=False)),
+                  expression=Literal(this='%1%', is_string=True))))),
+          _comments=[
+            HOME PHONE])),
+      distinct=False,
+      expression=Select(
+        expressions=[
+          Alias(
+            this=DPipe(
+              this=Literal(this='LMS_', is_string=True),
+              expression=Column(
+                this=Identifier(this=ACCOUNT_NUMBER, quoted=False),
+                table=Identifier(this=T1, quoted=False)),
+              safe=True),
+            alias=Identifier(this=OWNER_ID, quoted=False),
+            _comments=[
+              None]),
+          Alias(
+            this=Literal(this='ACCOUNT', is_string=True),
+            alias=Identifier(this=CONTACT_OWNER_TYPE, quoted=False),
+            _comments=[
+              None]),
+          Alias(
+            this=Literal(this='HOME', is_string=True),
+            alias=Identifier(this=CONTACT_TYPE, quoted=False),
+            _comments=[
+              None]),
+          Alias(
+            this=Upper(
+              this=Trim(
+                this=Column(
+                  this=Identifier(this=HOME_PHONE_NO, quoted=False),
+                  table=Identifier(this=T1, quoted=False)))),
+            alias=Identifier(this=CONTACT_VALUE, quoted=False),
+            _comments=[
+              None]),
+          Alias(
+            this=Upper(
+              this=Trim(
+                this=Column(
+                  this=Identifier(this=COUNTERPARTY_NAME, quoted=False),
+                  table=Identifier(this=T1, quoted=False)))),
+            alias=Identifier(this=CONTACT_NAME, quoted=False),
+            _comments=[
+              None]),
+          Alias(
+            this=Null(),
+            alias=Identifier(this=CONTACT_CREATE_DATE, quoted=False),
+            _comments=[
+              None]),
+          Alias(
+            this=Greatest(
+              this=Coalesce(
+                this=Column(
+                  this=Identifier(this=system_updated_datetime, quoted=False),
+                  table=Identifier(this=T1, quoted=False)),
+                expressions=[
+                  Literal(this='1900-01-01', is_string=True)]),
+              expressions=[
+                Coalesce(
+                  this=Column(
+                    this=Identifier(this=last_action_datetime, quoted=False),
+                    table=Identifier(this=T1, quoted=False)),
+                  expressions=[
+                    Literal(this='1900-01-01', is_string=True)])],
+              ignore_nulls=True),
+            alias=Identifier(this=CONTACT_UPDATE_DATE, quoted=False),
+            _comments=[
+              None]),
+          Alias(
+            this=Literal(this='CB', is_string=True),
+            alias=Identifier(this=LINE_OF_BUSINESS, quoted=False),
+            _comments=[
+              None]),
+          Alias(
+            this=Literal(this='LMS', is_string=True),
+            alias=Identifier(this=SOURCE_NAME, quoted=False),
+            _comments=[
+              None]),
+          Alias(
+            this=Column(
+              this=Identifier(this=ACCOUNT_NUMBER, quoted=False),
+              table=Identifier(this=T1, quoted=False)),
+            alias=Identifier(this=SOURCE_RECORD_ID, quoted=False),
+            _comments=[
+              None]),
+          Alias(
+            this=Literal(this=1, is_string=False),
+            alias=Identifier(this=SEQUENCE_NO, quoted=False),
+            _comments=[
+              None])],
+        from_=From(
+          this=Table(
+            this=Identifier(this=LMS_COUNTERPARTY, quoted=False),
+            alias=TableAlias(
+              this=Identifier(this=T1, quoted=False),
+              _comments=[
+                None]))),
+        where=Where(
+          this=And(
+            this=NEQ(
+              this=Trim(
+                this=Coalesce(
+                  this=Column(
+                    this=Identifier(this=PHONE_NO, quoted=False),
+                    table=Identifier(this=T1, quoted=False)),
+                  expressions=[
+                    Literal(this='', is_string=True)])),
+              expression=Literal(this='', is_string=True)),
+            expression=Not(
+              this=Like(
+                this=Column(
+                  this=Identifier(this=PHONE_NO, quoted=False),
+                  table=Identifier(this=T1, quoted=False)),
+                expression=Literal(this='@[%]', is_string=True))))))),
+    distinct=False,
+    expression=Select(
+      expressions=[
+        Alias(
+          this=DPipe(
+            this=Literal(this='LMS_', is_string=True),
+            expression=Column(
+              this=Identifier(this=ACCOUNT_NUMBER, quoted=False),
+              table=Identifier(this=T1, quoted=False)),
+            safe=True),
+          alias=Identifier(this=OWNER_ID, quoted=False),
+          _comments=[
+            None]),
+        Alias(
+          this=Literal(this='ACCOUNT', is_string=True),
+          alias=Identifier(this=CONTACT_OWNER_TYPE, quoted=False),
+          _comments=[
+            None]),
+        Alias(
+          this=Literal(this='OFFICE', is_string=True),
+          alias=Identifier(this=CONTACT_TYPE, quoted=False),
+          _comments=[
+            None]),
+        Alias(
+          this=Upper(
+            this=Trim(
+              this=Column(
+                this=Identifier(this=CUSTOMER_OFFICE_PHONE, quoted=False),
+                table=Identifier(this=T1, quoted=False)))),
+          alias=Identifier(this=CONTACT_VALUE, quoted=False),
+          _comments=[
+            None]),
+        Alias(
+          this=Upper(
+            this=Trim(
+              this=Column(
+                this=Identifier(this=CUSTOMER_NAME, quoted=False),
+                table=Identifier(this=T1, quoted=False)))),
+          alias=Identifier(this=CONTACT_NAME, quoted=False),
+          _comments=[
+            None]),
+        Alias(
+          this=Null(),
+          alias=Identifier(this=CONTACT_CREATE_DATE, quoted=False),
+          _comments=[
+            None]),
+        Alias(
+          this=Coalesce(
+            this=Column(
+              this=Identifier(this=LAST_GENERATED_DATETIME, quoted=False),
+              table=Identifier(this=T1, quoted=False)),
+            expressions=[
+              Literal(this='1900-01-01', is_string=True)]),
+          alias=Identifier(this=CONTACT_UPDATE_DATE, quoted=False),
+          _comments=[
+            None]),
+        Alias(
+          this=Literal(this='CB', is_string=True),
+          alias=Identifier(this=LINE_OF_BUSINESS, quoted=False),
+          _comments=[
+            None]),
+        Alias(
+          this=Literal(this='LMS', is_string=True),
+          alias=Identifier(this=SOURCE_NAME, quoted=False),
+          _comments=[
+            None]),
+        Alias(
+          this=Column(
+            this=Identifier(this=ACCOUNT_NUMBER, quoted=False),
+            table=Identifier(this=T1, quoted=False)),
+          alias=Identifier(this=SOURCE_RECORD_ID, quoted=False),
+          _comments=[
+            None]),
+        Alias(
+          this=Literal(this=1, is_string=False),
+          alias=Identifier(this=SEQUENCE_NO, quoted=False),
+          _comments=[
+            None])],
+      from_=From(
+        this=Table(
+          this=Identifier(this=T_LMS_TBL_EINVOICING_CLIENTDATA, quoted=False),
+          db=Parameter(
+            this=Var(this=com_schema),
+            expression=False),
+          alias=TableAlias(
+            this=Identifier(this=T1, quoted=False),
+            _comments=[
+              None]))),
+      where=Where(
+        this=And(
+          this=And(
+            this=And(
+              this=EQ(
+                this=Column(
+                  this=Identifier(this=ETL_DT, quoted=False),
+                  table=Identifier(this=T1, quoted=False)),
+                expression=Literal(this='${batch_date}', is_string=True)),
+              expression=NEQ(
+                this=Coalesce(
+                  this=Column(
+                    this=Identifier(this=CUSTOMER_OFFICE_PHONE, quoted=False),
+                    table=Identifier(this=T1, quoted=False)),
+                  expressions=[
+                    Literal(this='', is_string=True)]),
+                expression=Literal(this='', is_string=True))),
+            expression=Not(
+              this=Like(
+                this=Column(
+                  this=Identifier(this=CUSTOMER_OFFICE_PHONE, quoted=False),
+                  table=Identifier(this=T1, quoted=False)),
+                expression=Literal(this='@[%]', is_string=True)))),
+          expression=Not(
+            this=Like(
+              this=Column(
+                this=Identifier(this=CLEAN_RULE_FLAG, quoted=False),
+                table=Identifier(this=T1, quoted=False)),
+              expression=Literal(this='%1%', is_string=True))))))),
+  distinct=False,
+  expression=Select(
+    expressions=[
+      Alias(
+        this=DPipe(
+          this=Literal(this='LMS_', is_string=True),
+          expression=Column(
+            this=Identifier(this=ACCOUNT_NUMBER, quoted=False),
+            table=Identifier(this=T1, quoted=False)),
+          safe=True),
+        alias=Identifier(this=OWNER_ID, quoted=False),
+        _comments=[
+          None]),
+      Alias(
+        this=Literal(this='ACCOUNT', is_string=True),
+        alias=Identifier(this=CONTACT_OWNER_TYPE, quoted=False),
+        _comments=[
+          None]),
+      Alias(
+        this=Literal(this='OFFICE', is_string=True),
+        alias=Identifier(this=CONTACT_TYPE, quoted=False),
+        _comments=[
+          None]),
+      Alias(
+        this=Upper(
+          this=Trim(
+            this=Column(
+              this=Identifier(this=OFFICE_PHONE_NO, quoted=False),
+              table=Identifier(this=T1, quoted=False)))),
+        alias=Identifier(this=CONTACT_VALUE, quoted=False),
+        _comments=[
+          None]),
+      Alias(
+        this=Upper(
+          this=Trim(
+            this=Column(
+              this=Identifier(this=COUNTERPARTY_NAME, quoted=False),
+              table=Identifier(this=T1, quoted=False)))),
+        alias=Identifier(this=CONTACT_NAME, quoted=False),
+        _comments=[
+          None]),
+      Alias(
+        this=Null(),
+        alias=Identifier(this=CONTACT_CREATE_DATE, quoted=False),
+        _comments=[
+          None]),
+      Alias(
+        this=Greatest(
+          this=Coalesce(
+            this=Column(
+              this=Identifier(this=SYSTEM_UPDATED_DATETIME, quoted=False),
+              table=Identifier(this=T1, quoted=False)),
+            expressions=[
+              Literal(this='1900-01-01', is_string=True)]),
+          expressions=[
+            Coalesce(
+              this=Column(
+                this=Identifier(this=LAST_ACTION_DATETIME, quoted=False),
+                table=Identifier(this=T1, quoted=False)),
+              expressions=[
+                Literal(this='1900-01-01', is_string=True)])],
+          ignore_nulls=True),
+        alias=Identifier(this=CONTACT_UPDATE_DATE, quoted=False),
+        _comments=[
+          None]),
+      Alias(
+        this=Literal(this='CB', is_string=True),
+        alias=Identifier(this=LINE_OF_BUSINESS, quoted=False),
+        _comments=[
+          None]),
+      Alias(
+        this=Literal(this='LMS', is_string=True),
+        alias=Identifier(this=SOURCE_NAME, quoted=False),
+        _comments=[
+          None]),
+      Alias(
+        this=Column(
+          this=Identifier(this=ACCOUNT_NUMBER, quoted=False),
+          table=Identifier(this=T1, quoted=False)),
+        alias=Identifier(this=SOURCE_RECORD_ID, quoted=False),
+        _comments=[
+          None]),
+      Alias(
+        this=Literal(this=1, is_string=False),
+        alias=Identifier(this=SEQUENCE_NO, quoted=False),
+        _comments=[
+          None])],
+    from_=From(
+      this=Table(
+        this=Identifier(this=LMS_COUNTERPARTY, quoted=False),
+        alias=TableAlias(
+          this=Identifier(this=T1, quoted=False),
+          _comments=[
+            None]))),
+    where=Where(
+      this=And(
+        this=NEQ(
+          this=Trim(
+            this=Coalesce(
+              this=Column(
+                this=Identifier(this=OFFICE_PHONE_NO, quoted=False),
+                table=Identifier(this=T1, quoted=False)),
+              expressions=[
+                Literal(this='', is_string=True)])),
+          expression=Literal(this='', is_string=True)),
+        expression=Not(
+          this=Like(
+            this=Column(
+              this=Identifier(this=OFFICE_PHONE_NO, quoted=False),
+              table=Identifier(this=T1, quoted=False)),
+            expression=Literal(this='@[%]', is_string=True)))))))

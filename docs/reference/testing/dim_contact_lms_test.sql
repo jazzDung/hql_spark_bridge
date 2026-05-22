@@ -1,0 +1,181 @@
+
+WITH LMS_COUNTERPARTY as (
+    select
+        T0.ACCOUNT_NUMBER
+        , T1.*
+    FROM ${com_schema}.T_LMSKIBB2_TBL_FACILITY T0
+    INNER JOIN ${com_schema}.T_LMSKIBB2_TBL_COUNTERPARTY T1
+        ON T0.COUNTERPARTY_ID = T1.COUNTERPARTY_ID
+        AND T1.ETL_DT = '${batch_date}'
+        AND T1.CLEAN_RULE_FLAG NOT LIKE '%1%'
+    WHERE
+        T0.ETL_DT = '${batch_date}'
+        -- exclude collateral party
+        AND T0.FACILITY_TYPE_ID NOT IN (7, 8)
+)
+, contacts as (
+     -- MOBILE PHONE
+     SELECT 'LMS_' || T1.ACCOUNT_NUMBER AS OWNER_ID -- None
+           ,'ACCOUNT' AS CONTACT_OWNER_TYPE -- None
+           ,'MOBILE' AS CONTACT_TYPE -- None
+           ,UPPER(TRIM(T1.CUSTOMER_MOBILE_PHONE)) AS CONTACT_VALUE -- None
+           ,UPPER(TRIM(T1.CUSTOMER_NAME)) AS CONTACT_NAME -- None
+           ,NULL AS CONTACT_CREATE_DATE -- None
+           ,COALESCE(T1.LAST_GENERATED_DATETIME, '1900-01-01') AS CONTACT_UPDATE_DATE -- None
+           ,'CB' AS LINE_OF_BUSINESS -- None
+           ,'LMS' AS SOURCE_NAME -- None
+           ,T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID -- None
+           ,1 AS SEQUENCE_NO -- None
+      FROM ${com_schema}.T_LMS_TBL_EINVOICING_CLIENTDATA AS T1 --None
+     WHERE T1.ETL_DT = '${batch_date}'
+       AND TRIM(NVL(T1.CUSTOMER_MOBILE_PHONE, '')) <> ''
+       AND T1.CUSTOMER_MOBILE_PHONE NOT LIKE '@[%]'
+       AND T1.CLEAN_RULE_FLAG NOT LIKE '%1%'
+
+     UNION ALL
+
+     SELECT
+         'LMS_' || T1.ACCOUNT_NUMBER AS OWNER_ID -- None
+        , 'ACCOUNT' AS CONTACT_OWNER_TYPE -- None
+        , 'MOBILE' AS CONTACT_TYPE -- None
+        , UPPER(TRIM(T1.PHONE_NO)) AS CONTACT_VALUE -- None
+        , UPPER(TRIM(T1.COUNTERPARTY_NAME)) AS CONTACT_NAME -- None
+        , NULL AS CONTACT_CREATE_DATE -- None
+        , GREATEST(COALESCE(T1.system_updated_datetime, '1900-01-01'), COALESCE(T1.last_action_datetime, '1900-01-01')) AS CONTACT_UPDATE_DATE -- None
+        , 'CB' AS LINE_OF_BUSINESS -- None
+        , 'LMS' AS SOURCE_NAME -- None
+        , T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID -- None
+        , 1 AS SEQUENCE_NO -- None
+      FROM LMS_COUNTERPARTY AS T1 --None
+     WHERE
+         TRIM(NVL(T1.PHONE_NO, '')) <> ''
+        AND T1.PHONE_NO NOT LIKE '@[%]'
+
+     UNION ALL
+
+     -- HOME PHONE
+     SELECT 'LMS_' || T1.ACCOUNT_NUMBER AS OWNER_ID -- None
+           ,'ACCOUNT' AS CONTACT_OWNER_TYPE -- None
+           ,'HOME' AS CONTACT_TYPE -- None
+           ,UPPER(TRIM(T1.CUSTOMER_HOME_PHONE)) AS CONTACT_VALUE -- None
+           ,UPPER(TRIM(T1.CUSTOMER_NAME)) AS CONTACT_NAME -- None
+           ,NULL AS CONTACT_CREATE_DATE -- None
+           ,COALESCE(T1.LAST_GENERATED_DATETIME, '1900-01-01') AS CONTACT_UPDATE_DATE -- None
+           ,'CB' AS LINE_OF_BUSINESS -- None
+           ,'LMS' AS SOURCE_NAME -- None
+           ,T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID -- None
+           ,1 AS SEQUENCE_NO -- None
+      FROM ${com_schema}.T_LMS_TBL_EINVOICING_CLIENTDATA AS T1 --None
+     WHERE T1.ETL_DT = '${batch_date}'
+       AND NVL(T1.CUSTOMER_HOME_PHONE, '') <> ''
+       AND T1.CUSTOMER_HOME_PHONE NOT LIKE '@[%]'
+       AND T1.CLEAN_RULE_FLAG NOT LIKE '%1%'
+
+     UNION ALL
+
+     SELECT
+         'LMS_' || T1.ACCOUNT_NUMBER AS OWNER_ID -- None
+        , 'ACCOUNT' AS CONTACT_OWNER_TYPE -- None
+        , 'HOME' AS CONTACT_TYPE -- None
+        , UPPER(TRIM(T1.HOME_PHONE_NO)) AS CONTACT_VALUE -- None
+        , UPPER(TRIM(T1.COUNTERPARTY_NAME)) AS CONTACT_NAME -- None
+        , NULL AS CONTACT_CREATE_DATE -- None
+        , GREATEST(COALESCE(T1.system_updated_datetime, '1900-01-01'), COALESCE(T1.last_action_datetime, '1900-01-01')) AS CONTACT_UPDATE_DATE -- None
+        , 'CB' AS LINE_OF_BUSINESS -- None
+        , 'LMS' AS SOURCE_NAME -- None
+        , T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID -- None
+        , 1 AS SEQUENCE_NO -- None
+      FROM LMS_COUNTERPARTY AS T1 --None
+     WHERE
+         TRIM(NVL(T1.PHONE_NO, '')) <> ''
+         AND T1.PHONE_NO NOT LIKE '@[%]'
+
+     UNION ALL
+
+      SELECT 'LMS_' || T1.ACCOUNT_NUMBER AS OWNER_ID -- None
+           ,'ACCOUNT' AS CONTACT_OWNER_TYPE -- None
+           ,'OFFICE' AS CONTACT_TYPE -- None
+           ,UPPER(TRIM(T1.CUSTOMER_OFFICE_PHONE)) AS CONTACT_VALUE -- None
+           ,UPPER(TRIM(T1.CUSTOMER_NAME)) AS CONTACT_NAME -- None
+           ,NULL AS CONTACT_CREATE_DATE -- None
+           ,COALESCE(T1.LAST_GENERATED_DATETIME, '1900-01-01') AS CONTACT_UPDATE_DATE -- None
+           ,'CB' AS LINE_OF_BUSINESS -- None
+           ,'LMS' AS SOURCE_NAME -- None
+           ,T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID -- None
+           ,1 AS SEQUENCE_NO -- None
+      FROM ${com_schema}.T_LMS_TBL_EINVOICING_CLIENTDATA AS T1 --None
+     WHERE T1.ETL_DT = '${batch_date}'
+       AND NVL(T1.CUSTOMER_OFFICE_PHONE, '') <> ''
+       AND T1.CUSTOMER_OFFICE_PHONE NOT LIKE '@[%]'
+       AND T1.CLEAN_RULE_FLAG NOT LIKE '%1%'
+
+     UNION ALL
+
+     SELECT
+         'LMS_' || T1.ACCOUNT_NUMBER AS OWNER_ID -- None
+        , 'ACCOUNT' AS CONTACT_OWNER_TYPE -- None
+        , 'OFFICE' AS CONTACT_TYPE -- None
+        , UPPER(TRIM(T1.OFFICE_PHONE_NO)) AS CONTACT_VALUE -- None
+        , UPPER(TRIM(T1.COUNTERPARTY_NAME)) AS CONTACT_NAME -- None
+        , NULL AS CONTACT_CREATE_DATE -- None
+        , GREATEST(COALESCE(T1.SYSTEM_UPDATED_DATETIME, '1900-01-01'), COALESCE(T1.LAST_ACTION_DATETIME, '1900-01-01')) AS CONTACT_UPDATE_DATE -- None
+        , 'CB' AS LINE_OF_BUSINESS -- None
+        , 'LMS' AS SOURCE_NAME -- None
+        ,T1.ACCOUNT_NUMBER AS SOURCE_RECORD_ID -- None
+        , 1 AS SEQUENCE_NO -- None
+      FROM LMS_COUNTERPARTY AS T1 --None
+     WHERE
+         TRIM(NVL(T1.OFFICE_PHONE_NO, '')) <> ''
+        AND T1.OFFICE_PHONE_NO NOT LIKE '@[%]'
+)
+, contacts_ranking as (
+    SELECT
+        row_number() over (partition by OWNER_ID, CONTACT_TYPE order by CONTACT_UPDATE_DATE desc) as rn
+        ,OWNER_ID
+        ,CONTACT_OWNER_TYPE
+        ,CONTACT_TYPE
+        ,CONTACT_VALUE
+        ,CONTACT_NAME
+        ,CONTACT_CREATE_DATE
+        ,CONTACT_UPDATE_DATE
+        ,LINE_OF_BUSINESS
+        ,SOURCE_NAME
+        ,SOURCE_RECORD_ID
+        ,SEQUENCE_NO
+    FROM contacts
+)
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT(
+    OWNER_ID -- None
+    ,CONTACT_OWNER_TYPE -- None
+    ,CONTACT_TYPE -- None
+    ,CONTACT_VALUE -- None
+    ,CONTACT_NAME -- None
+    ,CONTACT_CREATE_DATE -- None
+    ,CONTACT_UPDATE_DATE -- None
+    ,LINE_OF_BUSINESS -- None
+    ,SOURCE_NAME -- None
+    ,SOURCE_RECORD_ID -- None
+    ,SEQUENCE_NO -- None
+)
+ SELECT
+    T1.OWNER_ID
+    ,T1.CONTACT_OWNER_TYPE
+    ,T1.CONTACT_TYPE
+    ,T1.CONTACT_VALUE
+    ,T1.CONTACT_NAME
+    ,COALESCE(T2.CONTACT_CREATE_DATE, '${batch_timestamp}' ) AS CONTACT_CREATE_DATE -- NONE
+    ,T1.CONTACT_UPDATE_DATE
+    ,T1.LINE_OF_BUSINESS
+    ,T1.SOURCE_NAME
+    ,T1.SOURCE_RECORD_ID
+    ,T1.SEQUENCE_NO
+  FROM contacts_ranking T1
+LEFT JOIN ${cur_schema}.DIM_CONTACT T2
+    ON T2.ETL_DT = '${batch_date}'
+    AND T2.SOURCE_NAME = 'LMS'
+    AND T2.CONTACT_OWNER_TYPE = 'ACCOUNT'
+    AND T1.CONTACT_TYPE = T2.CONTACT_TYPE
+    AND T1.SOURCE_RECORD_ID = T2.SOURCE_RECORD_ID
+    AND T1.SEQUENCE_NO = T2.SEQUENCE_NO
+WHERE T1.RN = 1
+;

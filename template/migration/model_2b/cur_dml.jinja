@@ -25,11 +25,11 @@ params = set_parameter(spark)
 snapshot_date_str = batch_date # Or yesterday_date, depending on logic
 snapshot_year_month = snapshot_date_str[:6]
 
-{% if pre_processing_sqls %}
+{% if source_processing_sqls %}
 # ─── PRE-PROCESSING (Temp tables logic from legacy script) ───────────────────
-{% for step_sql in pre_processing_sqls %}
+{% for step_sql in source_processing_sqls %}
 spark.sql(f"""
-{{ step_sql | indent(4) }}
+{{ step_sql | comment_formatting | indent(4) }}
 """)
 {% endfor %}
 {% endif %}
@@ -48,9 +48,16 @@ spark.sql(f"""
 """)
 
 # The main_processing_sqls for Model 2B cur is expected to read from com_schema and perform transformations
+# ─── INSERT INTO CONSOLIDATED TABLE ────────────────────────────────────────────────────────
+
+{% if main_processing_sqls %}
+{% for main_sql in main_processing_sqls %}
 spark.sql(f"""
-{{ main_processing_sqls | indent(4) }}
+{{ main_sql  | comment_formatting  | indent(4) }}
 """)
+
+{% endfor %}
+{% endif %}
 
 # ─── FINAL UPDATED TABLE SETUP ───────────────────────────────────────────────
 spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_updated""")
@@ -80,7 +87,7 @@ spark.sql(f"""
     FROM {params["cur_schema"]}.{{ target_table_name }}
     WHERE year_month = '{snapshot_year_month}'
       AND snapshot_date != to_date('{snapshot_date_str}', 'yyyyMMdd')
-      {% if partition_key %}AND {{ partition_key }} = '{{ partition_value }}'{% endif %}
+      {% if partition_key %}AND {{ partition_key }} = '{{ source_key_value }}'{% endif %}
 """)
 
 # ─── STEP 2: Insert the new snapshot data from COM_T ────────────────────────
@@ -113,7 +120,7 @@ spark.sql(f"""
         '{batch_date}' AS etl_dt,
         current_timestamp() AS etl_timestamp,
         '{snapshot_year_month}' AS year_month
-        {% if partition_key %},'{{ partition_value }}' AS {{ partition_key }}{% endif %}
+        {% if partition_key %},'{{ source_key_value }}' AS {{ partition_key }}{% endif %}
     FROM {params["com_schema"]}.temp_{{ target_table_name }}_updated
 """)
 

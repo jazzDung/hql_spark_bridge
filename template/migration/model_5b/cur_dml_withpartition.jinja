@@ -24,11 +24,11 @@ params = set_parameter(spark)
 # Enable dynamic partition overwrites
 spark.sql("SET spark.sql.sources.partitionOverwriteMode=dynamic")
 
-{% if pre_processing_sqls %}
+{% if source_processing_sqls %}
 # ─── PRE-PROCESSING (Temp tables logic from legacy script) ───────────────────
-{% for step_sql in pre_processing_sqls %}
+{% for step_sql in source_processing_sqls %}
 spark.sql(f"""
-{{ step_sql | indent(4) }}
+{{ step_sql | comment_formatting | indent(4) }}
 """)
 {% endfor %}
 {% endif %}
@@ -102,7 +102,7 @@ spark.sql(f"""
     ) impacted_partitions
     ON {% for p_col in partition_columns %}{% if not loop.first %} AND {% endif %}cur.{{ p_col }} = impacted_partitions.{{ p_col }}{% endfor %}
     WHERE
-        {% if source_key_partition %}cur.{{ source_key_partition }} = '{{ source_key_value }}' AND {% endif %}
+        {% if partition_key %}cur.{{ partition_key }} = '{{ source_key_value }}' AND {% endif %}
         NOT EXISTS (
             SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_delta delta
             WHERE delta.{{ key_date_column }} = cur.{{ key_date_column }}
@@ -112,13 +112,20 @@ spark.sql(f"""
 
 # ─── STEP 2: Insert transformed delta into temp table ────────────────────────
 # main_processing_sqls is expected to transform data from temp_{target_table_name}_delta
+# ─── INSERT INTO CONSOLIDATED TABLE ────────────────────────────────────────────────────────
+
+{% if main_processing_sqls %}
+{% for main_sql in main_processing_sqls %}
 spark.sql(f"""
-{{ main_processing_sqls | indent(4) }}
+{{ main_sql  | comment_formatting  | indent(4) }}
 """)
+
+{% endfor %}
+{% endif %}
 
 # ─── STEP 3: Overwrite CUR table dynamically ─────────────────────────────────
 spark.sql(f"""
-    INSERT OVERWRITE TABLE {params["cur_schema"]}.{{ target_table_name }} PARTITION ({% if source_key_partition %}{{ source_key_partition }} = '{{ source_key_value }}', {% endif %}{% for p_col in partition_columns %}{{ ", " if not loop.first else "" }}{{ p_col }}{% endfor %})
+    INSERT OVERWRITE TABLE {params["cur_schema"]}.{{ target_table_name }} PARTITION ({% if partition_key %}{{ partition_key }} = '{{ source_key_value }}', {% endif %}{% for p_col in partition_columns %}{{ ", " if not loop.first else "" }}{{ p_col }}{% endfor %})
     SELECT
         {% for col in original_columns %}
         {{ col.name }},

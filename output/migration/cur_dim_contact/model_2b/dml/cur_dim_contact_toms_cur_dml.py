@@ -1,0 +1,978 @@
+
+"""
+Purpose:    curated - Snapshot table script
+Author:     Sunline
+Usage:      python $ETL_HOME/script/main.py yyyymmdd [file_name]
+CreateDate: 2023-08-18 00:00:00
+FileType:   DML
+Logs:
+Table name: DIM_CONTACT
+Table comment: DIM_CONTACT
+Creation date: 2023-08-18 00:00:00
+Primary key field: OWNER_ID,CONTACT_OWNER_TYPE,CONTACT_TYPE
+Attribution hierarchy: curated
+Attribution subject: cust
+Main application: None
+Analyst: zhairuoping
+Time granularity: None
+Retention period: None
+Descriptive information: None
+log:  chenguanhong  20240731    add smf/sbl/lms source (uat)
+log:  davidyip      20230903    add T1.CLEAN_RULE_FLAG filter for lms and sbl (uat)
+log:  marcoong      20250128    add agent_assistant from MHBOS
+log:  marcoong      20250326    add new source: sbl/lms/kdi (prod)
+log:  marcoong      20250519    convert com_r_mhbos_m_trader, mhbos_m_trader_cmsrl, m_branch to com_t;
+log:  marcoong      20250519    update filter
+log:  syhmi         20250812    fix [Group.47] FROM statement to use ROW_NUMBER() to remove duplicates
+log:  syhmi         20250903    added [Group.55] for EINV_EMAIL query
+0.1 set parameter
+"""
+
+import os
+import sys
+sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
+from etl_common_function import run_etl, set_parameter
+from pyspark.sql.functions import current_timestamp, lit, to_date
+
+source_name = "TOMS"
+table_name  = "DIM_CONTACT_TOMS"
+
+spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source_name, table_name)
+batch_date = today_date
+params = set_parameter(spark)
+
+# Define snapshot-specific variables
+snapshot_date_str = batch_date # Or yesterday_date, depending on logic
+snapshot_year_month = snapshot_date_str[:6]
+
+# ─── PRE-PROCESSING (Temp tables logic from legacy script) ───────────────────
+spark.sql(f"""
+/* ==============[Group.1]============== */
+    DROP TABLE IF EXISTS {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT_TOMS_ECORPORATE
+""")
+spark.sql(f"""
+CREATE TABLE {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT_TOMS_ECORPORATE (
+      OWNER_ID VARCHAR(50), /* None */
+      CONTACT_OWNER_TYPE VARCHAR(20), /* None */
+      CONTACT_TYPE VARCHAR(15), /* None */
+      CONTACT_VALUE VARCHAR(150), /* None */
+      CONTACT_NAME VARCHAR(100), /* None */
+      CONTACT_CREATE_DATE DATE, /* None */
+      CONTACT_UPDATE_DATE DATE, /* None */
+      LINE_OF_BUSINESS VARCHAR(20), /* None */
+      SOURCE_NAME VARCHAR(10), /* None */
+      SOURCE_RECORD_ID VARCHAR(50), /* None */
+      SEQUENCE_NO_CONSTANT INT, /* None */
+      SEQUENCE_NO INT /* None */
+    )
+    STORED AS PARQUET
+    TBLPROPERTIES (
+      'parquet.compression'='SNAPPY',
+      'external.table.purge'='true'
+    )
+""")
+spark.sql(f"""
+/* Insert TOMS_ECORPORATE office phone */
+    WITH cte_toms_ecorp_ofcphone AS (
+      SELECT
+        T1.ACCOUNTNO,
+        T1.OFCPHONENO AS OFCPHONENO,
+        NULL AS contact_name,
+        T1.SYDTC,
+        T1.SYDTU,
+        1 AS SEQUENCE_NO_CONSTANT
+      FROM {params["com_schema"]}.T_TOMS_ECORPORATE_ACCOUNT AS T1
+      WHERE
+        DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND TRIM(COALESCE(T1.OFCPHONENO, '')) <> ''
+        AND NOT T1.OFCPHONENO LIKE '@[%]'
+      UNION ALL
+      SELECT
+        T1.ACCOUNTNO,
+        T1.OFCPHONENO1 AS OFCPHONENO,
+        T1.personname1 AS CONTACT_NAME,
+        T1.SYDTC,
+        T1.SYDTU,
+        2 AS SEQUENCE_NO_CONSTANT
+      FROM {params["com_schema"]}.T_TOMS_ECORPORATE_ACCOUNT AS T1
+      WHERE
+        DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND TRIM(COALESCE(T1.OFCPHONENO1, '')) <> ''
+        AND NOT T1.OFCPHONENO1 LIKE '@[%]'
+      UNION ALL
+      SELECT
+        T1.ACCOUNTNO,
+        T1.OFCPHONENO2 AS OFCPHONENO,
+        T1.personname2 AS CONTACT_NAME,
+        T1.SYDTC,
+        T1.SYDTU,
+        3 AS SEQUENCE_NO_CONSTANT
+      FROM {params["com_schema"]}.T_TOMS_ECORPORATE_ACCOUNT AS T1
+      WHERE
+        DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND TRIM(COALESCE(T1.OFCPHONENO2, '')) <> ''
+        AND NOT T1.OFCPHONENO2 LIKE '@[%]'
+    )
+    INSERT INTO {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT_TOMS_ECORPORATE (
+      OWNER_ID,
+      CONTACT_OWNER_TYPE,
+      CONTACT_TYPE,
+      CONTACT_VALUE,
+      CONTACT_NAME,
+      CONTACT_CREATE_DATE,
+      CONTACT_UPDATE_DATE,
+      LINE_OF_BUSINESS,
+      SOURCE_NAME,
+      SOURCE_RECORD_ID,
+      SEQUENCE_NO_CONSTANT,
+      SEQUENCE_NO
+    )
+    SELECT
+      'TOMS_' || T1.ACCOUNTNO AS OWNER_ID,
+      'ACCOUNT' AS CONTACT_OWNER_TYPE,
+      'OFFICE' AS CONTACT_TYPE,
+      T1.OFCPHONENO AS CONTACT_VALUE,
+      T1.CONTACT_NAME AS CONTACT_NAME,
+      T1.SYDTC AS CONTACT_CREATE_DATE,
+      T1.SYDTU AS CONTACT_UPDATE_DATE,
+      'UT' AS LINE_OF_BUSINESS,
+      'TOMS' AS SOURCE_NAME,
+      T1.ACCOUNTNO AS SOURCE_RECORD_ID,
+      T1.SEQUENCE_NO_CONSTANT AS SEQUENCE_NO_CONSTANT,
+      ROW_NUMBER() OVER (PARTITION BY T1.ACCOUNTNO ORDER BY T1.SEQUENCE_NO_CONSTANT ASC) AS SEQUENCE_NO
+    FROM cte_toms_ecorp_ofcphone AS T1
+""")
+spark.sql(f"""
+/* Insert TOMS_ECORPORATE mobile phone */
+    WITH cte_toms_ecorp_mobilephone AS (
+      SELECT
+        T1.ACCOUNTNO,
+        T1.mobileno1 AS MOBILENO,
+        T1.personname1 AS CONTACT_NAME,
+        T1.SYDTC,
+        T1.SYDTU,
+        1 AS SEQUENCE_NO_CONSTANT
+      FROM {params["com_schema"]}.T_TOMS_ECORPORATE_ACCOUNT AS T1
+      WHERE
+        DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND TRIM(COALESCE(T1.mobileno1, '')) <> ''
+        AND NOT T1.mobileno1 LIKE '@[%]'
+      UNION ALL
+      SELECT
+        T1.ACCOUNTNO,
+        T1.mobileno2 AS MOBILENO,
+        T1.personname2 AS CONTACT_NAME,
+        T1.SYDTC,
+        T1.SYDTU,
+        2 AS SEQUENCE_NO_CONSTANT
+      FROM {params["com_schema"]}.T_TOMS_ECORPORATE_ACCOUNT AS T1
+      WHERE
+        DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND TRIM(COALESCE(T1.mobileno2, '')) <> ''
+        AND NOT T1.mobileno2 LIKE '@[%]'
+    )
+    INSERT INTO {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT_TOMS_ECORPORATE (
+      OWNER_ID,
+      CONTACT_OWNER_TYPE,
+      CONTACT_TYPE,
+      CONTACT_VALUE,
+      CONTACT_NAME,
+      CONTACT_CREATE_DATE,
+      CONTACT_UPDATE_DATE,
+      LINE_OF_BUSINESS,
+      SOURCE_NAME,
+      SOURCE_RECORD_ID,
+      SEQUENCE_NO_CONSTANT,
+      SEQUENCE_NO
+    )
+    SELECT
+      'TOMS_' || T1.ACCOUNTNO AS OWNER_ID,
+      'ACCOUNT' AS CONTACT_OWNER_TYPE,
+      'MOBILE' AS CONTACT_TYPE,
+      T1.MOBILENO AS CONTACT_VALUE,
+      T1.CONTACT_NAME AS CONTACT_NAME,
+      T1.SYDTC AS CONTACT_CREATE_DATE,
+      T1.SYDTU AS CONTACT_UPDATE_DATE,
+      'UT' AS LINE_OF_BUSINESS,
+      'TOMS' AS SOURCE_NAME,
+      T1.ACCOUNTNO AS SOURCE_RECORD_ID,
+      T1.SEQUENCE_NO_CONSTANT AS SEQUENCE_NO_CONSTANT,
+      ROW_NUMBER() OVER (PARTITION BY T1.ACCOUNTNO ORDER BY T1.SEQUENCE_NO_CONSTANT ASC) AS SEQUENCE_NO
+    FROM cte_toms_ecorp_mobilephone AS T1
+""")
+spark.sql(f"""
+/* Insert TOMS_ECORPORATE email */
+    WITH cte_toms_ecorp_email AS (
+      SELECT
+        T1.ACCOUNTNO,
+        T1.email AS email,
+        NULL AS CONTACT_NAME,
+        T1.SYDTC,
+        T1.SYDTU,
+        1 AS SEQUENCE_NO_CONSTANT
+      FROM {params["com_schema"]}.T_TOMS_ECORPORATE_ACCOUNT AS T1
+      WHERE
+        DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND TRIM(COALESCE(T1.email, '')) <> ''
+        AND NOT T1.email RLIKE '^\\@\\[.*\\]$'
+      UNION ALL
+      SELECT
+        T1.ACCOUNTNO,
+        T1.email1 AS email,
+        T1.personname1 AS CONTACT_NAME,
+        T1.SYDTC,
+        T1.SYDTU,
+        2 AS SEQUENCE_NO_CONSTANT
+      FROM {params["com_schema"]}.T_TOMS_ECORPORATE_ACCOUNT AS T1
+      WHERE
+        DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND TRIM(COALESCE(T1.email1, '')) <> ''
+        AND NOT T1.email1 RLIKE '^\\@\\[.*\\]$'
+      UNION ALL
+      SELECT
+        T1.ACCOUNTNO,
+        T1.email2 AS email,
+        T1.personname2 AS CONTACT_NAME,
+        T1.SYDTC,
+        T1.SYDTU,
+        3 AS SEQUENCE_NO_CONSTANT
+      FROM {params["com_schema"]}.T_TOMS_ECORPORATE_ACCOUNT AS T1
+      WHERE
+        DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND TRIM(COALESCE(T1.email2, '')) <> ''
+        AND NOT T1.email2 RLIKE '^\\@\\[.*\\]$'
+    )
+    INSERT INTO {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT_TOMS_ECORPORATE (
+      OWNER_ID,
+      CONTACT_OWNER_TYPE,
+      CONTACT_TYPE,
+      CONTACT_VALUE,
+      CONTACT_NAME,
+      CONTACT_CREATE_DATE,
+      CONTACT_UPDATE_DATE,
+      LINE_OF_BUSINESS,
+      SOURCE_NAME,
+      SOURCE_RECORD_ID,
+      SEQUENCE_NO_CONSTANT,
+      SEQUENCE_NO
+    )
+    SELECT
+      'TOMS_' || T1.ACCOUNTNO AS OWNER_ID,
+      'ACCOUNT' AS CONTACT_OWNER_TYPE,
+      'EMAIL' AS CONTACT_TYPE,
+      T1.EMAIL AS CONTACT_VALUE,
+      T1.CONTACT_NAME AS CONTACT_NAME,
+      T1.SYDTC AS CONTACT_CREATE_DATE,
+      T1.SYDTU AS CONTACT_UPDATE_DATE,
+      'UT' AS LINE_OF_BUSINESS,
+      'TOMS' AS SOURCE_NAME,
+      T1.ACCOUNTNO AS SOURCE_RECORD_ID,
+      T1.SEQUENCE_NO_CONSTANT AS SEQUENCE_NO_CONSTANT,
+      ROW_NUMBER() OVER (PARTITION BY T1.ACCOUNTNO ORDER BY T1.SEQUENCE_NO_CONSTANT ASC) AS SEQUENCE_NO
+    FROM cte_toms_ecorp_email AS T1
+""")
+spark.sql(f"""
+/* ==============[Group.1]============== */
+    DROP TABLE IF EXISTS {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT
+""")
+spark.sql(f"""
+CREATE TABLE {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT (
+      OWNER_ID VARCHAR(50), /* None */
+      CONTACT_OWNER_TYPE VARCHAR(20), /* None */
+      CONTACT_TYPE VARCHAR(15), /* None */
+      CONTACT_VALUE VARCHAR(150), /* None */
+      CONTACT_NAME VARCHAR(100), /* None */
+      CONTACT_CREATE_DATE DATE, /* None */
+      CONTACT_UPDATE_DATE DATE, /* None */
+      LINE_OF_BUSINESS VARCHAR(20), /* None */
+      SOURCE_NAME VARCHAR(10), /* None */
+      SOURCE_RECORD_ID VARCHAR(50), /* None */
+      SEQUENCE_NO INT /* None */
+    )
+    STORED AS PARQUET
+    TBLPROPERTIES (
+      'parquet.compression'='SNAPPY',
+      'external.table.purge'='true'
+    )
+""")
+spark.sql(f"""
+/* ==============[Group.6]============== */
+    DROP TABLE IF EXISTS {params["cur_schema"]}.TEMP_DIM_TRADER_CONTACT
+""")
+spark.sql(f"""
+CREATE TABLE {params["cur_schema"]}.TEMP_DIM_TRADER_CONTACT (
+      OWNER_ID VARCHAR(50), /* None */
+      CONTACT_OWNER_TYPE VARCHAR(20), /* None */
+      CONTACT_TYPE VARCHAR(15), /* None */
+      CONTACT_VALUE VARCHAR(150), /* None */
+      CONTACT_NAME VARCHAR(100), /* None */
+      CONTACT_CREATE_DATE DATE, /* None */
+      CONTACT_UPDATE_DATE DATE, /* None */
+      LINE_OF_BUSINESS VARCHAR(20), /* None */
+      SOURCE_NAME VARCHAR(10), /* None */
+      SOURCE_RECORD_ID VARCHAR(50), /* None */
+      SEQUENCE_NO INT /* None */
+    )
+    STORED AS PARQUET
+    TBLPROPERTIES (
+      'parquet.compression'='SNAPPY',
+      'external.table.purge'='true'
+    )
+""")
+spark.sql(f"""
+/* ==============[Group.23 - TOMS_ECORPORATE: Officephone, mobilephone, email]============== */
+    INSERT INTO {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT (
+      OWNER_ID, /* None */
+      CONTACT_OWNER_TYPE, /* None */
+      CONTACT_TYPE, /* None */
+      CONTACT_VALUE, /* None */
+      CONTACT_NAME, /* None */
+      CONTACT_CREATE_DATE, /* None */
+      CONTACT_UPDATE_DATE, /* None */
+      LINE_OF_BUSINESS, /* None */
+      SOURCE_NAME, /* None */
+      SOURCE_RECORD_ID, /* None */
+      SEQUENCE_NO /* None */
+    )
+    SELECT
+      T1.OWNER_ID AS OWNER_ID, /* None */
+      T1.CONTACT_OWNER_TYPE AS CONTACT_OWNER_TYPE, /* None */
+      T1.CONTACT_TYPE AS CONTACT_TYPE, /* None */
+      T1.CONTACT_VALUE AS CONTACT_VALUE, /* None */
+      T1.CONTACT_NAME AS CONTACT_NAME, /* None */
+      T1.CONTACT_CREATE_DATE AS CONTACT_CREATE_DATE, /* None */
+      T1.CONTACT_UPDATE_DATE AS CONTACT_UPDATE_DATE, /* None */
+      T1.LINE_OF_BUSINESS AS LINE_OF_BUSINESS, /* None */
+      T1.SOURCE_NAME AS SOURCE_NAME, /* None */
+      T1.SOURCE_RECORD_ID AS SOURCE_RECORD_ID, /* None */
+      T1.SEQUENCE_NO AS SEQUENCE_NO /* None */
+    FROM {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT_TOMS_ECORPORATE AS T1 /* None */
+""")
+spark.sql(f"""
+/* ==============[Group.24 - TOMS_ECORPORATE: Fax]============== */
+    INSERT INTO {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT (
+      OWNER_ID, /* None */
+      CONTACT_OWNER_TYPE, /* None */
+      CONTACT_TYPE, /* None */
+      CONTACT_VALUE, /* None */
+      CONTACT_NAME, /* None */
+      CONTACT_CREATE_DATE, /* None */
+      CONTACT_UPDATE_DATE, /* None */
+      LINE_OF_BUSINESS, /* None */
+      SOURCE_NAME, /* None */
+      SOURCE_RECORD_ID, /* None */
+      SEQUENCE_NO /* None */
+    )
+    SELECT
+      'TOMS_' || T1.ACCOUNTNO AS OWNER_ID, /* None */
+      'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+      'FAX' AS CONTACT_TYPE, /* None */
+      T1.FAXNO AS CONTACT_VALUE, /* None */
+      NULL AS CONTACT_NAME, /* None */
+      T1.SYDTC AS CONTACT_CREATE_DATE, /* None */
+      T1.SYDTU AS CONTACT_UPDATE_DATE, /* None */
+      'UT' AS LINE_OF_BUSINESS, /* None */
+      'TOMS' AS SOURCE_NAME, /* None */
+      T1.ACCOUNTNO AS SOURCE_RECORD_ID, /* None */
+      1 AS SEQUENCE_NO /* None */
+    FROM {params["com_schema"]}.T_TOMS_ECORPORATE_ACCOUNT AS T1 /* None */
+    WHERE
+      DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+      AND TRIM(COALESCE(T1.FAXNO, '')) <> ''
+      AND NOT T1.FAXNO LIKE '@[%]'
+""")
+spark.sql(f"""
+/* ==============[Group.25]============== */
+    INSERT INTO {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT (
+      OWNER_ID, /* None */
+      CONTACT_OWNER_TYPE, /* None */
+      CONTACT_TYPE, /* None */
+      CONTACT_VALUE, /* None */
+      CONTACT_NAME, /* None */
+      CONTACT_CREATE_DATE, /* None */
+      CONTACT_UPDATE_DATE, /* None */
+      LINE_OF_BUSINESS, /* None */
+      SOURCE_NAME, /* None */
+      SOURCE_RECORD_ID, /* None */
+      SEQUENCE_NO /* None */
+    )
+    SELECT
+      'TOMS_' || T1.ACCOUNTNO AS OWNER_ID, /* None */
+      'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+      'OFFICE' AS CONTACT_TYPE, /* None */
+      T1.OFCPHONENO AS CONTACT_VALUE, /* None */
+      NULL AS CONTACT_NAME, /* None */
+      T1.SYDTC AS CONTACT_CREATE_DATE, /* None */
+      T1.SYDTU AS CONTACT_UPDATE_DATE, /* None */
+      'UT' AS LINE_OF_BUSINESS, /* None */
+      'TOMS' AS SOURCE_NAME, /* None */
+      T1.ACCOUNTNO AS SOURCE_RECORD_ID, /* None */
+      1 AS SEQUENCE_NO /* None */
+    FROM {params["com_schema"]}.T_TOMS_ERETAIL_ACCOUNT AS T1 /* None */
+    WHERE
+      DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+      AND TRIM(COALESCE(T1.OFCPHONENO, '')) <> ''
+      AND NOT T1.OFCPHONENO LIKE '@[%]'
+""")
+spark.sql(f"""
+/* ==============[Group.26]============== */
+    INSERT INTO {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT (
+      OWNER_ID, /* None */
+      CONTACT_OWNER_TYPE, /* None */
+      CONTACT_TYPE, /* None */
+      CONTACT_VALUE, /* None */
+      CONTACT_NAME, /* None */
+      CONTACT_CREATE_DATE, /* None */
+      CONTACT_UPDATE_DATE, /* None */
+      LINE_OF_BUSINESS, /* None */
+      SOURCE_NAME, /* None */
+      SOURCE_RECORD_ID, /* None */
+      SEQUENCE_NO /* None */
+    )
+    SELECT
+      'TOMS_' || T1.ACCOUNTNO AS OWNER_ID, /* None */
+      'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+      'HOME' AS CONTACT_TYPE, /* None */
+      T1.HOMEPHONE AS CONTACT_VALUE, /* None */
+      NULL AS CONTACT_NAME, /* None */
+      T1.SYDTC AS CONTACT_CREATE_DATE, /* None */
+      T1.SYDTU AS CONTACT_UPDATE_DATE, /* None */
+      'UT' AS LINE_OF_BUSINESS, /* None */
+      'TOMS' AS SOURCE_NAME, /* None */
+      T1.ACCOUNTNO AS SOURCE_RECORD_ID, /* None */
+      1 AS SEQUENCE_NO /* None */
+    FROM {params["com_schema"]}.T_TOMS_ERETAIL_ACCOUNT AS T1 /* None */
+    WHERE
+      DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+      AND TRIM(COALESCE(T1.HOMEPHONE, '')) <> ''
+      AND NOT T1.HOMEPHONE LIKE '@[%]'
+""")
+spark.sql(f"""
+/* ==============[Group.27]============== */
+    INSERT INTO {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT (
+      OWNER_ID, /* None */
+      CONTACT_OWNER_TYPE, /* None */
+      CONTACT_TYPE, /* None */
+      CONTACT_VALUE, /* None */
+      CONTACT_NAME, /* None */
+      CONTACT_CREATE_DATE, /* None */
+      CONTACT_UPDATE_DATE, /* None */
+      LINE_OF_BUSINESS, /* None */
+      SOURCE_NAME, /* None */
+      SOURCE_RECORD_ID, /* None */
+      SEQUENCE_NO /* None */
+    )
+    SELECT
+      'TOMS_' || T1.ACCOUNTNO AS OWNER_ID, /* None */
+      'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+      'FAX' AS CONTACT_TYPE, /* None */
+      T1.FAXNO AS CONTACT_VALUE, /* None */
+      NULL AS CONTACT_NAME, /* None */
+      T1.SYDTC AS CONTACT_CREATE_DATE, /* None */
+      T1.SYDTU AS CONTACT_UPDATE_DATE, /* None */
+      'UT' AS LINE_OF_BUSINESS, /* None */
+      'TOMS' AS SOURCE_NAME, /* None */
+      T1.ACCOUNTNO AS SOURCE_RECORD_ID, /* None */
+      1 AS SEQUENCE_NO /* None */
+    FROM {params["com_schema"]}.T_TOMS_ERETAIL_ACCOUNT AS T1 /* None */
+    WHERE
+      DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+      AND TRIM(COALESCE(T1.FAXNO, '')) <> ''
+      AND NOT T1.FAXNO LIKE '@[%]'
+""")
+spark.sql(f"""
+/* ==============[Group.28]============== */
+    INSERT INTO {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT (
+      OWNER_ID, /* None */
+      CONTACT_OWNER_TYPE, /* None */
+      CONTACT_TYPE, /* None */
+      CONTACT_VALUE, /* None */
+      CONTACT_NAME, /* None */
+      CONTACT_CREATE_DATE, /* None */
+      CONTACT_UPDATE_DATE, /* None */
+      LINE_OF_BUSINESS, /* None */
+      SOURCE_NAME, /* None */
+      SOURCE_RECORD_ID, /* None */
+      SEQUENCE_NO /* None */
+    )
+    SELECT
+      'TOMS_' || T1.ACCOUNTNO AS OWNER_ID, /* None */
+      'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+      'MOBILE' AS CONTACT_TYPE, /* None */
+      T1.MOBILENO AS CONTACT_VALUE, /* None */
+      NULL AS CONTACT_NAME, /* None */
+      T1.SYDTC AS CONTACT_CREATE_DATE, /* None */
+      T1.SYDTU AS CONTACT_UPDATE_DATE, /* None */
+      'UT' AS LINE_OF_BUSINESS, /* None */
+      'TOMS' AS SOURCE_NAME, /* None */
+      T1.ACCOUNTNO AS SOURCE_RECORD_ID, /* None */
+      1 AS SEQUENCE_NO /* None */
+    FROM {params["com_schema"]}.T_TOMS_ERETAIL_ACCOUNT AS T1 /* None */
+    WHERE
+      DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+      AND TRIM(COALESCE(T1.MOBILENO, '')) <> ''
+      AND NOT T1.MOBILENO LIKE '@[%]'
+""")
+spark.sql(f"""
+/* ==============[Group.29]============== */
+    INSERT INTO {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT (
+      OWNER_ID, /* None */
+      CONTACT_OWNER_TYPE, /* None */
+      CONTACT_TYPE, /* None */
+      CONTACT_VALUE, /* None */
+      CONTACT_NAME, /* None */
+      CONTACT_CREATE_DATE, /* None */
+      CONTACT_UPDATE_DATE, /* None */
+      LINE_OF_BUSINESS, /* None */
+      SOURCE_NAME, /* None */
+      SOURCE_RECORD_ID, /* None */
+      SEQUENCE_NO /* None */
+    )
+    SELECT
+      'TOMS_' || T1.ACCOUNTNO AS OWNER_ID, /* None */
+      'ACCOUNT' AS CONTACT_OWNER_TYPE, /* None */
+      'EMAIL' AS CONTACT_TYPE, /* None */
+      T1.EMAIL AS CONTACT_VALUE, /* None */
+      NULL AS CONTACT_NAME, /* None */
+      T1.SYDTC AS CONTACT_CREATE_DATE, /* None */
+      T1.SYDTU AS CONTACT_UPDATE_DATE, /* None */
+      'UT' AS LINE_OF_BUSINESS, /* None */
+      'TOMS' AS SOURCE_NAME, /* None */
+      T1.ACCOUNTNO AS SOURCE_RECORD_ID, /* None */
+      T1.SEQUENCE_NO AS SEQUENCE_NO /* None */
+    FROM (
+      SELECT
+        ACCOUNTNO,
+        EMAIL_1 AS EMAIL,
+        SYDTC,
+        SYDTU,
+        1 AS SEQUENCE_NO
+      FROM {params["com_schema"]}.T_TOMS_ERETAIL_ACCOUNT
+      WHERE
+        TRIM(COALESCE(EMAIL_1, '')) <> ''
+        AND DATE_FORMAT(dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND NOT EMAIL_1 RLIKE '^\\@\\[.*\\]$'
+      UNION ALL
+      SELECT
+        ACCOUNTNO,
+        EMAIL_2 AS EMAIL,
+        SYDTC,
+        SYDTU,
+        2 AS SEQUENCE_NO
+      FROM {params["com_schema"]}.T_TOMS_ERETAIL_ACCOUNT
+      WHERE
+        TRIM(COALESCE(EMAIL_2, '')) <> ''
+        AND DATE_FORMAT(dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND NOT EMAIL_2 RLIKE '^\\@\\[.*\\]$'
+      UNION ALL
+      SELECT
+        ACCOUNTNO,
+        EMAIL_3 AS EMAIL,
+        SYDTC,
+        SYDTU,
+        3 AS SEQUENCE_NO
+      FROM {params["com_schema"]}.T_TOMS_ERETAIL_ACCOUNT
+      WHERE
+        TRIM(COALESCE(EMAIL_3, '')) <> ''
+        AND DATE_FORMAT(dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND NOT EMAIL_3 RLIKE '^\\@\\[.*\\]$'
+      UNION ALL
+      SELECT
+        ACCOUNTNO,
+        EMAIL_4 AS EMAIL,
+        SYDTC,
+        SYDTU,
+        4 AS SEQUENCE_NO
+      FROM {params["com_schema"]}.T_TOMS_ERETAIL_ACCOUNT
+      WHERE
+        TRIM(COALESCE(EMAIL_4, '')) <> ''
+        AND DATE_FORMAT(dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND NOT EMAIL_4 RLIKE '^\\@\\[.*\\]$'
+      UNION ALL
+      SELECT
+        ACCOUNTNO,
+        EMAIL_5 AS EMAIL,
+        SYDTC,
+        SYDTU,
+        5 AS SEQUENCE_NO
+      FROM {params["com_schema"]}.T_TOMS_ERETAIL_ACCOUNT
+      WHERE
+        TRIM(COALESCE(EMAIL_5, '')) <> ''
+        AND DATE_FORMAT(dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND NOT EMAIL_5 RLIKE '^\\@\\[.*\\]$'
+      UNION ALL
+      SELECT
+        ACCOUNTNO,
+        EMAIL_6 AS EMAIL,
+        SYDTC,
+        SYDTU,
+        6 AS SEQUENCE_NO
+      FROM {params["com_schema"]}.T_TOMS_ERETAIL_ACCOUNT
+      WHERE
+        TRIM(COALESCE(EMAIL_6, '')) <> ''
+        AND DATE_FORMAT(dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND NOT EMAIL_6 RLIKE '^\\@\\[.*\\]$'
+      UNION ALL
+      SELECT
+        ACCOUNTNO,
+        EMAIL_7 AS EMAIL,
+        SYDTC,
+        SYDTU,
+        7 AS SEQUENCE_NO
+      FROM {params["com_schema"]}.T_TOMS_ERETAIL_ACCOUNT
+      WHERE
+        TRIM(COALESCE(EMAIL_7, '')) <> ''
+        AND DATE_FORMAT(dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND NOT EMAIL_7 RLIKE '^\\@\\[.*\\]$'
+      UNION ALL
+      SELECT
+        ACCOUNTNO,
+        EMAIL_8 AS EMAIL,
+        SYDTC,
+        SYDTU,
+        8 AS SEQUENCE_NO
+      FROM {params["com_schema"]}.T_TOMS_ERETAIL_ACCOUNT
+      WHERE
+        TRIM(COALESCE(EMAIL_8, '')) <> ''
+        AND DATE_FORMAT(dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND NOT EMAIL_8 RLIKE '^\\@\\[.*\\]$'
+      UNION ALL
+      SELECT
+        ACCOUNTNO,
+        EMAIL_9 AS EMAIL,
+        SYDTC,
+        SYDTU,
+        9 AS SEQUENCE_NO
+      FROM {params["com_schema"]}.T_TOMS_ERETAIL_ACCOUNT
+      WHERE
+        TRIM(COALESCE(EMAIL_9, '')) <> ''
+        AND DATE_FORMAT(dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND NOT EMAIL_9 RLIKE '^\\@\\[.*\\]$'
+      UNION ALL
+      SELECT
+        ACCOUNTNO,
+        EMAIL_10 AS EMAIL,
+        SYDTC,
+        SYDTU,
+        10 AS SEQUENCE_NO
+      FROM {params["com_schema"]}.T_TOMS_ERETAIL_ACCOUNT
+      WHERE
+        TRIM(COALESCE(EMAIL_10, '')) <> ''
+        AND DATE_FORMAT(dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+        AND NOT EMAIL_10 RLIKE '^\\@\\[.*\\]$'
+    ) AS T1 /* None */
+    WHERE
+      TRIM(COALESCE(T1.EMAIL, '')) <> '' AND NOT T1.EMAIL LIKE '@[%'
+""")
+spark.sql(f"""
+/* ==============[Group.30]============== */
+    INSERT INTO {params["cur_schema"]}.TEMP_DIM_TRADER_CONTACT (
+      OWNER_ID, /* None */
+      CONTACT_OWNER_TYPE, /* None */
+      CONTACT_TYPE, /* None */
+      CONTACT_VALUE, /* None */
+      CONTACT_NAME, /* None */
+      CONTACT_CREATE_DATE, /* None */
+      CONTACT_UPDATE_DATE, /* None */
+      LINE_OF_BUSINESS, /* None */
+      SOURCE_NAME, /* None */
+      SOURCE_RECORD_ID, /* None */
+      SEQUENCE_NO /* None */
+    )
+    SELECT
+      'TOMS_' || T1.AGENTCODE AS OWNER_ID, /* None */
+      'AGENT' AS CONTACT_OWNER_TYPE, /* None */
+      'OFFICE' AS CONTACT_TYPE, /* None */
+      T1.AGENTTELNO AS CONTACT_VALUE, /* None */
+      NULL AS CONTACT_NAME, /* None */
+      T1.SYDTC AS CONTACT_CREATE_DATE, /* None */
+      T1.SYDTU AS CONTACT_UPDATE_DATE, /* None */
+      'UT' AS LINE_OF_BUSINESS, /* None */
+      'TOMS' AS SOURCE_NAME, /* None */
+      T1.AGENTCODE AS SOURCE_RECORD_ID, /* None */
+      1 AS SEQUENCE_NO /* None */
+    FROM {params["com_schema"]}.T_TOMS_EAGENTDETAILS AS T1 /* None */
+    WHERE
+      DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+      AND COALESCE(T1.AGENTTELNO, '') <> ''
+      AND NOT T1.AGENTTELNO LIKE '@[%]'
+""")
+spark.sql(f"""
+/* ==============[Group.31]============== */
+    INSERT INTO {params["cur_schema"]}.TEMP_DIM_TRADER_CONTACT (
+      OWNER_ID, /* None */
+      CONTACT_OWNER_TYPE, /* None */
+      CONTACT_TYPE, /* None */
+      CONTACT_VALUE, /* None */
+      CONTACT_NAME, /* None */
+      CONTACT_CREATE_DATE, /* None */
+      CONTACT_UPDATE_DATE, /* None */
+      LINE_OF_BUSINESS, /* None */
+      SOURCE_NAME, /* None */
+      SOURCE_RECORD_ID, /* None */
+      SEQUENCE_NO /* None */
+    )
+    SELECT
+      'TOMS_' || T1.AGENTCODE AS OWNER_ID, /* None */
+      'AGENT' AS CONTACT_OWNER_TYPE, /* None */
+      'HOME' AS CONTACT_TYPE, /* None */
+      T1.AGENTHOMENO AS CONTACT_VALUE, /* None */
+      NULL AS CONTACT_NAME, /* None */
+      T1.SYDTC AS CONTACT_CREATE_DATE, /* None */
+      T1.SYDTU AS CONTACT_UPDATE_DATE, /* None */
+      'UT' AS LINE_OF_BUSINESS, /* None */
+      'TOMS' AS SOURCE_NAME, /* None */
+      T1.AGENTCODE AS SOURCE_RECORD_ID, /* None */
+      1 AS SEQUENCE_NO /* None */
+    FROM {params["com_schema"]}.T_TOMS_EAGENTDETAILS AS T1 /* None */
+    WHERE
+      DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+      AND TRIM(COALESCE(T1.AGENTHOMENO, '')) <> ''
+""")
+spark.sql(f"""
+/* ==============[Group.32]============== */
+    INSERT INTO {params["cur_schema"]}.TEMP_DIM_TRADER_CONTACT (
+      OWNER_ID, /* None */
+      CONTACT_OWNER_TYPE, /* None */
+      CONTACT_TYPE, /* None */
+      CONTACT_VALUE, /* None */
+      CONTACT_NAME, /* None */
+      CONTACT_CREATE_DATE, /* None */
+      CONTACT_UPDATE_DATE, /* None */
+      LINE_OF_BUSINESS, /* None */
+      SOURCE_NAME, /* None */
+      SOURCE_RECORD_ID, /* None */
+      SEQUENCE_NO /* None */
+    )
+    SELECT
+      'TOMS_' || T1.AGENTCODE AS OWNER_ID, /* None */
+      'AGENT' AS CONTACT_OWNER_TYPE, /* None */
+      'MOBILE' AS CONTACT_TYPE, /* None */
+      T1.AGENTMOBILENO AS CONTACT_VALUE, /* None */
+      NULL AS CONTACT_NAME, /* None */
+      T1.SYDTC AS CONTACT_CREATE_DATE, /* None */
+      T1.SYDTU AS CONTACT_UPDATE_DATE, /* None */
+      'UT' AS LINE_OF_BUSINESS, /* None */
+      'TOMS' AS SOURCE_NAME, /* None */
+      T1.AGENTCODE AS SOURCE_RECORD_ID, /* None */
+      1 AS SEQUENCE_NO /* None */
+    FROM {params["com_schema"]}.T_TOMS_EAGENTDETAILS AS T1 /* None */
+    WHERE
+      DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+      AND TRIM(COALESCE(T1.AGENTMOBILENO, '')) <> ''
+""")
+spark.sql(f"""
+/* ==============[Group.33]============== */
+    INSERT INTO {params["cur_schema"]}.TEMP_DIM_TRADER_CONTACT (
+      OWNER_ID, /* None */
+      CONTACT_OWNER_TYPE, /* None */
+      CONTACT_TYPE, /* None */
+      CONTACT_VALUE, /* None */
+      CONTACT_NAME, /* None */
+      CONTACT_CREATE_DATE, /* None */
+      CONTACT_UPDATE_DATE, /* None */
+      LINE_OF_BUSINESS, /* None */
+      SOURCE_NAME, /* None */
+      SOURCE_RECORD_ID, /* None */
+      SEQUENCE_NO /* None */
+    )
+    SELECT
+      'TOMS_' || T1.AGENTCODE AS OWNER_ID, /* None */
+      'AGENT' AS CONTACT_OWNER_TYPE, /* None */
+      'EMAIL' AS CONTACT_TYPE, /* None */
+      T1.AGENTEMAIL AS CONTACT_VALUE, /* None */
+      NULL AS CONTACT_NAME, /* None */
+      T1.SYDTC AS CONTACT_CREATE_DATE, /* None */
+      T1.SYDTU AS CONTACT_UPDATE_DATE, /* None */
+      'UT' AS LINE_OF_BUSINESS, /* None */
+      'TOMS' AS SOURCE_NAME, /* None */
+      T1.AGENTCODE AS SOURCE_RECORD_ID, /* None */
+      1 AS SEQUENCE_NO /* None */
+    FROM {params["com_schema"]}.T_TOMS_EAGENTDETAILS AS T1 /* None */
+    WHERE
+      DATE_FORMAT(T1.dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+      AND TRIM(COALESCE(T1.AGENTEMAIL, '')) <> ''
+""")
+spark.sql(f"""
+/* Delete all temporary tables */
+    DROP TABLE IF EXISTS {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT
+""")
+spark.sql(f"""
+DROP TABLE IF EXISTS {params["cur_schema"]}.TEMP_DIM_TRADER_CONTACT
+""")
+
+# ─── TRANSFORMED SNAPSHOT TABLE ──────────────────────────────────────────────
+# This table holds the new snapshot data, transformed from COM_T
+spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_DIM_CONTACT_TOMS_delta""")
+spark.sql(f"""
+    CREATE TABLE {params["com_schema"]}.temp_DIM_CONTACT_TOMS_delta (
+        owner_id VARCHAR(50)
+        , contact_owner_type VARCHAR(20)
+        , contact_type VARCHAR(10)
+        , contact_value VARCHAR(150)
+        , contact_name VARCHAR(100)
+        , contact_create_date DATE
+        , contact_update_date DATE
+        , line_of_business VARCHAR(20)
+        , source_record_id VARCHAR(50)
+        , sequence_no INT
+    )
+    stored as parquet
+    tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
+""")
+
+# The main_processing_sqls for Model 2B cur is expected to read from com_schema and perform transformations
+# ─── INSERT INTO CONSOLIDATED TABLE ────────────────────────────────────────────────────────
+
+spark.sql(f"""
+ALTER TABLE {params["cur_schema"]}.temp_DIM_CONTACT_main_consolidated
+    DROP IF EXISTS
+""")
+
+spark.sql(f"""
+/* ==============[Group.54]============== */
+    INSERT INTO {params["cur_schema"]}.temp_DIM_CONTACT_main_consolidated (
+      OWNER_ID, /* None */
+      CONTACT_OWNER_TYPE, /* None */
+      CONTACT_TYPE, /* None */
+      CONTACT_VALUE, /* None */
+      CONTACT_NAME, /* None */
+      CONTACT_CREATE_DATE, /* None */
+      CONTACT_UPDATE_DATE, /* None */
+      LINE_OF_BUSINESS, /* None */
+      SOURCE_NAME, /* None */
+      SOURCE_RECORD_ID, /* None */
+      SEQUENCE_NO, /* None */
+      ETL_TIMESTAMP
+    )
+    SELECT
+      T1.OWNER_ID AS OWNER_ID, /* None */
+      T1.CONTACT_OWNER_TYPE AS CONTACT_OWNER_TYPE, /* None */
+      T1.CONTACT_TYPE AS CONTACT_TYPE, /* None */
+      T1.CONTACT_VALUE AS CONTACT_VALUE, /* None */
+      T1.CONTACT_NAME AS CONTACT_NAME, /* None */
+      T1.CONTACT_CREATE_DATE AS CONTACT_CREATE_DATE, /* None */
+      T1.CONTACT_UPDATE_DATE AS CONTACT_UPDATE_DATE, /* None */
+      T1.LINE_OF_BUSINESS AS LINE_OF_BUSINESS, /* None */
+      T1.SOURCE_NAME AS SOURCE_NAME, /* None */
+      T1.SOURCE_RECORD_ID AS SOURCE_RECORD_ID, /* None */
+      T1.SEQUENCE_NO AS SEQUENCE_NO, /* None */
+      CURRENT_TIMESTAMP() AS ETL_TIMESTAMP
+    FROM (
+      SELECT
+        *
+      FROM {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT
+      UNION ALL
+      SELECT
+        *
+      FROM {params["cur_schema"]}.TEMP_DIM_TRADER_CONTACT
+      UNION ALL
+      SELECT
+        *
+      FROM {params["cur_schema"]}.TEMP_DIM_BRANCH_CONTACT
+      UNION ALL
+      SELECT
+        *
+      FROM {params["cur_schema"]}.TEMP_DIM_CUSTOMER_CONTACT
+    ) AS T1 /* None */
+    WHERE
+      1 = 1
+""")
+
+
+# ─── FINAL UPDATED TABLE SETUP ───────────────────────────────────────────────
+spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_DIM_CONTACT_TOMS_updated""")
+spark.sql(f"""
+    CREATE TABLE {params["com_schema"]}.temp_DIM_CONTACT_TOMS_updated (
+        snapshot_date DATE,
+        owner_id VARCHAR(50),
+        contact_owner_type VARCHAR(20),
+        contact_type VARCHAR(10),
+        contact_value VARCHAR(150),
+        contact_name VARCHAR(100),
+        contact_create_date DATE,
+        contact_update_date DATE,
+        line_of_business VARCHAR(20),
+        source_record_id VARCHAR(50),
+        sequence_no INT,
+        dl_record_created_date TIMESTAMP,
+        dl_record_updated_date TIMESTAMP
+    )
+    stored as parquet
+    tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
+""")
+
+# ─── STEP 1: Keep records from other snapshot dates within the same month ───
+spark.sql(f"""
+    INSERT INTO TABLE {params["com_schema"]}.temp_DIM_CONTACT_TOMS_updated
+    SELECT
+        snapshot_date,
+        owner_id,
+        contact_owner_type,
+        contact_type,
+        contact_value,
+        contact_name,
+        contact_create_date,
+        contact_update_date,
+        line_of_business,
+        source_record_id,
+        sequence_no,
+        dl_record_created_date,
+        dl_record_updated_date
+    FROM {params["cur_schema"]}.DIM_CONTACT_TOMS
+    WHERE year_month = '{snapshot_year_month}'
+      AND snapshot_date != to_date('{snapshot_date_str}', 'yyyyMMdd')
+AND ['source_key'] = 'TOMS'""")
+
+# ─── STEP 2: Insert the new snapshot data from COM_T ────────────────────────
+spark.sql(f"""
+    INSERT INTO TABLE {params["com_schema"]}.temp_DIM_CONTACT_TOMS_updated
+    SELECT
+        to_date('{snapshot_date_str}', 'yyyyMMdd') AS snapshot_date,
+        delta.owner_id,
+        delta.contact_owner_type,
+        delta.contact_type,
+        delta.contact_value,
+        delta.contact_name,
+        delta.contact_create_date,
+        delta.contact_update_date,
+        delta.line_of_business,
+        delta.source_record_id,
+        delta.sequence_no,
+        current_timestamp() AS dl_record_created_date,
+        current_timestamp() AS dl_record_updated_date
+    FROM {params["com_schema"]}.temp_DIM_CONTACT_TOMS_delta delta
+""")
+
+# ─── STEP 3: Overwrite the year_month partition with the updated data ───────
+spark.sql(f"""
+    SET spark.sql.sources.partitionOverwriteMode=dynamic
+""")
+spark.sql(f"""
+    INSERT OVERWRITE TABLE {params["cur_schema"]}.DIM_CONTACT_TOMS
+    PARTITION (year_month, ['source_key'])
+    SELECT
+        snapshot_date,
+        owner_id,
+        contact_owner_type,
+        contact_type,
+        contact_value,
+        contact_name,
+        contact_create_date,
+        contact_update_date,
+        line_of_business,
+        source_record_id,
+        sequence_no,
+        dl_record_created_date,
+        dl_record_updated_date,
+        '{batch_date}' AS etl_dt,
+        current_timestamp() AS etl_timestamp,
+        '{snapshot_year_month}' AS year_month
+,'TOMS' AS ['source_key']    FROM {params["com_schema"]}.temp_DIM_CONTACT_TOMS_updated
+""")
+
+spark.sql(f"""
+    ANALYZE TABLE {params["cur_schema"]}.DIM_CONTACT_TOMS COMPUTE STATISTICS
+""")
+
+spark.stop()

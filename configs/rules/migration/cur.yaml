@@ -1,0 +1,8 @@
+source: default
+
+column_rules:
+    non_original_fields:
+        name: ["etl_timestamp", "etl_dt", "source_name", "source_key"]
+
+
+#temp_table_rules: []

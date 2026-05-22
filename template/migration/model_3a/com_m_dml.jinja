@@ -21,7 +21,7 @@ params = set_parameter(spark)
 # ─── PRE-PROCESSING (Temp tables logic from legacy script) ───────────────────
 {% for step_sql in pre_processing_sqls %}
 spark.sql(f"""
-{{ step_sql | indent(4) }}
+{{ step_sql | comment_formatting | indent(4) }}
 """)
 {% endfor %}
 {% endif %}

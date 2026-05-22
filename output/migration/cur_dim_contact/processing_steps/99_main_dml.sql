@@ -1,0 +1,50 @@
+ALTER TABLE ${cur_schema}.DIM_CONTACT
+DROP IF EXISTS   PARTITION(etl_dt = '${batch_date}') /* 1.1 truncate batch day partition/ */;
+
+/* ==============[Group.54]============== */
+INSERT INTO ${cur_schema}.DIM_CONTACT PARTITION(etl_dt = '${batch_date}') (
+  OWNER_ID, /* None */
+  CONTACT_OWNER_TYPE, /* None */
+  CONTACT_TYPE, /* None */
+  CONTACT_VALUE, /* None */
+  CONTACT_NAME, /* None */
+  CONTACT_CREATE_DATE, /* None */
+  CONTACT_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID, /* None */
+  SEQUENCE_NO, /* None */
+  ETL_TIMESTAMP
+)
+SELECT
+  T1.OWNER_ID AS OWNER_ID, /* None */
+  T1.CONTACT_OWNER_TYPE AS CONTACT_OWNER_TYPE, /* None */
+  T1.CONTACT_TYPE AS CONTACT_TYPE, /* None */
+  T1.CONTACT_VALUE AS CONTACT_VALUE, /* None */
+  T1.CONTACT_NAME AS CONTACT_NAME, /* None */
+  T1.CONTACT_CREATE_DATE AS CONTACT_CREATE_DATE, /* None */
+  T1.CONTACT_UPDATE_DATE AS CONTACT_UPDATE_DATE, /* None */
+  T1.LINE_OF_BUSINESS AS LINE_OF_BUSINESS, /* None */
+  T1.SOURCE_NAME AS SOURCE_NAME, /* None */
+  T1.SOURCE_RECORD_ID AS SOURCE_RECORD_ID, /* None */
+  T1.SEQUENCE_NO AS SEQUENCE_NO, /* None */
+  '${batch_timestamp}' AS ETL_TIMESTAMP
+FROM (
+  SELECT
+    *
+  FROM ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT
+  UNION ALL
+  SELECT
+    *
+  FROM ${cur_schema}.TEMP_DIM_TRADER_CONTACT
+  UNION ALL
+  SELECT
+    *
+  FROM ${cur_schema}.TEMP_DIM_BRANCH_CONTACT
+  UNION ALL
+  SELECT
+    *
+  FROM ${cur_schema}.TEMP_DIM_CUSTOMER_CONTACT
+) AS T1 /* None */
+WHERE
+  1 = 1;

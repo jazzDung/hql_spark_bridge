@@ -24,11 +24,11 @@ params = set_parameter(spark)
 # Enable dynamic partition overwrites for history table
 spark.sql("SET spark.sql.sources.partitionOverwriteMode=dynamic")
 
-{% if pre_processing_sqls %}
+{% if source_processing_sqls %}
 # ─── PRE-PROCESSING (Temp tables logic from legacy script) ───────────────────
-{% for step_sql in pre_processing_sqls %}
+{% for step_sql in source_processing_sqls %}
 spark.sql(f"""
-{{ step_sql | indent(4) }}
+{{ step_sql | comment_formatting | indent(4) }}
 """)
 {% endfor %}
 {% endif %}
@@ -48,9 +48,16 @@ spark.sql(f"""
 """)
 
 # main_processing_sqls should include the WHERE DATE_FORMAT(record_updated_date, 'yyyyMMdd') = '{batch_date}' logic
+# ─── INSERT INTO CONSOLIDATED TABLE ────────────────────────────────────────────────────────
+
+{% if main_processing_sqls %}
+{% for main_sql in main_processing_sqls %}
 spark.sql(f"""
-{{ main_processing_sqls | indent(4) }}
+{{ main_sql  | comment_formatting  | indent(4) }}
 """)
+
+{% endfor %}
+{% endif %}
 
 # ─── UPDATED TABLE SETUP ─────────────────────────────────────────────────────
 spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_updated""")
@@ -79,7 +86,7 @@ spark.sql(f"""
         cur.dl_record_updated_date
     FROM {params["cur_schema"]}.{{ target_table_name }} cur
     WHERE
-        {% if partition_key %}cur.{{ partition_key }} = '{{ partition_value }}' AND {% endif %}
+        {% if partition_key %}cur.{{ partition_key }} = '{{ source_key_value }}' AND {% endif %}
         NOT EXISTS (
             SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_delta delta
             WHERE {% for k in primary_key %}{% if not loop.first %} AND {% endif %}delta.{{ k }} = cur.{{ k }}{% endfor %}
@@ -100,7 +107,7 @@ spark.sql(f"""
         current_timestamp() AS dl_record_updated_date
     FROM {params["com_schema"]}.temp_{{ target_table_name }}_delta delta
     LEFT JOIN {params["cur_schema"]}.{{ target_table_name }} cur
-        ON {% if partition_key %}cur.{{ partition_key }} = '{{ partition_value }}' AND {% endif %}{% for k in primary_key %}{% if not loop.first %} AND {% endif %}delta.{{ k }} = cur.{{ k }}{% endfor %}
+        ON {% if partition_key %}cur.{{ partition_key }} = '{{ source_key_value }}' AND {% endif %}{% for k in primary_key %}{% if not loop.first %} AND {% endif %}delta.{{ k }} = cur.{{ k }}{% endfor %}
 """)
 
 # ─── STEP 3: Insert previous state of changed records into History table ─────
@@ -115,11 +122,11 @@ spark.sql(f"""
         cur.dl_record_updated_date,
         '{batch_date}' AS etl_dt,
         current_timestamp() AS etl_timestamp
-        {% if partition_key %}, '{{ partition_value }}' AS {{ partition_key }}{% endif %}
+        {% if partition_key %}, '{{ source_key_value }}' AS {{ partition_key }}{% endif %}
         , DATE_FORMAT(current_timestamp(), 'yyyy') AS hist_year
     FROM {params["cur_schema"]}.{{ target_table_name }} cur
     WHERE
-        {% if partition_key %}cur.{{ partition_key }} = '{{ partition_value }}' AND {% endif %}
+        {% if partition_key %}cur.{{ partition_key }} = '{{ source_key_value }}' AND {% endif %}
         EXISTS (
             SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_delta delta
             WHERE {% for k in primary_key %}{% if not loop.first %} AND {% endif %}delta.{{ k }} = cur.{{ k }}{% endfor %}
@@ -128,7 +135,7 @@ spark.sql(f"""
 
 # ─── STEP 4: Overwrite CUR table ─────────────────────────────────────────────
 spark.sql(f"""
-    INSERT OVERWRITE TABLE {params["cur_schema"]}.{{ target_table_name }} {% if partition_key %}PARTITION ({{ partition_key }} = '{{ partition_value }}'){% endif %}
+    INSERT OVERWRITE TABLE {params["cur_schema"]}.{{ target_table_name }} {% if partition_key %}PARTITION ({{ partition_key }} = '{{ source_key_value }}'){% endif %}
     SELECT
         {% for col in original_columns %}
         {{ col.name }},
@@ -142,7 +149,7 @@ spark.sql(f"""
 """)
 
 spark.sql(f"""
-    ANALYZE TABLE {params["cur_schema"]}.{{ target_table_name }} {% if partition_key %}PARTITION ({{ partition_key }} = '{{ partition_value }}'){% endif %} COMPUTE STATISTICS
+    ANALYZE TABLE {params["cur_schema"]}.{{ target_table_name }} {% if partition_key %}PARTITION ({{ partition_key }} = '{{ source_key_value }}'){% endif %} COMPUTE STATISTICS
 """)
 
 spark.stop()

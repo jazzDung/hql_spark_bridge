@@ -1,15 +1,10 @@
+from typing import Dict, Any
 import yaml
 from sqlglot import exp
 from src.context.sql_conversion_context import SqlConversionContext, JinjaRenderModel
 from src.transformers.base_transformer import BaseSqlTransformer
 from src.paths import VARIABLE_CONFIG_PATH
-from src.transformers.utils import (
-    is_comment_only,
-    format_header_comments,
-    replace_variables_in_node,
-    replace_variables_in_strings,
-    refactor_ast_for_com_layer
-)
+from src.transformers.utils import *
 
 class CurSparkTransformer(BaseSqlTransformer):
     """
@@ -24,7 +19,7 @@ class CurSparkTransformer(BaseSqlTransformer):
         else:
             self.variable_mapping = variable_mapping
 
-    def transform(self, context: SqlConversionContext, dialect: str = 'pyspark') -> JinjaRenderModel:
+    def transform(self, pipeline_config: Dict[str, Any], context: SqlConversionContext, dialect: str = 'pyspark') -> JinjaRenderModel:
         transformed_queries = []
         is_partitioned = False
 
@@ -34,12 +29,28 @@ class CurSparkTransformer(BaseSqlTransformer):
         for node in context.ast_nodes:
             # =====================================================================
             # 2. Implement complex, custom AST manipulation logic here!
-            refactor_ast_for_com_layer(node, context)
+            node = remove_part_id_from_projections(node)
+            node = rename_remaining_identifiers_and_tables_for_cur(node)
+            node = replace_batch_date_reference_for_cur(node)
             # =====================================================================
 
+            # Special processing for main sql
+            if context.source_name == 'main':
+                target_table_name = pipeline_config["target_table_name"]
+
+                node = replace_table_identifier(node,
+                    "${cur_schema}", target_table_name,
+                    "${cur_schema}", f"temp_{target_table_name}_{context.source_name}_consolidated")
+
+                node = strip_partition_clauses(node)
+
             # 1. Reuse base utilities for variables (Can be removed/changed if you want completely different logic)
-            replace_variables_in_node(node, self.variable_mapping, dialect)
-            replace_variables_in_strings(node, self.variable_mapping, dialect)
+            node = replace_variables_in_node(node, self.variable_mapping, dialect)
+            node = replace_variables_in_strings(node, self.variable_mapping, dialect)
+            node = replace_variables_in_comments(node, self.variable_mapping, dialect)
+
+
+
 
             # 3. Partition check
             if isinstance(node, exp.Create) and node.args.get("properties"):
@@ -47,6 +58,7 @@ class CurSparkTransformer(BaseSqlTransformer):
                     if isinstance(prop, exp.PartitionedByProperty):
                         is_partitioned = True
                         break
+
             elif isinstance(node, exp.Insert):
                 if node.args.get("partition"):
                     is_partitioned = True

@@ -12,7 +12,7 @@ import os
 import sys
 sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
 from etl_common_function import run_etl, set_parameter
-from pyspark.sql.functions import current_timestamp, md5, concat_ws
+from pyspark.sql.functions import current_timestamp
 
 source_name = "{{ source_name }}"
 table_name  = "{{ base_table }}"

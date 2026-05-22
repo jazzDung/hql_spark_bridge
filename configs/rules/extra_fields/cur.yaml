@@ -17,7 +17,13 @@
   - name: etl_timestamp
     type: STRING
     comment: ETL processing timestamp
-
+  - name: source_name
+    type: varchar(10)
+    comment: Source Name
+  - name: source_key
+    type: varchar(50)
+    comment: Source Key
+    partition: True
 "2a":
   - name: dl_record_status
     type: VARCHAR(10)
@@ -34,6 +40,13 @@
   - name: etl_timestamp
     type: STRING
     comment: ETL processing timestamp
+  - name: source_name
+    type: varchar(10)
+    comment: Source Name
+  - name: source_key
+    type: varchar(50)
+    comment: Source Key
+    partition: True
 
 "2b":
   - name: dl_record_status
@@ -51,6 +64,13 @@
   - name: etl_timestamp
     type: STRING
     comment: ETL processing timestamp
+  - name: source_name
+    type: varchar(10)
+    comment: Source Name
+  - name: source_key
+    type: varchar(50)
+    comment: Source Key
+    partition: True
 
 "3a":
   - name: dl_record_status
@@ -68,6 +88,13 @@
   - name: etl_timestamp
     type: STRING
     comment: ETL processing timestamp
+  - name: source_name
+    type: varchar(10)
+    comment: Source Name
+  - name: source_key
+    type: varchar(50)
+    comment: Source Key
+    partition: True
 
 "3b":
   - name: dl_record_status
@@ -88,6 +115,13 @@
   - name: etl_timestamp
     type: STRING
     comment: ETL processing timestamp
+  - name: source_name
+    type: varchar(10)
+    comment: Source Name
+  - name: source_key
+    type: varchar(50)
+    comment: Source Key
+    partition: True
 
 "4":
   - name: dl_record_status
@@ -105,6 +139,13 @@
   - name: etl_timestamp
     type: STRING
     comment: ETL processing timestamp
+  - name: source_name
+    type: varchar(10)
+    comment: Source Name
+  - name: source_key
+    type: varchar(50)
+    comment: Source Key
+    partition: True
 
 "5a":
   - name: dl_record_status
@@ -122,6 +163,13 @@
   - name: etl_timestamp
     type: STRING
     comment: ETL processing timestamp
+  - name: source_name
+    type: varchar(10)
+    comment: Source Name
+  - name: source_key
+    type: varchar(50)
+    comment: Source Key
+    partition: True
 
 "5b":
   - name: dl_record_status
@@ -139,6 +187,13 @@
   - name: etl_timestamp
     type: STRING
     comment: ETL processing timestamp
+  - name: source_name
+    type: varchar(10)
+    comment: Source Name
+  - name: source_key
+    type: varchar(50)
+    comment: Source Key
+    partition: True
 
 "6":
   - name: dl_record_status
@@ -156,3 +211,10 @@
   - name: etl_timestamp
     type: STRING
     comment: ETL processing timestamp
+  - name: source_name
+    type: varchar(10)
+    comment: Source Name
+  - name: source_key
+    type: varchar(50)
+    comment: Source Key
+    partition: True

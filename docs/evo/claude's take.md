@@ -1136,12 +1136,12 @@ MAX_TOKENS_SQL_TRANSFORM = 2000
 # main.py — add to existing entry points
 
 def migrate(
-    input_sql: str,
-    source_rule: str,
-    output_dir: str = "output",
-    output_mode: str = "simple",    # "simple" | "complex"
-    ai_fallback: bool = False,      # enable AI for key detection + transform enrichment
-    dry_run: bool = False,          # print plan but don't write files
+        input_sql: str,
+        source_rule: str,
+        output_dir: str = "output",
+        output_mode: str = "simple",  # "simple" | "complex"
+        ai_fallback: bool = False,  # enable AI for key detection + transform enrichment
+        dry_run: bool = False,  # print plan but don't write files
 ):
     """
     Mode C: Migrate a legacy com_r_* HiveQL script to com_t_* PySpark.
@@ -1154,9 +1154,9 @@ def migrate(
         ai_fallback:  Use AI for key detection if rule-based fails
         dry_run:      Print what would be generated without writing files
     """
-    from src.migration.decomposer import SqlDecomposer, DecomposerWriter
-    from src.migration.metadata import MetadataProcessor
-    from src.migration.generator import PySparkGenerator
+    from migration.com.decomposer import ComSqlDecomposer, ComDecomposerWriter
+    from migration.com.metadata import ComMetadataProcessor
+    from migration.com.generator import ComPySparkGenerator
     from src.utils.source_rule_loader import load_source_rule
 
     source_rules = load_source_rule(source_rule)
@@ -1164,19 +1164,19 @@ def migrate(
     output_root = Path(output_dir)
 
     # Step 1: Decompose
-    decomposer = SqlDecomposer(source_rules)
+    decomposer = ComSqlDecomposer(source_rules)
     decomposed = decomposer.decompose(input_path)
     if not dry_run:
-        DecomposerWriter().write(decomposed, output_root / decomposed.pipeline_id)
+        ComDecomposerWriter().write(decomposed, output_root / decomposed.pipeline_id)
 
     # Step 2: Metadata
-    processor = MetadataProcessor(source_rules, ai_fallback=ai_fallback)
+    processor = ComMetadataProcessor(source_rules, ai_fallback=ai_fallback)
     pipeline_config = processor.process(decomposed, input_path, output_root)
     if not dry_run:
         processor.write_yaml(pipeline_config, output_root / decomposed.pipeline_id / "metadata")
 
     # Step 3: Generate
-    generator = PySparkGenerator(output_mode=output_mode)
+    generator = ComPySparkGenerator(output_mode=output_mode)
     generator.generate(pipeline_config, output_root / decomposed.pipeline_id)
 
     print(f"✓ Migration complete → {output_root / decomposed.pipeline_id}")

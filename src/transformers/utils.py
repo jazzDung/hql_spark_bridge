@@ -181,7 +181,7 @@ def remove_part_id_from_projections(expression: exp.Expression) -> exp.Expressio
     return expression.copy().transform(transformer)
 
 
-def rename_remaining_identifiers_and_tables(expression: exp.Expression) -> exp.Expression:
+def rename_remaining_identifiers_and_tables_for_com(expression: exp.Expression) -> exp.Expression:
     """
     Bước 2: Xử lý các node còn sót lại trong AST (lúc này part_id chỉ còn nằm ở
     JOIN, WHERE, PARTITION BY, ORDER BY...).
@@ -201,7 +201,7 @@ def rename_remaining_identifiers_and_tables(expression: exp.Expression) -> exp.E
 
         # LUẬT 2: Đổi part_id -> etl_dt
         if isinstance(node, exp.Identifier):
-            if node.name.lower() == "part_id":
+            if node.name.lower() in ("part_id", "etl_dt"):
                 new_node = node.copy()
                 new_node.set("this", "etl_dt")
                 return new_node
@@ -209,6 +209,85 @@ def rename_remaining_identifiers_and_tables(expression: exp.Expression) -> exp.E
         return node
 
     return expression.transform(transformer)
+
+
+def rename_remaining_identifiers_and_tables_for_cur(expression: exp.Expression) -> exp.Expression:
+    """
+    Bước 2: Xử lý các node còn sót lại trong AST (lúc này part_id chỉ còn nằm ở
+    JOIN, WHERE, PARTITION BY, ORDER BY...).
+    Đồng thời xử lý đổi tên bảng tiền tố r_.
+    """
+
+    def transformer(node):
+        # LUẬT 1: Đổi tên bảng r_
+        if isinstance(node, exp.Table):
+            table_name = node.name
+            if table_name and table_name.lower().startswith("r_"):
+                new_node = node.copy()
+                new_node.this.set("this", f"t_{table_name[2:]}")
+                new_db = exp.Parameter(this=exp.Var(this="com_schema"), expression=False)
+                new_node.set("db", new_db)
+                return new_node
+
+        return node
+
+    return expression.transform(transformer)
+
+
+def replace_batch_date_reference_for_cur(stmt: exp.Expression) -> exp.Expression:
+    """
+    Quét và biến đổi các cột etl_dt, part_id thành DATE_FORMAT({alias}.dl_record_updated_date, 'yyyyMMdd')
+    chỉ khi chúng nằm trong ngữ cảnh điều kiện truy vấn (WHERE, JOIN ON, HAVING).
+    """
+
+    def is_in_condition(node: exp.Expression) -> bool:
+        """
+        Hàm helper đi ngược từ Node lên gốc để xem nó có thuộc nhánh điều kiện không.
+        """
+        current = node
+        while current.parent:
+            parent = current.parent
+
+            # Bẫy DDL: Nếu đụng phải DDL thì chặn đứng ngay lập tức
+            if isinstance(parent, (exp.Create, exp.Drop, exp.Alter)):
+                return False
+
+            # Luật 1: Node đang đi lên từ nhánh '.this' của mệnh đề WHERE hoặc HAVING
+            if isinstance(parent, (exp.Where, exp.Having)) and parent.this is current:
+                return True
+
+            # Luật 2: Node đang đi lên từ nhánh '.args["on"]' của mệnh đề JOIN
+            if isinstance(parent, exp.Join) and parent.args.get("on") is current:
+                return True
+
+            current = parent
+
+        return False
+
+    def transformer(node):
+        # Chỉ can thiệp nếu là Cột và có tên mục tiêu
+        if isinstance(node, exp.Column) and node.name.lower() in ('etl_dt', 'part_id'):
+
+            if is_in_condition(node):
+                # 1. Lấy bí danh (alias) của bảng nếu có
+                table_alias = node.args.get("table")
+
+                # 2. Tạo cột mới: {alias}.dl_record_updated_date
+                new_col = exp.column("dl_record_updated_date", table=table_alias)
+
+                # 3. Bọc trong hàm DATE_FORMAT
+                # Sử dụng exp.Anonymous để buộc sqlglot xuất ra chính xác chuỗi "DATE_FORMAT"
+                # mà không bị phiên dịch (transpile) sang các hàm đặc thù của Dialect khác.
+                new_func = exp.Anonymous(
+                    this="DATE_FORMAT",
+                    expressions=[new_col, exp.Literal.string("yyyyMMdd")]
+                )
+                return new_func
+
+        return node
+
+    # Trả về AST mới sau khi đã transform bottom-up
+    return stmt.transform(transformer)
 
 
 def replace_table_identifier(

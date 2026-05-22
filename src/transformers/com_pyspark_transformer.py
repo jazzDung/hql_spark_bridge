@@ -32,7 +32,7 @@ class ComPySparkTransformer(BaseSqlTransformer):
             # =====================================================================
             # 2. Implement complex, custom AST manipulation logic here!
             node = remove_part_id_from_projections(node)
-            node = rename_remaining_identifiers_and_tables(node)
+            node = rename_remaining_identifiers_and_tables_for_com(node)
             # =====================================================================
 
             # Special processing for main sql

@@ -1,0 +1,169 @@
+[Select(
+   expressions=[
+     Alias(
+       this=DPipe(
+         this=Literal(this='MHBOS_', is_string=True),
+         expression=Column(
+           this=Identifier(this=CLIENT_NO, quoted=False),
+           table=Identifier(this=T1, quoted=False)),
+         safe=True),
+       alias=Identifier(this=OWNER_ID, quoted=False),
+       _comments=[
+         None]),
+     Alias(
+       this=Literal(this='ACCOUNT', is_string=True),
+       alias=Identifier(this=CONTACT_OWNER_TYPE, quoted=False),
+       _comments=[
+         None]),
+     Alias(
+       this=Literal(this='MOBILE', is_string=True),
+       alias=Identifier(this=CONTACT_TYPE, quoted=False),
+       _comments=[
+         None]),
+     Alias(
+       this=Column(
+         this=Identifier(this=MOBILE_NO, quoted=False),
+         table=Identifier(this=T1, quoted=False)),
+       alias=Identifier(this=CONTACT_VALUE, quoted=False),
+       _comments=[
+         None]),
+     Alias(
+       this=Null(),
+       alias=Identifier(this=CONTACT_NAME, quoted=False),
+       _comments=[
+         None]),
+     Alias(
+       this=Column(
+         this=Identifier(this=DATE_CREATED, quoted=False),
+         table=Identifier(this=T1, quoted=False)),
+       alias=Identifier(this=CONTACT_CREATE_DATE, quoted=False),
+       _comments=[
+         None]),
+     Alias(
+       this=Column(
+         this=Identifier(this=DATE_CHANGE, quoted=False),
+         table=Identifier(this=T1, quoted=False)),
+       alias=Identifier(this=CONTACT_UPDATE_DATE, quoted=False),
+       _comments=[
+         None]),
+     Alias(
+       this=Literal(this='EB', is_string=True),
+       alias=Identifier(this=LINE_OF_BUSINESS, quoted=False),
+       _comments=[
+         None]),
+     Alias(
+       this=Literal(this='MHBOS', is_string=True),
+       alias=Identifier(this=SOURCE_NAME, quoted=False),
+       _comments=[
+         None]),
+     Alias(
+       this=Column(
+         this=Identifier(this=CLIENT_NO, quoted=False),
+         table=Identifier(this=T1, quoted=False)),
+       alias=Identifier(this=SOURCE_RECORD_ID, quoted=False),
+       _comments=[
+         None]),
+     Alias(
+       this=Literal(this=1, is_string=False),
+       alias=Identifier(this=SEQUENCE_NO, quoted=False),
+       _comments=[
+         None])],
+   from_=From(
+     this=Table(
+       this=Identifier(this=T_MHBOS_M_CLIENT, quoted=False),
+       db=Parameter(
+         this=Var(this=com_schema),
+         expression=False),
+       alias=TableAlias(
+         this=Identifier(this=T1, quoted=False),
+         _comments=[
+           None]))),
+   joins=[
+     Join(
+       this=Table(
+         this=Identifier(this=T_MHBOS_M_CLIENT_EXT, quoted=False),
+         db=Parameter(
+           this=Var(this=com_schema),
+           expression=False),
+         alias=TableAlias(
+           this=Identifier(this=T2, quoted=False),
+           _comments=[
+             None])),
+       on=And(
+         this=And(
+           this=EQ(
+             this=TimeToStr(
+               this=TimeStrToTime(
+                 this=Column(
+                   this=Identifier(this=dl_record_updated_date, quoted=False),
+                   table=Identifier(this=T2, quoted=False))),
+               format=Literal(this='%Y%m%d', is_string=True)),
+             expression=Literal(this='{batch_date}', is_string=True)),
+           expression=EQ(
+             this=TimeToStr(
+               this=TimeStrToTime(
+                 this=Column(
+                   this=Identifier(this=dl_record_updated_date, quoted=False),
+                   table=Identifier(this=T2, quoted=False))),
+               format=Literal(this='%Y%m%d', is_string=True)),
+             expression=Literal(this='{last_date}', is_string=True))),
+         expression=EQ(
+           this=TimeToStr(
+             this=TimeStrToTime(
+               this=Column(
+                 this=Identifier(this=dl_record_updated_date, quoted=False),
+                 table=Identifier(this=T1, quoted=False))),
+             format=Literal(this='%Y%m%d', is_string=True)),
+           expression=TimeToStr(
+             this=TimeStrToTime(
+               this=Column(
+                 this=Identifier(this=dl_record_updated_date, quoted=False),
+                 table=Identifier(this=T2, quoted=False))),
+             format=Literal(this='%Y%m%d', is_string=True)))))],
+   where=Where(
+     this=And(
+       this=And(
+         this=And(
+           this=EQ(
+             this=TimeToStr(
+               this=TimeStrToTime(
+                 this=Column(
+                   this=Identifier(this=dl_record_updated_date, quoted=False),
+                   table=Identifier(this=T1, quoted=False))),
+               format=Literal(this='%Y%m%d', is_string=True)),
+             expression=Literal(this='{last_date}', is_string=True)),
+           expression=EQ(
+             this=TimeToStr(
+               this=TimeStrToTime(
+                 this=Column(
+                   this=Identifier(this=dl_record_updated_date, quoted=False),
+                   table=Identifier(this=T1, quoted=False))),
+               format=Literal(this='%Y%m%d', is_string=True)),
+             expression=Literal(this='{batch_date}', is_string=True))),
+         expression=EQ(
+           this=Column(
+             this=Identifier(this=test_date, quoted=False),
+             table=Identifier(this=T1, quoted=False)),
+           expression=Literal(this='${batch_date}', is_string=True))),
+       expression=In(
+         this=TimeToStr(
+           this=TimeStrToTime(
+             this=Column(
+               this=Identifier(this=dl_record_updated_date, quoted=False),
+               table=Identifier(this=T1, quoted=False))),
+           format=Literal(this='%Y%m%d', is_string=True)),
+         query=Subquery(
+           this=Select(
+             distinct=Distinct(),
+             expressions=[
+               TimeToStr(
+                 this=TimeStrToTime(
+                   this=Column(
+                     this=Identifier(this=dl_record_updated_date, quoted=False))),
+                 format=Literal(this='%Y%m%d', is_string=True))],
+             from_=From(
+               this=Table(
+                 this=Identifier(this=temp_table, quoted=False),
+                 db=Parameter(
+                   this=Var(this=com_schema),
+                   expression=False)))))))))]

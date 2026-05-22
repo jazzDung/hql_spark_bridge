@@ -1,0 +1,19 @@
+
+CREATE TABLE ${cur_schema}.TEMP_DIM_ACCOUNT_CONTACT (
+    OWNER_ID VARCHAR(50) -- None
+    ,CONTACT_OWNER_TYPE VARCHAR(20) -- None
+    ,CONTACT_TYPE VARCHAR(15) -- None
+    ,CONTACT_VALUE VARCHAR(150) -- None
+    ,CONTACT_NAME VARCHAR(100) -- None
+    ,CONTACT_CREATE_DATE DATE -- None
+    ,CONTACT_UPDATE_DATE DATE -- None
+    ,LINE_OF_BUSINESS VARCHAR(20) -- None
+    ,SOURCE_NAME VARCHAR(10) -- None
+    ,SOURCE_RECORD_ID VARCHAR(50) -- None
+    ,SEQUENCE_NO INT -- None
+)
+stored as parquet
+tblproperties(
+   'parquet.compression'='SNAPPY'
+    ,'external.table.purge'='true'
+);

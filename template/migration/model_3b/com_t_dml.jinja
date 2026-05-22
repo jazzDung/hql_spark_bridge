@@ -25,8 +25,33 @@ params = set_parameter(spark)
 # ─── PRE-PROCESSING (Temp tables logic from legacy script) ───────────────────
 {% for step_sql in pre_processing_sqls %}
 spark.sql(f"""
-{{ step_sql | indent(4) }}
+{{ step_sql  | comment_formatting | indent(4) }}
 """)
+
+{% endfor %}
+{% endif %}
+
+# ─── CONSOLIDATED TABLE SETUP ────────────────────────────────────────────────────────
+spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_consolidated""")
+
+spark.sql(f"""
+    CREATE TABLE {params["com_schema"]}.temp_{{ target_table_name }}_consolidated (
+        {% for col in original_columns %}
+        {{ ", " if not loop.first else "" }}{{ col.name }} {{ col.type }}
+        {% endfor %}
+    )
+    stored as parquet
+    tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
+""")
+
+# ─── INSERT INTO CONSOLIDATED TABLE ────────────────────────────────────────────────────────
+
+{% if main_processing_sqls %}
+{% for main_sql in main_processing_sqls %}
+spark.sql(f"""
+{{ main_sql  | comment_formatting  | indent(4) }}
+""")
+
 {% endfor %}
 {% endif %}
 
@@ -34,82 +59,69 @@ spark.sql(f"""
 spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_{{ target_table_name }}_updated""")
 
 spark.sql(f"""
-CREATE TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated (
-    {% for col in original_columns %}
-    {{ col.name }} {{ col.type }}{% if not loop.last %},{% endif %}
-
-    {% endfor %}
-    ,dl_record_status       VARCHAR(10)
-    ,dl_record_created_date TIMESTAMP
-    ,dl_record_updated_date TIMESTAMP
-)
-stored as parquet
-tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
+    CREATE TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated (
+        {% for col in original_columns %}
+        {{ ", " if not loop.first else "" }}{{ col.name }} {{ col.type }}
+        {% endfor %}
+        , dl_record_status       VARCHAR(10)
+        , dl_record_created_date TIMESTAMP
+        , dl_record_updated_date TIMESTAMP
+    )
+    stored as parquet
+    tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
 """)
 
 # ─── STEP 1: Keep unchanged records ──────────────────────────────────────────
 spark.sql(f"""
-INSERT INTO TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated
-SELECT
-    {% for col in original_columns %}
-    {{ col.name }}{% if not loop.last %},{% endif %}
-
-    {% endfor %}
-    ,'A' AS dl_record_status
-    ,dl_record_created_date
-    ,dl_record_updated_date
-FROM {params["com_schema"]}.{{ target_table_name }} com
-WHERE NOT EXISTS (
-    SELECT 1 FROM {params["raw_schema"]}.{{ source_name }}_{{ base_table }} r
-    WHERE r.etl_dt = '{batch_date}'
-      AND r.{{ key }} = com.{{ key }}
-)
+    INSERT INTO TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated
+    SELECT
+        {% for col in original_columns %}
+        {{ ", " if not loop.first else "" }}{{ col.name }}
+        {% endfor %}
+        , 'A' AS dl_record_status
+        , dl_record_created_date
+        , dl_record_updated_date
+    FROM {params["com_schema"]}.{{ target_table_name }} com_t
+    WHERE NOT EXISTS (
+        SELECT 1 FROM {params["com_schema"]}.temp_{{ target_table_name }}_consolidated r
+        WHERE {% for k in primary_key %}r.{{ k }} = com_t.{{ k }}{% if not loop.last %} AND {% endif %}{% endfor %}
+    )
 """)
 
 # ─── STEP 2: Upsert changed/new records ──────────────────────────────────────
 spark.sql(f"""
-INSERT INTO TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated
-SELECT
-    {% for col in original_columns %}
-    r.{{ col.name }}{% if not loop.last %},{% endif %}
-
-    {% endfor %}
-    ,'A' AS dl_record_status
-    ,CASE WHEN com.{{ key }} IS NOT NULL THEN com.dl_record_created_date
-          ELSE current_timestamp() END AS dl_record_created_date
-    ,current_timestamp() AS dl_record_updated_date
-FROM {params["raw_schema"]}.{{ source_name }}_{{ base_table }} r
-LEFT JOIN {params["com_schema"]}.{{ target_table_name }} com
-    ON r.{{ key }} = com.{{ key }}
-WHERE r.etl_dt = '{batch_date}'
-  AND (
-      com.{{ key }} IS NULL
-      {% for col in delta_columns %}
-      OR nvl(r.{{ col }}, '') <> nvl(com.{{ col }}, '')
-      {% endfor %}
-  )
+    INSERT INTO TABLE {params["com_schema"]}.temp_{{ target_table_name }}_updated
+    SELECT
+        {% for col in original_columns %}
+        {{ ", " if not loop.first else "" }}r.{{ col.name }}
+        {% endfor %}
+        , 'A' AS dl_record_status
+        , CASE
+            WHEN com_t.{{ primary_key[0] }} IS NOT NULL THEN com_t.dl_record_created_date
+            ELSE current_timestamp() END AS dl_record_created_date
+        , current_timestamp() AS dl_record_updated_date
+    FROM {params["com_schema"]}.temp_{{ target_table_name }}_consolidated r
+    LEFT JOIN {params["com_schema"]}.{{ target_table_name }} com_t
+        ON {% for k in primary_key %}r.{{ k }} = com_t.{{ k }}{% if not loop.last %} AND {% endif %}{% endfor %}
 """)
 
 # ─── STEP 3: Overwrite target table ──────────────────────────────────────────
 spark.sql(f"""
-INSERT OVERWRITE TABLE {params["com_schema"]}.{{ target_table_name }}
-SELECT
-    {% for col in original_columns %}
-    {{ col.name }}{% if not loop.last %},{% endif %}
-
-    {% endfor %}
-    ,dl_record_status
-    ,dl_record_created_date
-    ,dl_record_updated_date
-    ,md5(concat_ws('|'
-        {% for col in delta_columns %}
-        , nvl(cast({{ col }} AS STRING), '')
+    INSERT OVERWRITE TABLE {params["com_schema"]}.{{ target_table_name }}
+    SELECT
+        {% for col in original_columns %}
+        {{ ", " if not loop.first else "" }}{{ col.name }}
         {% endfor %}
-    )) AS hash_value
-    ,'{batch_date}'       AS etl_dt
-    ,current_timestamp()  AS etl_timestamp
-FROM {params["com_schema"]}.temp_{{ target_table_name }}_updated
+        , dl_record_status
+        , dl_record_created_date
+        , dl_record_updated_date
+        , '{batch_date}'       AS etl_dt
+        , current_timestamp()  AS etl_timestamp
+    FROM {params["com_schema"]}.temp_{{ target_table_name }}_updated
 """)
 
-spark.sql(f"""ANALYZE TABLE {params["com_schema"]}.{{ target_table_name }} COMPUTE STATISTICS""")
+spark.sql(f"""
+    ANALYZE TABLE {params["com_schema"]}.{{ target_table_name }} COMPUTE STATISTICS
+""")
+
 spark.stop()
