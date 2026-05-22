@@ -1,10 +1,10 @@
--- Purpose:    DDL/COM STATUS
+-- Purpose:    DDL/CUR STATUS
 -- Generated:  {{ generated_at }}
 -- Source:     {{ pipeline_id }}
 
-DROP TABLE IF EXISTS com.{{ target_table_name }};
+DROP TABLE IF EXISTS cur.{{ target_table_name }};
 
-CREATE TABLE com.{{ target_table_name }}(
+CREATE TABLE cur.{{ target_table_name }}(
     {% for col in columns if col.remark != "non_original_field" %}
     {{ ", " if not loop.first else "" }}{{ col.name }} {{ col.type }} comment ''
     {% endfor %}
@@ -12,6 +12,9 @@ CREATE TABLE com.{{ target_table_name }}(
     {% for field in extra_fields %}
     , {{ field.name }} {{ field.type }} comment '{{ field.comment }}'
     {% endfor %}
+)
+PARTITIONED BY (
+    source_key varchar(50)
 )
 comment ''
 stored as parquet

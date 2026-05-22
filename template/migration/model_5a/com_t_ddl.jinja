@@ -2,9 +2,9 @@
 -- Generated:  {{ generated_at }}
 -- Source:     {{ pipeline_id }}
 
-DROP TABLE IF EXISTS {{ com_schema }}.{{ target_table_name }};
+DROP TABLE IF EXISTS com.{{ target_table_name }};
 
-CREATE TABLE {{ com_schema }}.{{ target_table_name }}(
+CREATE TABLE com.{{ target_table_name }}(
     {% for col in columns if col.remark != "non_original_field" %}
     {{ ", " if not loop.first else "" }}{{ col.name }} {{ col.type }} comment ''
     {% endfor %}

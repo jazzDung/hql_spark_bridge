@@ -20,7 +20,7 @@ class DdlResolver:
         if extra_fields is None:
             # src/core/ddl_parser.py -> src/core -> src -> project_root
             com_path = PROJECT_ROOT / "configs" / "rules" / "extra_fields" / "com.yaml"
-            cur_path = PROJECT_ROOT / "configs" / "rules" / "extra_fields" / "com.yaml"
+            cur_path = PROJECT_ROOT / "configs" / "rules" / "extra_fields" / "cur.yaml"
 
             # 2. Load mapping configuration from YAML
             with open(com_path, 'r', encoding='utf-8') as f:
@@ -120,8 +120,8 @@ class DdlResolver:
             return "unknown.table", StructType([])
 
 
-    def enrich(self, pipeline_config: Dict[str, Any]) -> Dict[str, Any]:
-        model_type = str(pipeline_config.get("model_type", "3")).lower()
+    def enrich(self, pipeline_config: Dict[str, Any], model_type: str) -> Dict[str, Any]:
+        # model_type = str(pipeline_config.get("model_type", "3")).lower()
         
         # Lấy extra fields từ model mapping, ghi đè nếu source_rules có quy định riêng
         model_layer: str = str(pipeline_config.get('layer'))
@@ -144,5 +144,6 @@ class DdlResolver:
             "model_type": model_type,
             "target_table_name": pipeline_config["target_table_name"],
             "pipeline_id": pipeline_config["pipeline_id"],
-            "com_schema": "${com_schema}"
+            "com_schema": "${com_schema}",
+            "cur_schema": "${cur_schema}"
         }

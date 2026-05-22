@@ -104,16 +104,19 @@ class ComKeyDetector:
                     key_groups_counter[key_tuple] += 1
 
         # Format lại kết quả đầu ra, sắp xếp theo tần suất giảm dần (most_common)
-        key_tuple, count = key_groups_counter.most_common(1)[0]
-        return {
-            "logical_primary_key": list(key_tuple),
-            "frequency": count,
-            # Tự động nâng/hạ confidence dựa trên tần suất lặp lại
-            "confidence": "HIGH" if count > 1 else "MEDIUM",
-            "reasoning": f"Found ROW_NUMBER() PARTITION BY matching this exact group {count} times."
-        }
+        if key_groups_counter:
+            key_tuple, count = key_groups_counter.most_common(1)[0]
+            return {
+                "logical_primary_key": list(key_tuple),
+                "frequency": count,
+                # Tự động nâng/hạ confidence dựa trên tần suất lặp lại
+                "confidence": "HIGH" if count > 1 else "MEDIUM",
+                "reasoning": f"Found ROW_NUMBER() PARTITION BY matching this exact group {count} times."
+            }
+        else:
+            return None
 
-    def _detect_from_ddl(self, decomposed: ComDecomposedScript) -> Optional[dict]:
+    def _detect_from_ddl(self, decomposed: ComDecomposedScript, source_rules: dict) -> Optional[dict]:
         """
         Heuristic 3: DDL Explicit (Khai báo tường minh) - Độ tin cậy: HIGH
         Tìm node exp.PrimaryKeyColumnConstraint bên trong exp.ColumnDef của câu lệnh CREATE.
@@ -133,7 +136,7 @@ class ComKeyDetector:
                                     }
         return None
 
-    def _detect_from_join(self, decomposed: ComDecomposedScript) -> Optional[dict]:
+    def _detect_from_join(self, decomposed: ComDecomposedScript, source_rules: dict) -> Optional[dict]:
         """
         Heuristic 2: The Silver Clue (Trục Join) - Độ tin cậy: MEDIUM
         Tìm các cột được dùng làm điều kiện map giữa các bảng trong điều kiện ON.

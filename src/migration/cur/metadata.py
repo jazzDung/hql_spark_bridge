@@ -69,6 +69,8 @@ class CurMetadataProcessor:
         header_comments_file_path = output_root / decomposed.pipeline_id / "processing_steps" / "00_header_comments.sql"
 
         pipeline_config = {
+            "file_path": str(decomposed.file_path),
+            "ddl_source": str(ddl_path.as_posix()),
             "pipeline_id": decomposed.pipeline_id,
             "layer": "cur",  # Hardcode layer as cur
             "model_type": model_type,
@@ -87,8 +89,7 @@ class CurMetadataProcessor:
             "source_processing_steps": processing_steps,
             "temp_table_registry": {k: list(v) for k, v in decomposed.temp_table_registry.items()},
             "delta_columns": delta_columns,
-            "applied_source_rule": self.source_rules.get("source", "unknown"),
-            "ddl_source": str(ddl_path.as_posix())
+            "applied_source_rule": self.source_rules.get("source", "unknown")
         }
         return pipeline_config
 

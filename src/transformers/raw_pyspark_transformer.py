@@ -45,7 +45,7 @@ class RawPySparkTransformer(BaseSqlTransformer):
 
         rule_file_path = self.config_root / "rules" / "optimizations" / f"{context.source_name}.yaml"
         if not rule_file_path.exists():
-            print(f"Warning: No rule file found for {context.source_name}. Using default rule.")
+            # print(f"Warning: No rule file found for {context.source_name}. Using default rule.")
             rule_file_path = self.config_root / "rules" / "optimizations" / "default.yaml"
 
         with open(rule_file_path, 'r', encoding='utf-8') as f:
@@ -65,7 +65,7 @@ class RawPySparkTransformer(BaseSqlTransformer):
                 continue
 
             if is_rule_triggered(rule, node, context):
-                print(f"Rule {name} triggered for {type(node)}")
+                # print(f"Rule {name} triggered for {type(node)}")
                 action_type = rule.get("action", {}).get("type")
                 handler = action_handlers.get(action_type)
                 

@@ -301,7 +301,7 @@ class CurSqlDecomposer:
 
         # Quét toàn bộ AST để tìm mọi Alias
         for alias in stmt.find_all(exp.Alias):
-            if alias.alias.upper() == 'SOURCE_NAME':
+            if alias.alias.upper() in ('SOURCE_NAME', 'SOURCE_SYSTEM_ID'):
                 if isinstance(alias.this, exp.Literal):
                     detected_sources.add(alias.this.name.upper())
 

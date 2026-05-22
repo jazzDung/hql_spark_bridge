@@ -26,7 +26,7 @@ class CurKeyDetector:
             ("golden_clue_window", self._detect_from_window_function),
             ("ddl_explicit", self._detect_from_ddl),
             ("silver_clue_join", self._detect_from_join),
-            ("source_rule_override", self._detect_from_source_rule),
+            # ("source_rule_override", self._detect_from_source_rule),
         ]
 
         for strategy_name, strategy_fn in strategies:
@@ -104,16 +104,19 @@ class CurKeyDetector:
                     key_groups_counter[key_tuple] += 1
 
         # Format lại kết quả đầu ra, sắp xếp theo tần suất giảm dần (most_common)
-        key_tuple, count = key_groups_counter.most_common(1)[0]
-        return {
-            "logical_primary_key": list(key_tuple),
-            "frequency": count,
-            # Tự động nâng/hạ confidence dựa trên tần suất lặp lại
-            "confidence": "HIGH" if count > 1 else "MEDIUM",
-            "reasoning": f"Found ROW_NUMBER() PARTITION BY matching this exact group {count} times."
-        }
+        if key_groups_counter:
+            key_tuple, count = key_groups_counter.most_common(1)[0]
+            return {
+                "logical_primary_key": list(key_tuple),
+                "frequency": count,
+                # Tự động nâng/hạ confidence dựa trên tần suất lặp lại
+                "confidence": "HIGH" if count > 1 else "MEDIUM",
+                "reasoning": f"Found ROW_NUMBER() PARTITION BY matching this exact group {count} times."
+            }
+        else:
+            return None
 
-    def _detect_from_ddl(self, decomposed: CurDecomposedScript) -> Optional[dict]:
+    def _detect_from_ddl(self, decomposed: CurDecomposedScript, source_rules: dict) -> Optional[dict]:
         """
         Heuristic 3: DDL Explicit (Khai báo tường minh) - Độ tin cậy: HIGH
         Tìm node exp.PrimaryKeyColumnConstraint bên trong exp.ColumnDef của câu lệnh CREATE.
@@ -133,7 +136,7 @@ class CurKeyDetector:
                                     }
         return None
 
-    def _detect_from_join(self, decomposed: CurDecomposedScript) -> Optional[dict]:
+    def _detect_from_join(self, decomposed: CurDecomposedScript, source_rules: dict) -> Optional[dict]:
         """
         Heuristic 2: The Silver Clue (Trục Join) - Độ tin cậy: MEDIUM
         Tìm các cột được dùng làm điều kiện map giữa các bảng trong điều kiện ON.
@@ -178,29 +181,29 @@ class CurKeyDetector:
         
         return None
 
-    def _detect_from_source_rule(self, decomposed: CurDecomposedScript, source_rules: dict) -> Optional[dict]:
-
-        # Simple glob-like matching implementation (e.g. "*_cif_alias")
-        # For a full implementation, you would use `fnmatch`
-
-        base_table = decomposed.base_table
-        table_key_rules = source_rules.get("table_key_rules", [])
-        for rule in table_key_rules:
-            pattern = rule.get("pattern", "")
-            if pattern.startswith("*") and base_table.endswith(pattern[1:]):
-                return {
-                    "logical_primary_key": [rule.get("key")],
-                    "confidence": "LOW",
-                    "reasoning": "Can not find using pattern. Fallback to source's default"
-                }
-            elif pattern == base_table:
-                return {
-                    "logical_primary_key": [rule.get("key")],
-                    "confidence": "LOW",
-                    "reasoning": "Can not find using pattern. Fallback to source's default"
-                }
-
-        return None
+    # def _detect_from_source_rule(self, decomposed: CurDecomposedScript, source_rules: dict) -> Optional[dict]:
+    #
+    #     # Simple glob-like matching implementation (e.g. "*_cif_alias")
+    #     # For a full implementation, you would use `fnmatch`
+    #
+    #     base_table = decomposed.base_table
+    #     table_key_rules = source_rules.get("table_key_rules", [])
+    #     for rule in table_key_rules:
+    #         pattern = rule.get("pattern", "")
+    #         if pattern.startswith("*") and base_table.endswith(pattern[1:]):
+    #             return {
+    #                 "logical_primary_key": [rule.get("key")],
+    #                 "confidence": "LOW",
+    #                 "reasoning": "Can not find using pattern. Fallback to source's default"
+    #             }
+    #         elif pattern == base_table:
+    #             return {
+    #                 "logical_primary_key": [rule.get("key")],
+    #                 "confidence": "LOW",
+    #                 "reasoning": "Can not find using pattern. Fallback to source's default"
+    #             }
+    #
+    #     return None
 
     def _detect_via_ai(self, decomposed: CurDecomposedScript, columns: list[dict]) -> Optional[str]:
         """
