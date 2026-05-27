@@ -11,7 +11,6 @@ drop table if exists ${cur_schema}.dim_contact;
 
 create table ${cur_schema}.dim_contact(
     owner_id varchar(50) comment ''
-    ,contact_owner_type varchar(20) comment ''
     ,contact_type varchar(10) comment ''
     ,contact_value varchar(150) comment ''
     ,contact_name varchar(100) comment ''
@@ -29,6 +28,7 @@ create table ${cur_schema}.dim_contact(
 comment ''
 partitioned by (
     source_name varchar(10) comment ''
+    ,contact_owner_type varchar(20) comment ''
 )
 stored as parquet
 tblproperties(

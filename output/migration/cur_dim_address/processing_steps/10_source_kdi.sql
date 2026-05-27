@@ -1,0 +1,97 @@
+/* ==============[Group.1]============== */
+DROP TABLE IF EXISTS ${cur_schema}.TEMP_DIM_ACCOUNT_ADDRESS;
+
+CREATE TABLE ${cur_schema}.TEMP_DIM_ACCOUNT_ADDRESS (
+  OWNER_ID VARCHAR(50), /* None */
+  ADDRESS_OWNER_TYPE VARCHAR(20), /* None */
+  ADDRESS_TYPE VARCHAR(10), /* None */
+  ADDRESS_LINE_1 VARCHAR(100), /* None */
+  ADDRESS_LINE_2 VARCHAR(100), /* None */
+  ADDRESS_LINE_3 VARCHAR(100), /* None */
+  ADDRESS_LINE_4 VARCHAR(100), /* None */
+  CITY VARCHAR(255), /* None */
+  STATE VARCHAR(50), /* None */
+  POSTCODE VARCHAR(5), /* None */
+  COUNTRY VARCHAR(3), /* None */
+  ADDRESS_CREATE_DATE DATE, /* None */
+  ADDRESS_UPDATE_DATE DATE, /* None */
+  LINE_OF_BUSINESS VARCHAR(20), /* None */
+  SOURCE_NAME VARCHAR(10), /* None */
+  SOURCE_RECORD_ID VARCHAR(50) /* None */
+)
+STORED AS PARQUET
+TBLPROPERTIES (
+  'parquet.compression'='SNAPPY',
+  'external.table.purge'='true'
+);
+
+/* ==============[Group.16]============== */
+INSERT INTO ${cur_schema}.TEMP_DIM_ACCOUNT_ADDRESS (
+  OWNER_ID, /* None */
+  ADDRESS_OWNER_TYPE, /* None */
+  ADDRESS_TYPE, /* None */
+  ADDRESS_LINE_1, /* None */
+  ADDRESS_LINE_2, /* None */
+  ADDRESS_LINE_3, /* None */
+  ADDRESS_LINE_4, /* None */
+  CITY, /* None */
+  STATE, /* None */
+  POSTCODE, /* None */
+  COUNTRY, /* None */
+  ADDRESS_CREATE_DATE, /* None */
+  ADDRESS_UPDATE_DATE, /* None */
+  LINE_OF_BUSINESS, /* None */
+  SOURCE_NAME, /* None */
+  SOURCE_RECORD_ID /* None */
+)
+SELECT
+  'KDI_' || T1.CLIENT_ID AS OWNER_ID, /* None */
+  'ACCOUNT' AS ADDRESS_OWNER_TYPE, /* None */
+  T1.ADDRESS_TYPE AS ADDRESS_TYPE, /* None */
+  TRIM(T1.ADDRESS_LINE_1) AS ADDRESS_LINE_1, /* NONE */
+  TRIM(T1.ADDRESS_LINE_2) AS ADDRESS_LINE_2, /* NONE */
+  TRIM(T1.ADDRESS_LINE_3) AS ADDRESS_LINE_3, /* NONE */
+  TRIM(T1.ADDRESS_LINE_4) AS ADDRESS_LINE_4, /* NONE */
+  TRIM(T1.CITY) AS CITY, /* NONE */
+  CASE
+    WHEN COALESCE(T1.STATE, '') <> ''
+    THEN COALESCE(NULLIF(TRIM(T2.REFERENCE_VALUE_2), ''), TRIM(T1.STATE))
+    WHEN COALESCE(T1.STATE, '') = '' AND T1.COUNTRY <> 'MYS'
+    THEN 'NOT APPLICABLE'
+    ELSE NULL
+  END AS STATE, /* None */
+  T1.POSTCODE AS POSTCODE, /* None */
+  T1.country_code AS COUNTRY, /* None */
+  T1.Record_Created_Date AS ADDRESS_CREATE_DATE, /* None */
+  T1.Record_Updated_Date AS ADDRESS_UPDATE_DATE, /* None */
+  'UT' AS LINE_OF_BUSINESS, /* None */
+  'KDI' AS SOURCE_NAME, /* None */
+  T1.Client_ID AS SOURCE_RECORD_ID /* None */
+FROM ${com_schema}.T_KDI_CLIENTREPORT AS T1 /* None */
+LEFT JOIN (
+  SELECT DISTINCT
+    REFERENCE_VALUE,
+    REFERENCE_VALUE_2
+  FROM ${cur_schema}.REF_LOOKUP
+  WHERE
+    REFERENCE_TYPE = 'STATE'
+    AND SOURCE_NAME = 'KDI'
+    AND SOURCE_KEY = 'GENERAL_REFERENCE_LOOKUP'
+) AS T2
+  ON T1.STATE = T2.REFERENCE_VALUE
+WHERE
+  T1.ETL_DT = '${batch_date}'
+  AND (
+    TRIM(COALESCE(T1.ADDRESS_LINE_1, '')) <> ''
+    OR TRIM(COALESCE(T1.ADDRESS_LINE_2, '')) <> ''
+    OR TRIM(COALESCE(T1.ADDRESS_LINE_3, '')) <> ''
+    OR TRIM(COALESCE(T1.ADDRESS_LINE_4, '')) <> ''
+    OR TRIM(COALESCE(T1.CITY, '')) <> ''
+    OR TRIM(COALESCE(T2.REFERENCE_VALUE_2, '')) <> ''
+    OR TRIM(COALESCE(T1.postcode, '')) <> ''
+    OR TRIM(COALESCE(T1.COUNTRY, '')) <> ''
+  )
+  AND NOT T1.CLEAN_RULE_FLAG LIKE '%1%';
+
+/* Delete all temporary tables */
+DROP TABLE IF EXISTS ${cur_schema}.TEMP_DIM_ACCOUNT_ADDRESS;

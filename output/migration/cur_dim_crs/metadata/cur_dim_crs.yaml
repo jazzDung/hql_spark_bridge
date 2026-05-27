@@ -1,0 +1,159 @@
+file_path: C:\Users\ext_giadung\projects\datalake-script\dml\cur\cur_dim_crs.sql
+ddl_source: C:/Users/ext_giadung/projects/datalake-script/ddl/cur/cur_dim_crs.sql
+pipeline_id: cur_dim_crs
+layer: cur
+model_type: UNKNOWN
+target_table_name: DIM_CRS
+columns:
+- name: customer_id
+  type: VARCHAR(20)
+  remark: null
+- name: crs_entity_type
+  type: VARCHAR(2)
+  remark: null
+- name: name_of_controlling_person_1
+  type: VARCHAR(100)
+  remark: null
+- name: name_of_controlling_person_2
+  type: VARCHAR(100)
+  remark: null
+- name: crs_country
+  type: VARCHAR(2)
+  remark: null
+- name: crs_tax_residence
+  type: VARCHAR(2)
+  remark: null
+- name: taxpayer_identification_no_1
+  type: VARCHAR(20)
+  remark: null
+- name: taxpayer_identification_no_2
+  type: VARCHAR(20)
+  remark: null
+- name: tin_unavailable_reason
+  type: VARCHAR(2)
+  remark: null
+- name: tin_remarks
+  type: VARCHAR(200)
+  remark: null
+- name: source_name
+  type: VARCHAR(10)
+  remark: non_original_field
+- name: source_record_id
+  type: VARCHAR(20)
+  remark: null
+- name: etl_timestamp
+  type: STRING
+  remark: non_original_field
+- name: priority_level
+  type: INT
+  remark: null
+- name: source_update_date
+  type: TIMESTAMP
+  remark: null
+primary_key:
+  logical_primary_key:
+  - SOURCE_NAME
+  - CUSTOMER_ID
+  - CRS_COUNTRY
+  - TAXPAYER_IDENTIFICATION_NO_1
+  frequency: 1
+  confidence: MEDIUM
+  reasoning: Found ROW_NUMBER() PARTITION BY matching this exact group 1 times.
+partition_key:
+  logical_partition_key:
+  - source_key
+header_comments:
+  file: output/migration/cur_dim_crs/processing_steps/00_header_comments.sql
+main_processing:
+  file: output/migration/cur_dim_crs/processing_steps/99_main_dml.sql
+source_processing_steps:
+- source_id: UNKNOWN_SOURCE
+  file: output/migration/cur_dim_crs/processing_steps/88_unknown_blocks.sql
+  action: include
+  interacted_temp_tables: []
+- source_id: SMF
+  file: output/migration/cur_dim_crs/processing_steps/10_source_smf.sql
+  action: include
+  interacted_temp_tables:
+  - TEMP_DIM_CRS
+- source_id: TOMS
+  file: output/migration/cur_dim_crs/processing_steps/10_source_toms.sql
+  action: include
+  interacted_temp_tables:
+  - TEMP_DIM_CRS
+- source_id: MHBOS
+  file: output/migration/cur_dim_crs/processing_steps/10_source_mhbos.sql
+  action: include
+  interacted_temp_tables:
+  - TEMP_DIM_CRS
+- source_id: M21
+  file: output/migration/cur_dim_crs/processing_steps/10_source_m21.sql
+  action: include
+  interacted_temp_tables:
+  - TEMP_DIM_CRS
+- source_id: KDI
+  file: output/migration/cur_dim_crs/processing_steps/10_source_kdi.sql
+  action: include
+  interacted_temp_tables:
+  - TEMP_DIM_CRS
+- source_id: LMS
+  file: output/migration/cur_dim_crs/processing_steps/10_source_lms.sql
+  action: include
+  interacted_temp_tables:
+  - TEMP_DIM_CRS
+- source_id: SBL
+  file: output/migration/cur_dim_crs/processing_steps/10_source_sbl.sql
+  action: include
+  interacted_temp_tables:
+  - TEMP_DIM_CRS
+- source_id: SUNGL
+  file: output/migration/cur_dim_crs/processing_steps/10_source_sungl.sql
+  action: include
+  interacted_temp_tables:
+  - TEMP_DIM_CRS
+- source_id: GUAVA
+  file: output/migration/cur_dim_crs/processing_steps/10_source_guava.sql
+  action: include
+  interacted_temp_tables:
+  - TEMP_DIM_CRS
+- source_id: RAK
+  file: output/migration/cur_dim_crs/processing_steps/10_source_rak.sql
+  action: include
+  interacted_temp_tables:
+  - TEMP_DIM_CRS
+temp_table_registry:
+  MHBOS:
+  - TEMP_DIM_CRS
+  TOMS:
+  - TEMP_DIM_CRS
+  KDI:
+  - TEMP_DIM_CRS
+  SMF:
+  - TEMP_DIM_CRS
+  SBL:
+  - TEMP_DIM_CRS
+  LMS:
+  - TEMP_DIM_CRS
+  RAK:
+  - TEMP_DIM_CRS
+  GUAVA:
+  - TEMP_DIM_CRS
+  SUNGL:
+  - TEMP_DIM_CRS
+  M21:
+  - TEMP_DIM_CRS
+delta_columns:
+- customer_id
+- crs_entity_type
+- name_of_controlling_person_1
+- name_of_controlling_person_2
+- crs_country
+- crs_tax_residence
+- taxpayer_identification_no_1
+- taxpayer_identification_no_2
+- tin_unavailable_reason
+- tin_remarks
+- source_record_id
+- priority_level
+- source_update_date
+applied_source_rule: default

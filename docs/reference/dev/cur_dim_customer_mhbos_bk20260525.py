@@ -1,0 +1,536 @@
+import sys
+sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
+
+from etl_common_function import run_etl_cur, set_parameter
+
+source_name = "cur"
+table_name = "dim_customer"
+hive_table_name = source_name + "_" + table_name
+
+# spark session
+spark, today_date = run_etl_cur(source_name, table_name)
+#batch_date = today_date
+batch_date = "20260505"
+batch_date_yyyy = batch_date[:4]
+
+# set parameter, call parameter by params["<parameter name>"]
+params = set_parameter(spark)
+
+#print(batch_date)
+
+spark.sql(f"""DROP TABLE IF EXISTS {params["cur_schema"]}.temp_dim_customer_mhbos_delta""")
+spark.sql(f"""DROP TABLE IF EXISTS {params["cur_schema"]}.temp_dim_customer_mhbos_updated""")
+
+spark.sql(f"""
+create table if not exists {params["cur_schema"]}.temp_dim_customer_mhbos_delta(
+    CUSTOMER_ID STRING,
+    CUSTOMER_TYPE STRING,
+    CUSTOMER_TITLE STRING,
+    CUSTOMER_NAME STRING,
+    CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE STRING,
+    CUSTOMER_PRIMARY_IDENTIFICATION_NO STRING,
+    CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE DATE,
+    CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE STRING,
+    CUSTOMER_SECONDARY_IDENTIFICATION_NO STRING,
+    CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE DATE,
+    CUSTOMER_NATIONALITY STRING,
+    CUSTOMER_COUNTRY_OF_RESIDENCE STRING,
+    CUSTOMER_COUNTRY_OF_BIRTH STRING,
+    CUSTOMER_DATE_OF_BIRTH DATE,
+    CUSTOMER_BUMIPUTRA_STATUS STRING,
+    CUSTOMER_RACE STRING,
+    CUSTOMER_GENDER STRING,
+    CUSTOMER_MARITAL_STATUS STRING,
+    CUSTOMER_COMPANY_CONTACT_PERSON STRING,
+    CUSTOMER_COMPANY_OWNERSHIP STRING,
+    CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION STRING,
+    CUSTOMER_COMPANY_TYPE_OF_BUSINESS STRING,
+    CUSTOMER_COMPANY_DATE_OF_INCORPORATION DATE,
+    CUSTOMER_COMPANY_WEBSITE STRING,
+    CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION STRING,
+    PDPA_FLAG STRING,
+    CONNECTED_PARTY_FLAG STRING,
+    POLITICALLY_EXPOSED_PERSON_FLAG STRING,
+    CROSS_SELLING_CONSENT_FLAG STRING,
+    DCF_FLAG STRING,
+    MULTI_TRADING_ACCOUNT_FLAG STRING,
+    FATCA_FLAG STRING,
+    CRS_FLAG STRING,
+    CUSTOMER_COMPANY_PERSONNEL_DESIGNATION STRING,
+    CUSTOMER_RESIDENCY_STATUS STRING,
+    UPDATE_DATE TIMESTAMP,
+    AUTO_EINVOICE_INDICATOR STRING,
+    SST_REGISTRATION_NO STRING,
+    CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS STRING,
+    VULNERABLE_FLAG STRING
+    ,dl_record_status string
+    ,dl_record_created_date timestamp
+    ,dl_record_updated_date timestamp
+
+)STORED AS PARQUET
+""")
+
+
+spark.sql(f"""
+create table if not exists {params["cur_schema"]}.temp_dim_customer_mhbos_updated(
+    CUSTOMER_ID STRING,
+    CUSTOMER_TYPE STRING,
+    CUSTOMER_TITLE STRING,
+    CUSTOMER_NAME STRING,
+    CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE STRING,
+    CUSTOMER_PRIMARY_IDENTIFICATION_NO STRING,
+    CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE DATE,
+    CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE STRING,
+    CUSTOMER_SECONDARY_IDENTIFICATION_NO STRING,
+    CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE DATE,
+    CUSTOMER_NATIONALITY STRING,
+    CUSTOMER_COUNTRY_OF_RESIDENCE STRING,
+    CUSTOMER_COUNTRY_OF_BIRTH STRING,
+    CUSTOMER_DATE_OF_BIRTH DATE,
+    CUSTOMER_BUMIPUTRA_STATUS STRING,
+    CUSTOMER_RACE STRING,
+    CUSTOMER_GENDER STRING,
+    CUSTOMER_MARITAL_STATUS STRING,
+    CUSTOMER_COMPANY_CONTACT_PERSON STRING,
+    CUSTOMER_COMPANY_OWNERSHIP STRING,
+    CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION STRING,
+    CUSTOMER_COMPANY_TYPE_OF_BUSINESS STRING,
+    CUSTOMER_COMPANY_DATE_OF_INCORPORATION DATE,
+    CUSTOMER_COMPANY_WEBSITE STRING,
+    CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION STRING,
+    PDPA_FLAG STRING,
+    CONNECTED_PARTY_FLAG STRING,
+    POLITICALLY_EXPOSED_PERSON_FLAG STRING,
+    CROSS_SELLING_CONSENT_FLAG STRING,
+    DCF_FLAG STRING,
+    MULTI_TRADING_ACCOUNT_FLAG STRING,
+    FATCA_FLAG STRING,
+    CRS_FLAG STRING,
+    CUSTOMER_COMPANY_PERSONNEL_DESIGNATION STRING,
+    CUSTOMER_RESIDENCY_STATUS STRING,
+    UPDATE_DATE TIMESTAMP,
+    AUTO_EINVOICE_INDICATOR STRING,
+    SST_REGISTRATION_NO STRING,
+    CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS STRING,
+    VULNERABLE_FLAG STRING
+    ,dl_record_status string
+    ,dl_record_created_date timestamp
+    ,dl_record_updated_date timestamp
+    ,etl_dt string
+    ,etl_timetstamp timestamp
+
+)STORED AS PARQUET
+""")
+
+spark.sql(f"""
+INSERT INTO TABLE {params["cur_schema"]}.temp_dim_customer_mhbos_delta
+SELECT T1.CUST_ID AS CUSTOMER_ID -- None
+       ,(CASE WHEN T1.PRIMARY_IDENTIFICATION_TYPE IN ('1', '2', '3', '5') THEN 'INDIVIDUAL'
+              WHEN T1.PRIMARY_IDENTIFICATION_TYPE IN ('4', '6') THEN 'CORPORATE'
+              ELSE NULL
+          END) AS CUSTOMER_TYPE -- None
+       ,T1.TITLE AS CUSTOMER_TITLE -- None
+       ,(CASE WHEN T1.NOMS_IND = 'Y' THEN T1.PRINCIPAL_NAME ELSE T1.CUSTOMER_NAME END) AS CUSTOMER_NAME -- None
+       ,T1.PRIMARY_IDENTIFICATION_TYPE AS CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE -- None
+       ,(CASE WHEN TRIM(NVL(T1.PRIMARY_IDENTIFICATION_NO, '')) = '' THEN T4.BRN ELSE T1.PRIMARY_IDENTIFICATION_NO END) AS CUSTOMER_PRIMARY_IDENTIFICATION_NO -- None
+       ,T1.PRIMARY_ID_EXPIRY_DATE AS CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE -- None
+       ,T1.SECONDARY_IDENTIFICATION_TYPE AS CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE -- None
+       ,T1.SECONDARY_IDENTIFICATION_NO AS CUSTOMER_SECONDARY_IDENTIFICATION_NO -- None
+       ,T1.SECONDARY_ID_EXPIRY_DATE AS CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE -- None
+       ,T2.NATIONALITY AS CUSTOMER_NATIONALITY -- None
+       ,T1.RESI_CODE AS CUSTOMER_COUNTRY_OF_RESIDENCE -- None
+       ,NULL AS CUSTOMER_COUNTRY_OF_BIRTH -- None
+       ,T2.DATE_OF_BIRTH AS CUSTOMER_DATE_OF_BIRTH -- None
+       ,(CASE WHEN T2.BUMI_STATUS = '1' THEN 'Y' WHEN T2.BUMI_STATUS = '2' THEN 'N' ELSE NULL END) AS CUSTOMER_BUMIPUTRA_STATUS -- None
+       ,T1.RACE AS CUSTOMER_RACE -- None
+       ,T1.SEX AS CUSTOMER_GENDER -- None
+       ,T2.MARITAL_STATUS AS CUSTOMER_MARITAL_STATUS -- None
+       ,T1.CONTACT_PERSON AS CUSTOMER_COMPANY_CONTACT_PERSON -- None
+       ,T4.COMPANY_OWNERSHIP AS CUSTOMER_COMPANY_OWNERSHIP -- None
+       ,CASE WHEN T1.PRIMARY_IDENTIFICATION_TYPE IN ('4', '6') THEN T2.NATIONALITY 
+          ELSE NULL
+          END AS CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION -- 20251028
+       ,NULL AS CUSTOMER_COMPANY_TYPE_OF_BUSINESS -- None
+       -- ,T4.COMPANY_DATE_OF_INCORPORATION AS CUSTOMER_COMPANY_DATE_OF_INCORPORATION -- None
+       ,CASE 
+			 WHEN T1.PRIMARY_IDENTIFICATION_TYPE IN ('4', '6') 
+			 THEN T4.COMPANY_DATE_OF_INCORPORATION
+			 ELSE NULL
+		   END AS CUSTOMER_COMPANY_DATE_OF_INCORPORATION
+       ,T4.COMPANY_WEBSITE AS CUSTOMER_COMPANY_WEBSITE -- None
+       ,T4.TYPE_OF_ORGANIZATION AS CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION -- None
+       ,T5.DECLARATION_FLAG AS PDPA_FLAG -- None
+       ,T6.DECLARATION_FLAG AS CONNECTED_PARTY_FLAG -- None
+       ,T7.DECLARATION_FLAG AS POLITICALLY_EXPOSED_PERSON_FLAG -- None
+       ,T2.DISCLOSURE_OF_INFO AS CROSS_SELLING_CONSENT_FLAG -- None
+       ,T8.DECLARATION_FLAG AS DCF_FLAG -- None
+       ,T2.MTA_IND AS MULTI_TRADING_ACCOUNT_FLAG -- None
+       ,(CASE WHEN T9.CUSTOMER_ID IS NOT NULL THEN 'Y' ELSE 'N' END) AS FATCA_FLAG -- None
+       ,(CASE WHEN T3.CLIENT_NO IS NOT NULL THEN 'Y' ELSE 'N' END) AS CRS_FLAG -- None*/
+       ,T4.PERSONNEL_DESIGNATION AS CUSTOMER_COMPANY_PERSONNEL_DESIGNATION -- None
+       ,T2.RESIDENCY_STATUS AS CUSTOMER_RESIDENCY_STATUS -- None
+       ,GREATEST(
+  COALESCE(T1.DATE_CREATED, TIMESTAMP '1900-01-01 00:00:00'),
+  COALESCE(T1.DATE_CHANGE,  TIMESTAMP '1900-01-01 00:00:00')
+) AS UPDATE_DATE-- None
+	     ,T2.EINVOICE AS AUTO_EINVOICE_INDICATOR -- NONE
+	     ,T2.SST_NO AS SST_REGISTRATION_NO  -- NONE
+             ,NULL AS CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS
+       /*,T12.COUNTRY_CODE_CCRIS AS CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS*/
+       ,T11.DECLARATION_FLAG AS VULNERABLE_FLAG -- 20250715
+    , T1.dl_record_status 
+    , current_timestamp() AS dl_record_created_date 
+    , current_timestamp() AS dl_record_updated_date 
+
+  FROM {params["com_schema"]}.M_MHBOS_M_CLIENT AS T1 --None
+
+LEFT JOIN (
+    SELECT *
+    FROM (
+        SELECT *,
+               ROW_NUMBER() OVER (
+                   PARTITION BY CLIENT_NO 
+                   ORDER BY dl_record_updated_date DESC
+               ) AS rn
+        FROM {params["com_schema"]}.T_MHBOS_M_CLIENT_EXT
+    ) t
+    WHERE rn = 1
+) T2
+ON T1.CLIENT_NO = T2.CLIENT_NO
+
+
+  LEFT JOIN (SELECT DISTINCT CLIENT_NO
+               FROM {params["com_schema"]}.T_MHBOS_M_CLIENT_CRS) AS T3
+              /*WHERE ETL_DT = '{batch_date}') AS T3 --None*/
+    ON T1.CLIENT_NO = T3.CLIENT_NO
+  LEFT JOIN (SELECT A.ACCOUNTNO AS ACCOUNTNO
+                    ,D.ALIASVALUE AS BRN
+                    ,E.DOB AS COMPANY_DATE_OF_INCORPORATION
+                    ,F.FIELDVALUE AS COMPANY_WEBSITE
+                    ,G.FIELDVALUE AS COMPANY_OWNERSHIP
+                    ,H.FIELDVALUE AS TYPE_OF_BUSINESS
+                    ,I.FIELDVALUE AS TYPE_OF_ORGANIZATION
+                    ,J.FIELDVALUE AS PERSONNEL_DESIGNATION
+               FROM {params["com_schema"]}.T_K2_ACCOUNT A
+               LEFT JOIN {params["com_schema"]}.T_K2_CIF_ACCOUNT B
+                 ON A.ACCOUNTID = B.ACCOUNTID
+                AND B.RECSTATUS = 'AA'
+                AND B.ISPRIMARY = '1'
+                /*AND B.ETL_DT <= '{batch_date}'*/
+               LEFT JOIN (SELECT DISTINCT CIFID, ALIASVALUE
+                            FROM {params["com_schema"]}.T_K2_CIF_ALIAS 
+                           WHERE ALIASTYPE = 'BUSREGNO'
+                             AND LENGTH(ALIASVALUE) = 12 ) D
+                             /*AND ETL_DT > '{batch_date}') D*/
+                 ON B.CIFID = D.CIFID
+               LEFT JOIN {params["com_schema"]}.T_K2_CIF_EXT E
+                 ON B.CIFID = E.CIFID
+                AND E.RECSTATUS = 'AA'
+                /*AND E.ETL_DT > '{batch_date}'*/
+               LEFT JOIN (SELECT ROW_NUMBER() OVER(PARTITION BY REFERENCEID, REFERENCETYPE, RULEGROUPCODE, FIELDID, RECSTATUS ORDER BY EFFECTIVEFROM DESC) AS RN,
+                                 RV.*
+                            FROM {params["com_schema"]}.T_K2_RULE_VALUE RV
+                           WHERE REFERENCETYPE = 'ACCOUNT'
+                             AND RULEGROUPCODE = 'MHBOS'
+                             AND FIELDID = 'COMPWEB'
+                             AND RECSTATUS = 'AA') F
+                             /* AND ETL_DT > '{batch_date}') F */
+                 ON B.ACCOUNTID = F.REFERENCEID
+                AND F.RN = 1
+               LEFT JOIN (SELECT ROW_NUMBER() OVER(PARTITION BY REFERENCEID, REFERENCETYPE, RULEGROUPCODE, FIELDID, RECSTATUS ORDER BY EFFECTIVEFROM DESC) AS RN,
+                                 RV.*
+                            FROM {params["com_schema"]}.T_K2_RULE_VALUE RV
+                           WHERE REFERENCETYPE = 'CIF'
+                             AND RULEGROUPCODE = 'INSTITUTION'
+                             AND FIELDID = 'OWNERSHIP'
+                             AND RECSTATUS = 'AA') G
+                             /*AND ETL_DT > '{batch_date}') G*/
+                 ON B.CIFID = G.REFERENCEID
+                AND G.RN = 1
+               LEFT JOIN (SELECT ROW_NUMBER() OVER(PARTITION BY REFERENCEID, REFERENCETYPE, RULEGROUPCODE, FIELDID, RECSTATUS ORDER BY EFFECTIVEFROM DESC) AS RN,
+                                 RV.*
+                            FROM {params["com_schema"]}.T_K2_RULE_VALUE RV
+                           WHERE REFERENCETYPE = 'CIF'
+                             AND RULEGROUPCODE = 'EMPLOYMENT'
+                             AND FIELDID = 'BUSINESSTYPE'
+                             AND RECSTATUS = 'AA') H
+                             /* AND ETL_DT > '{batch_date}') H */
+                 ON B.CIFID = H.REFERENCEID
+                AND H.RN = 1
+               LEFT JOIN (SELECT ROW_NUMBER() OVER(PARTITION BY REFERENCEID, REFERENCETYPE, RULEGROUPCODE, FIELDID, RECSTATUS ORDER BY EFFECTIVEFROM DESC) AS RN,
+                                 RV.*
+                            FROM {params["com_schema"]}.T_K2_RULE_VALUE RV
+                           WHERE REFERENCETYPE = 'CIF'
+                             AND RULEGROUPCODE = 'CIF-INSTITUTION'
+                             AND FIELDID = 'ORIGANIZATIONTYPE'
+                             AND RECSTATUS = 'AA') I
+                             /* AND ETL_DT > '{batch_date}') I */
+                 ON B.CIFID = I.REFERENCEID
+                AND I.RN = 1
+                LEFT JOIN (SELECT ROW_NUMBER() OVER(PARTITION BY REFERENCEID, REFERENCETYPE, RULEGROUPCODE, FIELDID, RECSTATUS ORDER BY EFFECTIVEFROM DESC) AS RN,
+                                 RV.*
+                            FROM {params["com_schema"]}.T_K2_RULE_VALUE RV
+                           WHERE REFERENCETYPE = 'CIF'
+                             AND RULEGROUPCODE = 'EMPLOYMENT'
+                             AND FIELDID = 'OCCUPATION'
+                             AND RECSTATUS = 'AA') J
+                             /* AND ETL_DT > '{batch_date}') J */
+                 ON B.CIFID = J.REFERENCEID
+                AND J.RN = 1
+              WHERE A.RECSTATUS = 'AA') as T4
+                /* AND A.ETL_DT > '{batch_date}') AS T4 --None */
+             ON T1.CLIENT_NO = T4.ACCOUNTNO
+
+    LEFT JOIN (
+    SELECT *
+    FROM (
+        SELECT *,
+               ROW_NUMBER() OVER (PARTITION BY CUSTOMER_ID, DECLARATION_TYPE ORDER BY dl_record_updated_date DESC) rn
+        FROM {params["cur_schema"]}.DIM_DECLARATION
+        WHERE SOURCE_KEY = 'MHBOS'
+    ) t
+    WHERE rn = 1
+) T5
+ON T1.CUST_ID = T5.CUSTOMER_ID
+AND T5.DECLARATION_TYPE = 'PDPA'
+
+
+
+  LEFT JOIN (
+    SELECT *
+    FROM (
+        SELECT *,
+               ROW_NUMBER() OVER (PARTITION BY CUSTOMER_ID, DECLARATION_TYPE ORDER BY dl_record_updated_date DESC) rn
+        FROM {params["cur_schema"]}.DIM_DECLARATION
+        WHERE SOURCE_KEY = 'FRA'
+    ) t
+    WHERE rn = 1
+) T6
+ON T1.CUST_ID = T6.CUSTOMER_ID
+AND T6.DECLARATION_TYPE = 'CONNECTED_PARTY'
+
+
+LEFT JOIN (
+    SELECT *
+    FROM (
+        SELECT *,
+               ROW_NUMBER() OVER (PARTITION BY CUSTOMER_ID, DECLARATION_TYPE ORDER BY dl_record_updated_date DESC) rn
+        FROM {params["cur_schema"]}.DIM_DECLARATION
+        WHERE SOURCE_KEY = 'MHBOS'
+    ) t
+    WHERE rn = 1
+) T7
+ON T1.CUST_ID = T7.CUSTOMER_ID
+AND T7.DECLARATION_TYPE = 'POLITICALLY EXPOSED PERSON'
+
+
+LEFT JOIN (
+    SELECT *
+    FROM (
+        SELECT *,
+               ROW_NUMBER() OVER (PARTITION BY CUSTOMER_ID, DECLARATION_TYPE ORDER BY dl_record_updated_date DESC) rn
+        FROM {params["cur_schema"]}.DIM_DECLARATION
+        WHERE SOURCE_KEY = 'MHBOS'
+    ) t
+    WHERE rn = 1
+) T8
+ON T1.CUST_ID = T8.CUSTOMER_ID
+AND T8.DECLARATION_TYPE = 'DCF'
+
+LEFT JOIN (
+    SELECT *
+    FROM (
+        SELECT *,
+               ROW_NUMBER() OVER (PARTITION BY CUSTOMER_ID ORDER BY CUSTOMER_ID) rn
+        FROM {params["cur_schema"]}.DIM_FATCA
+        WHERE SOURCE_KEY = 'MHBOS'
+    ) t
+    WHERE rn = 1
+) T9
+ON T1.CUST_ID = T9.CUSTOMER_ID
+
+LEFT JOIN (
+    SELECT *
+    FROM (
+        SELECT *,
+               ROW_NUMBER() OVER (PARTITION BY CUSTOMER_ID, DECLARATION_TYPE ORDER BY dl_record_updated_date DESC) rn
+        FROM {params["cur_schema"]}.DIM_DECLARATION
+        WHERE SOURCE_KEY = 'MHBOS'
+    ) t
+    WHERE rn = 1
+) T11
+ON T1.CUST_ID = T11.CUSTOMER_ID
+AND T11.DECLARATION_TYPE = 'VULNERABLE'
+
+
+""")
+
+
+spark.sql(f"""
+INSERT INTO TABLE {params["cur_schema"]}.temp_dim_customer_mhbos_updated
+SELECT 
+    delta.CUSTOMER_ID,
+    delta.CUSTOMER_TYPE,
+    delta.CUSTOMER_TITLE,
+    delta.CUSTOMER_NAME,
+    delta.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE,
+    delta.CUSTOMER_PRIMARY_IDENTIFICATION_NO,
+    delta.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE,
+    delta.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE,
+    delta.CUSTOMER_SECONDARY_IDENTIFICATION_NO,
+    delta.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE,
+    delta.CUSTOMER_NATIONALITY,
+    delta.CUSTOMER_COUNTRY_OF_RESIDENCE,
+    delta.CUSTOMER_COUNTRY_OF_BIRTH,
+    delta.CUSTOMER_DATE_OF_BIRTH,
+    delta.CUSTOMER_BUMIPUTRA_STATUS,
+    delta.CUSTOMER_RACE,
+    delta.CUSTOMER_GENDER,
+    delta.CUSTOMER_MARITAL_STATUS,
+    delta.CUSTOMER_COMPANY_CONTACT_PERSON,
+    delta.CUSTOMER_COMPANY_OWNERSHIP,
+    delta.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION,
+    delta.CUSTOMER_COMPANY_TYPE_OF_BUSINESS,
+    delta.CUSTOMER_COMPANY_DATE_OF_INCORPORATION,
+    delta.CUSTOMER_COMPANY_WEBSITE,
+    delta.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION,
+    delta.PDPA_FLAG,
+    delta.CONNECTED_PARTY_FLAG,
+    delta.POLITICALLY_EXPOSED_PERSON_FLAG,
+    delta.CROSS_SELLING_CONSENT_FLAG,
+    delta.DCF_FLAG,
+    delta.MULTI_TRADING_ACCOUNT_FLAG,
+    delta.FATCA_FLAG,
+    delta.CRS_FLAG,
+    delta.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION,
+    delta.CUSTOMER_RESIDENCY_STATUS,
+    delta.UPDATE_DATE,
+    delta.AUTO_EINVOICE_INDICATOR,
+    delta.SST_REGISTRATION_NO,
+    delta.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS,
+    delta.VULNERABLE_FLAG,
+     delta.dl_record_status 
+    , IF(cur.CUSTOMER_ID IS NOT NULL, cur.dl_record_created_date, delta.dl_record_created_date) AS dl_record_created_date 
+    , delta.dl_record_created_date    
+    ,'{batch_date}'      AS etl_dt
+    ,current_timestamp() AS etl_timestamp
+
+FROM {params["cur_schema"]}.temp_dim_customer_mhbos_delta delta 
+LEFT JOIN {params["cur_schema"]}.dim_customer cur  
+    ON delta.CUSTOMER_ID  = cur.CUSTOMER_ID  
+""")
+
+spark.sql(f"""
+INSERT INTO TABLE {params["cur_schema"]}.temp_dim_customer_mhbos_updated
+SELECT 
+     cur.CUSTOMER_ID,
+     cur.CUSTOMER_TYPE,
+     cur.CUSTOMER_TITLE,
+     cur.CUSTOMER_NAME,
+     cur.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE,
+     cur.CUSTOMER_PRIMARY_IDENTIFICATION_NO,
+     cur.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE,
+     cur.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE,
+     cur.CUSTOMER_SECONDARY_IDENTIFICATION_NO,
+     cur.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE,
+     cur.CUSTOMER_NATIONALITY,
+     cur.CUSTOMER_COUNTRY_OF_RESIDENCE,
+     cur.CUSTOMER_COUNTRY_OF_BIRTH,
+     cur.CUSTOMER_DATE_OF_BIRTH,
+     cur.CUSTOMER_BUMIPUTRA_STATUS,
+     cur.CUSTOMER_RACE,
+     cur.CUSTOMER_GENDER,
+     cur.CUSTOMER_MARITAL_STATUS,
+     cur.CUSTOMER_COMPANY_CONTACT_PERSON,
+     cur.CUSTOMER_COMPANY_OWNERSHIP,
+     cur.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION,
+     cur.CUSTOMER_COMPANY_TYPE_OF_BUSINESS,
+     cur.CUSTOMER_COMPANY_DATE_OF_INCORPORATION,
+     cur.CUSTOMER_COMPANY_WEBSITE,
+     cur.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION,
+     cur.PDPA_FLAG,
+     cur.CONNECTED_PARTY_FLAG,
+     cur.POLITICALLY_EXPOSED_PERSON_FLAG,
+     cur.CROSS_SELLING_CONSENT_FLAG,
+     cur.DCF_FLAG,
+     cur.MULTI_TRADING_ACCOUNT_FLAG,
+     cur.FATCA_FLAG,
+     cur.CRS_FLAG,
+     cur.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION,
+     cur.CUSTOMER_RESIDENCY_STATUS,
+     cur.UPDATE_DATE,
+     cur.AUTO_EINVOICE_INDICATOR,
+     cur.SST_REGISTRATION_NO,
+     cur.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS,
+     cur.VULNERABLE_FLAG
+    , 'X' as dl_record_status 
+    , cur.dl_record_created_date 
+    , current_timestamp() as dl_record_created_date -- when hash_value is different, means record has changes
+    ,'{batch_date}'      AS etl_dt
+    ,current_timestamp() AS etl_timestamp
+FROM {params["cur_schema"]}.dim_customer cur   
+/*WHERE
+    NOT EXISTS 
+        (SELECT 1 FROM {params["cur_schema"]}.temp_dim_customer_mhbos_delta delta 
+        WHERE cur.CUSTOMER_ID AND delta.CUSTOMER_ID
+        )*/
+""")
+
+spark.sql(f"""
+/*==============[Group.4]==============*/	 
+INSERT INTO TABLE {params["cur_schema"]}.dim_customer
+SELECT
+CUSTOMER_ID,
+    CUSTOMER_TYPE,
+    CUSTOMER_TITLE,
+    CUSTOMER_NAME,
+    CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE,
+    CUSTOMER_PRIMARY_IDENTIFICATION_NO,
+    CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE,
+    CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE,
+    CUSTOMER_SECONDARY_IDENTIFICATION_NO,
+    CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE,
+    CUSTOMER_NATIONALITY,
+    CUSTOMER_COUNTRY_OF_RESIDENCE,
+    CUSTOMER_COUNTRY_OF_BIRTH,
+    CUSTOMER_DATE_OF_BIRTH,
+    CUSTOMER_BUMIPUTRA_STATUS,
+    CUSTOMER_RACE,
+    CUSTOMER_GENDER,
+    CUSTOMER_MARITAL_STATUS,
+    CUSTOMER_COMPANY_CONTACT_PERSON,
+    CUSTOMER_COMPANY_OWNERSHIP,
+    CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION,
+    CUSTOMER_COMPANY_TYPE_OF_BUSINESS,
+    CUSTOMER_COMPANY_DATE_OF_INCORPORATION,
+    CUSTOMER_COMPANY_WEBSITE,
+    CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION,
+    PDPA_FLAG,
+    CONNECTED_PARTY_FLAG,
+    POLITICALLY_EXPOSED_PERSON_FLAG,
+    CROSS_SELLING_CONSENT_FLAG,
+    DCF_FLAG,
+    MULTI_TRADING_ACCOUNT_FLAG,
+    FATCA_FLAG,
+    CRS_FLAG,
+    CUSTOMER_COMPANY_PERSONNEL_DESIGNATION,
+    CUSTOMER_RESIDENCY_STATUS,
+    UPDATE_DATE,
+    AUTO_EINVOICE_INDICATOR,
+    SST_REGISTRATION_NO,
+    CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS,
+    VULNERABLE_FLAG
+    , dl_record_status 
+    , dl_record_created_date 
+    , dl_record_created_date 
+    , '{batch_date}' as etl_dt
+    , current_timestamp() as etl_timestamp
+FROM {params["cur_schema"]}.temp_dim_customer_mhbos_updated
+""")
+
+
+
+spark.sql(f"""analyze table {params["cur_schema"]}.dim_customer COMPUTE STATISTICS""")
+
+# Stop Spark when done
+spark.stop()

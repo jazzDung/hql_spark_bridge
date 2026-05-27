@@ -1,0 +1,1157 @@
+,,,,Script Migration,,,,,,,,,Data Migration,,,,,,
+PIC,Developer Name,Source,Table/File Name,EXT,RAW,COM_T,COM_T Script Model,COM_M,COM_M Script Model,CUR,CUR Script Model,UNL,Criteria,Dependency,ETL Grouping,Development Sequence,New PIC,Environment,Remarks
+KIBB,,FRA Files,ConnectedParties_Data_yyyyMMdd.txt,/,/,/,Model 2A,,,,,,"RAW: N/A (it's full extraction)
+COM_T: COM_T where etl_dt = <last available date>",,irem-acc (mhbos); irem-cust(mhbos);einv-cust,irem-1a,KIBB,,
+KIBB,,GUAVA Files,EXTERNAL_BRANCH_COMPANY_yyyyMMdd.txt,/,/,/,Model 2A,/,"Follow COM_M in Model 3 (not need partition, keep only latest snapshot copy)",,,,"RAW: All (Prod, copy only files to MapR)
+COM_T: COM_T where etl_dt = <last available date>
+COM_M: COM_M where etl_dt = <last available date>",,irem-guava;einv-acc;einv-cust,irem-13,KIBB,,"Source provide all data from GUAVA, key column is SHORTNAME, might see duplicate records with all fields value same due to data sent at BRANCH level. "
+KIBB,,GUAVA Files,EXTERNAL_BRANCH_CONTACT_yyyyMMdd.txt,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-cust,einv-1a-1,KIBB,,"Source provide all data from GUAVA, key reference column is BRANCHNAME."
+KIBB,,GUAVA Files,EXTERNAL_BRANCH_yyyyMMdd.txt,/,/,/,"Model 2A
+Remarks: To get the branch related query from T_GUAVA_COMPANY script. ",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust,einv-1a-1,KIBB,,"Source provide all data from GUAVA, key column is BRANCHNAME."
+KIBB,,GUAVA Files,GUAVACUST_yyyymmdd.dat,/,/,/,"Model 3,
+Key: account_no",/,"Follow COM_M in Model 3 (not need partition, keep only latest snapshot copy)",,,,"RAW: All (Prod)
+COM_T: COM_T where etl_dt = <last available date>
+COM_M: COM_M where etl_dt = <last available date>",,einv-acc;einv-cust,einv-1a-1,KIBB,"DEV, UAT",Script not fully tested as test source file contains invalid data that causes records flagged as exception at COM_T layer
+KIBB,,GUAVA Files,GUAVATRX_INCyyyymmdd.dat,/,/,/,"Model 5B,
+Key: transaction_date
+Partition: YEAR_MONTH (transaction_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R",,einv-trx,einv-2a-1,KIBB,"DEV, UAT","Source: Cannot send records with same transaction date in different files
+Datalake: Not supporting historical data reload
+eInv: To get data from CUR based on record_created_date"
+KIBB,,GUAVA Files,GUAVATRX_EXPyyyymmdd.dat,/,/,/,"Model 5B,
+Key: transaction_date
+Partition: YEAR_MONTH (transaction_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R",,einv-trx,einv-2a-1,KIBB,"DEV, UAT","Source: Cannot send records with same transaction date in different files
+Datalake: Not supporting historical data reload
+eInv: To get data from CUR based on record_created_date"
+KIBB,,K2,ACCOUNT,/,/,/,"Model 3, 
+Key: accountid
+Partition: N/A",,,,,,"RAW: All (Prod)
+COM_T: COM_R where start_dt <= <today> and end_dt > <today>",,irem-acc;irem-cust;einv-acc;einv-cust,irem-1a,KIBB,,
+NTT,Aiqal,K2,ACCOUNT_OPENING_WEBFORM,/,/,/,"Model 1,
+Key: accountno",,,,,,"RAW: N/A (as it's full extraction)
+COM_T: COM_R where start_dt <= <today> and end_dt > <today>",,other,other-1a-1,NTT,,
+NTT,Aiqal,K2,BANK,/,/,/,"Model 1,
+Key: bankid",,,,,,N/A,,other,other-1a-1,NTT,,Not needed anymore
+NTT,Aiqal,K2,BANK_ACCOUNT,/,/,/,"Model 1,
+Key: bankaccountid",,,,,,N/A,,other,other-1a-1,NTT,,"Flow not scheduled in Prod.
+Not needed anymore"
+NTT,Aiqal,K2,CIF,/,/,/,"Model 1,
+Key: cifid",,,,,,N/A,,other,other-1a-1,NTT,,"Flow not setup in Prod.
+Not needed anymore"
+KIBB,,K2,CIF_ACCOUNT,/,/,/,"Model 3, 
+Key: accountid
+Partition: N/A",,,,,,"RAW: All (Prod)
+COM_T: COM_R where start_dt <= <today> and end_dt > <today>",,irem-acc;irem-cust;einv-acc;einv-cust,irem-1a,KIBB,,
+KIBB,,K2,CIF_ALIAS,/,/,/,"Model 3, 
+Key: cifaliasid
+Partition: N/A",,,,,,"RAW: All (Prod)
+COM_T: COM_R where start_dt <= <today> and end_dt > <today>",,irem-acc;irem-cust;einv-acc;einv-cust,irem-1a,KIBB,,
+KIBB,,K2,CIF_EXT,/,/,/,"Model 3, 
+Key: cifid
+Partition: N/A",,,,,,"RAW: All (Prod)
+COM_T: COM_R where start_dt <= <today> and end_dt > <today>",,irem-acc;irem-cust;einv-cust,irem-1a,KIBB,,
+NTT,Aiqal,K2,CODE_VALUE,/,/,/,Model 2A,,,,,,"RAW: N/A (as it's full extraction)
+COM_T: COM_R where etl_dt = <last available date>",,irem-acc-bank(mhbos),irem-2a,NTT,,Flow not scheduled in Prod
+KIBB,,K2,RULE_VALUE,/,/,/,"Model 3, 
+Key: ruleid
+Partition: N/A",,,,,,"RAW: All (Prod)
+COM_T: COM_R where start_dt <= <today> and end_dt > <today>",,irem-acc;irem-cust;einv-acc;einv-cust,irem-1a,KIBB,,
+KIBB,,KDI Files,KDI_CLIENTREPORT_YYYYMMDD.dat,/,/,/,Model 2A,/,"Follow COM_M in Model 3 (not need partition, keep only latest snapshot copy)",,,,"RAW: All
+COM_T: All
+COM_M: All",,einv-acc;einv-cust,einv-1a-2,KIBB,"DEV, UAT",
+KIBB,,KDI Files,"KDICUST_yyyyMMdd.txt 
+(replaced by KDI_CLIENTREPORT_yyyyMMdd.txt)",/,/,/,"Model 3, 
+Key: Account_No",/,"Follow COM_M in Model 3 (not need partition, keep only latest snapshot copy)",,,,"RAW: All (Prod)
+COM_T: COM_T where etl_dt = <last available date>
+COM_M: COM_M where etl_dt = <last available date>",,einv-acc;einv-cust,einv-1a-2,KIBB,,To be replaced by KDI_CLIENTREPORT
+KIBB,,KDI Files,KDITRX_yyyyMMdd.dat,/,/,/,"Model 5B,
+Key: transaction_date
+Partition: YEAR_MONTH (transaction_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R",,einv-trx,einv-2a-2,KIBB,,"Source: Cannot send records with same transaction date in different files
+Datalake: Not supporting historical data reload
+eInv: To get data from CUR based on record_created_date"
+NTT,Faisal,LMS,tbl_einvoicing_clientdata,/,/,/,"Model 3, 
+Key: account_number",/,"Follow COM_M in Model 3 (not need partition, keep only latest snapshot copy)",,,,"RAW: All (Prod only)
+COM_T: COM_T where etl_dt = <last available date>
+COM_M: COM_M where etl_dt = <last available date>",,einv-acc;einv-cust,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_einvoicing_transactiondata,/,/,/,"Model 5B,
+Key: transaction_date
+Partition: YEAR_MONTH (transaction_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R
+*If same transaction_date exists in multiple COM_R partition, select the one with latest etl_dt",,einv-trx,einv-2a-2,NTT,,"Source: Expect source to process same transaction date data at the same timing. 
+Datalake: Not supporting historical data reload
+eInv: To get data from CUR based on record_created_date"
+NTT,Faisal,LMS,tbl_Account,/,/,/,"Model 3, 
+Key: account_id",,,,,,"RAW: All (Prod)
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_AmortizationMethod,/,/,/,"Model 1,
+Key: amortization_method_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Aiqal,LMS,tbl_Bank,/,/,/,"Model 1,
+Key: bank_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",com.t_lmskibb2_tbl_counterparty,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Aiqal,LMS,tbl_BumiputeraStatus,/,/,/,"Model 1,
+Key: bumiputera_status_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",com.t_lmskibb2_tbl_counterparty,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Aiqal,LMS,tbl_BusinessCode,/,/,/,"Model 1,
+Key: business_code_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>","com.t_lmskibb2_tbl_counterparty, cur.ref_lookup",einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_CCRISCorporateStatus,/,/,/,"Model 1,
+Key: ccris_corporate_status_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Aiqal,LMS,tbl_CCRISEmploymentSector,/,/,/,"Model 1,
+Key: ccris_employment_sector_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>","com.t_lmskibb2_tbl_counterparty, cur.ref_lookup",einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Aiqal,LMS,tbl_CCRISEmploymentType,/,/,/,"Model 1,
+Key: ccris_employment_type_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>","com.t_lmskibb2_tbl_counterparty, cur.ref_lookup",einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_CCRISEntityType,/,/,/,"Model 1,
+Key: ccris_entity_type_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_CCRISIndustrialSector,/,/,/,"Model 1,
+Key: ccris_industrial_sector_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_CCRISOccupation,/,/,/,"Model 1,
+Key: ccris_occupation_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>","com.t_lmskibb2_tbl_counterparty, cur.ref_lookup",einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_CCRISPrincipalRepaymentTerm,/,/,/,"Model 1,
+Key: ccris_principal_repayment_term_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",com.t_lmskibb2_tbl_loantranche;cur.ref_lookup,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_CCRISRace,/,/,/,"Model 1,
+Key: race_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_CCRISResidencyStatus,/,/,/,"Model 1,
+Key: residency_status_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_CCRISState,/,/,/,"Model 1,
+Key: ccris_state_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_CIFAnnualIncome,/,/,/,"Model 1,
+Key: cif_annual_income_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_CIFNetWorth,/,/,/,"Model 1,
+Key: cif_net_worth_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_CompanyType,/,/,/,"Model 1,
+Key: company_type_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_counterparty,/,/,/,"Model 3
+Key: COUNTERPARTY_ID",/,"Follow COM_M in Model 3 (not need partition, keep only latest snapshot copy)",,,,"RAW: All (Prod only)
+COM_T: COM_T where etl_dt = <last available date>
+COM_M: COM_M where etl_dt = <last available date>",,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_CounterpartyChild2,/,/,/,"Model 6
+Key: Parent_Function_Record_Id 
+*get only top 1 record order by Record_Id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_CounterpartyClass,/,/,/,"Model 1,
+Key: counterparty_class_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_CounterpartyType,/,/,/,"Model 1,
+Key: counterparty_type_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_Country,/,/,/,"Model 1,
+Key: country_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_CountryOfResidentDeclaration,/,/,/,"Model 1,
+Key: country_of_resident_declaration_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_DayCountConvention,/,/,/,"Model 1,
+Key: day_count_convention_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_EInvoiceIndicator,/,/,/,"Model 1,
+Key: e_invoice_indicator_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_EmploymentStatus,/,/,/,"Model 1,
+Key: employment_status_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_entity,/,/,/,"Model 1,
+Key: entity_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_Facility,/,/,/,"Model 1,
+Key: facility_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_FacilityFacilityStatus,/,/,/,"Model 1,
+Key: account_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",com.t_lmskibb2_tbl_facility,einv-acc;einv-cust,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_FacilityStatus,/,/,/,"Model 1,
+Key: facility_status_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",com.t_lmskibb2_tbl_facility,einv-acc;einv-cust,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_FacilityType,/,/,/,"Model 1,
+Key: facility_type_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",com.t_lmskibb2_tbl_facility,einv-acc;einv-cust,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_HolidayDueDateHandling,/,/,/,"Model 1,
+Key: holiday_due_date_handling_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_IdentityType,/,/,/,"Model 1,
+Key: identity_type_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_InterestAnnuityMode,/,/,/,"Model 1,
+Key: interest_annuity_mode_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_loanpositioncache_new,/,/,/,"Model 4
+Key: loan_tranche_id, as_of_date
+Partition: year_month (as_of_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_T, select top 1 partition by LOAN_TRANCHE_ID, AS_OF_DATE order by etl_dt desc",,ailab-lms,ailab-1a,NTT,,
+NTT,Aiqal,LMS,tbl_loanstatus,/,/,/,"Model 1
+Key: loan_status_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,ailab-lms,ailab-1a,NTT,,
+NTT,Faisal,LMS,tbl_loantranche,/,/,/,"Model 3
+Key: loan_tranche_id",,,,,,"RAW: All (Prod)
+COM_T: COM_T where etl_dt = <last available date>",,ailab-lms,ailab-1a,NTT,,
+NTT,Faisal,LMS,tbl_loantranchechild2,/,/,/,"Model 6
+Key: parent_function_record_id",,,,,,"RAW: All (Prod)
+COM_T: COM_T where etl_dt = <last available date>",,ailab-lms,ailab-1a,NTT,,
+NTT,Aiqal,LMS,tbl_loantranchetype,/,/,/,"Model 1
+Key: loan_tranche_type_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,ailab-lms,ailab-1a,NTT,,
+NTT,Faisal,LMS,tbl_MaritalStatus,/,/,/,"Model 1,
+Key: marital_status_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_NextOfKinRelationship,/,/,/,"Model 1,
+Key: next_of_kin_relationship_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_Occupation,/,/,/,"Model 1,
+Key: occupation_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+NTT,Faisal,LMS,tbl_PaymentFrequency,/,/,/,"Model 1,
+Key: payment_frequency_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_PaymentScheduleType,/,/,/,"Model 1,
+Key: payment_schedule_type_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_ratetype,/,/,/,"Model 1,
+Key: rate_type_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_RecordStatus,/,/,/,"Model 1
+Key: record_status_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,ailab-lms,ailab-1a,NTT,,
+NTT,Faisal,LMS,tbl_ReferenceRateType,/,/,/,"Model 1,
+Key: reference_rate_type_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_Risk,/,/,/,"Model 1,
+Key: risk_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_Security,/,/,/,"Model 1,
+Key: security_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_TermType,/,/,/,"Model 1,
+Key: term_type_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-2,NTT,,
+NTT,Faisal,LMS,tbl_Title,/,/,/,"Model 1,
+Key: title_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust;ailab-lms,einv-1a-3,NTT,,
+KIBB,,M21,AccountExecutive,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust;einv-agent-profile,einv-1a-4,KIBB,,
+KIBB,,M21,AccountExecutiveAddress,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_R where etl_dt = <last available date>",,other,other-1a-3,KIBB,,
+KIBB,,M21,AEType,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_R where start_dt <= <today> and end_dt > <today>",,other,other-1a-3,KIBB,,
+KIBB,,M21,BankAccount,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_R where start_dt <= <today> and end_dt > <today>",,other,other-1a-3,KIBB,,
+KIBB,,M21,Branch,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_R where start_dt <= <today> and end_dt > <today>",,einv-acc;einv-agent-profile,einv-1a-4,KIBB,,
+KIBB,,M21,ClientType,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_R where start_dt <= <today> and end_dt > <today>",,other,other-1a-3,KIBB,,
+KIBB,,M21,Country,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_R where start_dt <= <today> and end_dt > <today>",,other,other-1a-3,KIBB,,
+KIBB,,M21,CountryState,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_R where start_dt <= <today> and end_dt > <today>",,other,other-1a-3,KIBB,,
+KIBB,,M21,Currency,/,/,/,Model 2A,,,,,,"RAW: All (Prod)
+COM_T: COM_R where start_dt <= <today> and end_dt > <today>",,einv-ref,einv-4,KIBB,,
+NTT,Faris,M21,Customer,/,/,/,"Model 3
+Key: code
+Partition: N/A",/,"Follow COM_M in Model 3 (not need partition, keep only latest snapshot copy)",,,,"RAW: All (Prod only)
+COM_T: COM_T where etl_dt = <last available date>
+COM_M: COM_M where etl_dt = <last available date>",,irem-acc-lob;einv-acc;einv-cust,irem-2a,NTT,,
+KIBB,,M21,NatureOfBusiness,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-3,KIBB,,
+KIBB,,M21,Occupation,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_R where start_dt <= <today> and end_dt > <today>",,other,other-1a-3,KIBB,,
+KIBB,,M21,Race,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_R where start_dt <= <today> and end_dt > <today>",,other,other-1a-3,KIBB,,
+NTT,Faris,M21,StatementReceipient,/,/,/,"Model 3
+Key: code",,,,,,"RAW: All (Prod only)
+COM_T: COM_T where etl_dt = <last available date>",,irem-acc-lob;einv-acc;einv-cust,irem-2a,NTT,,
+NTT,CK,M21 Files,M21_A_CUSTOMER_yyyyMMdd.txt,/,/,/,"Model 3
+Key: Account_No
+Partition: N/A",/,"Follow COM_M in Model 3 (not need partition, keep only latest snapshot copy)",,,,"RAW: All (Prod, copy only files to MapR)
+COM_T: COM_T where etl_dt = <last available date>
+COM_M: COM_M where etl_dt = <last available date>",,irem-acc-lob;einv-acc;einv-cust,irem-2a,NTT,,
+KIBB,,M21 Files,M21_A_TRX_yyyyMMdd.txt,/,/,/,"Model 5B,
+Key: transaction_date
+Partition: YEAR_MONTH (transaction_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R",,einv-trx,einv-2a-3,KIBB,,
+NTT,CK,M21 Files,M21_O_CUSTOMER_yyyyMMdd.txt,/,/,/,"Model 3
+Key: Account_No
+Partition: N/A",/,"Follow COM_M in Model 3 (not need partition, keep only latest snapshot copy)",,,,"RAW: All (Prod, copy only files to MapR)
+COM_T: COM_T where etl_dt = <last available date>
+COM_M: COM_M where etl_dt = <last available date>",,irem-acc-lob;einv-acc;einv-cust,irem-2a,NTT,,
+KIBB,,M21 Files,M21_O_TRX_yyyyMMdd.txt,/,/,/,"Model 5B,
+Key: transaction_date
+Partition: YEAR_MONTH (transaction_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R",,einv-trx,einv-2a-3,KIBB,,
+NTT,CK,MHBOS,a_m_client,/,/,/,"Model 5B
+Key: audit_date (YYYY-MM-DD HH)
+Partition: year_month (audit_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: all from COM_R",,other,other-1a-4,NTT,"DEV, UAT",
+NTT,CK,MHBOS,a_m_client_thirdparty,/,/,/,"Model 5B
+Key: audit_date (YYYY-MM-DD HH)
+Partition: YEAR_MONTH (audit_date in YYYYMMDD)",,,,,,"RAW: All (Prod only)
+COM_T: all from COM_R",,irem-acc-bank,irem-2a,NTT,,
+NTT,CK,MHBOS,ClientStockPrice (view),/,/,/,Model 2A,,,,,,"RAW: N/A (as it's full extraction)
+COM_T: COM_R where etl_dt = <last available date>",,irem-ledger;irem-stock-bal,irem-5a,NTT,,
+KIBB,,MHBOS,e_epayment_log,/,/,/,"Model 5B
+Key: sys_time in YYYY-MM-DD HH
+Partition: YEAR_MONTH (sys_time in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R ",,irem-trx,irem-8,KIBB,,
+NTT,CK,MHBOS,e_trust_withdrawal,/,/,/,"Model 5B
+Key: con_date in YYYY-MM-DD HH
+Partition: YEAR_MONTH (con_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R ",,irem-ledger,irem-5a,NTT,,
+KIBB,,MHBOS,m_3rd_party_pledgor,/,/,/,"Model 5B
+Key: Date_Created in YYYY-MM-DD
+Partition: YEAR_MONTH (Date_Created in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R ",,irem-pledgor,irem-9,KIBB,,
+NTT,Fatihah,MHBOS,m_bank,/,/,/,Model 2A,,,,,,"RAW: N/A (as it's full extraction)
+COM_T: COM_R where etl_dt = <last available date>",,irem-acc-bank,irem-2a,NTT,,
+NTT,Fatihah,MHBOS,m_bank_giro,/,/,/,Model 2A,,,,,,"RAW: N/A (as it's full extraction)
+COM_T: COM_R where etl_dt = <last available date>",,irem-ref; irem-bank-nrt;irem-acc-bank,irem-2a,NTT,,
+NTT,CK,MHBOS,m_branch,/,/,/,Model 2A,,,,,,"RAW: N/A (as it's full extraction)
+COM_T: COM_R where etl_dt = <last available date>",,irem-acc; irem-ledger; reim-cust;einv-acc;einv-cust;einv_ref;einv-agent-profile;irem-trx,irem-2a,NTT,,
+KIBB,,MHBOS,m_client,/,/,/,"Model 3, 
+Key: client_no
+Partition: N/A",/,"Follow COM_M in Model 3 (not need partition, keep only latest snapshot copy)",,,,"RAW: All (Prod only)
+COM_T: COM_T where etl_dt = <last available date>
+COM_M: COM_M where etl_dt = <last available date>",,irem-acc; irem-ref; irem-acc-con; irem-ledger;irem-acc-trader; irem-stock-bal;irem-crs; irem-cust;einv-acc;einv-cust;einv-trx;ailab-mhbos,irem-1a,KIBB,,
+NTT,CK,MHBOS,m_client_bank_account,/,/,,,,,,,,RAW: All (Prod),,irem-bank-nrt,irem-3,NTT,,Custom query for MHBOS bank account info
+KIBB,,MHBOS,m_client_crs,/,/,/,Model 2A,,,,,,"RAW: N/A (it's full extraction)
+COM_T: COM_R where etl_dt = <last available date>",,irem-acc; irem-crs;irem-cust;einv-acc;einv-cust,irem-1a,KIBB,,
+KIBB,,MHBOS,m_client_ext,/,/,/,"Model 3, 
+Key: client_no
+Partition: N/A",,,,,,"RAW: All (Prod)
+COM_T: COM_T where etl_dt = <last available date>",,irem-acc; irem-ledger;irem-acc-trader;irem-cust;einv-acc;einv-cust;ailab-mhbos,irem-1a,KIBB,,
+NTT,CK,MHBOS,m_client_thirdparty,/,/,/,"Model 3
+Key: thirdpartyid",,,,,,"RAW: all (Prod only)
+COM_T: select top 1 from COM_R partition by thirdpartyid order by etl_dt desc ",,irem-acc-rel;irem-acc-bank,irem-2a,NTT,,
+NTT,CK,MHBOS,m_control,/,/,/,"Model 3
+Key: Program_Id",,,,,,"RAW: All (Prod)
+COM_T: COM_R where etl_dt = <last available date>",,irem-ref; irem-ledger,irem-5a,NTT,,
+KIBB,syhmi,MHBOS,m_country,/,/,/,"Model 1
+Key: country_code",,,,,,"RAW: N/A (it's full extraction)
+COM_T: COM_R where etl_dt = <last available date>",cur.ref_country,irem-acc; irem-ref;irem-cust;einv-cust,irem-1a,KIBB,,
+KIBB,,MHBOS,m_exchange,/,/,/,"Model 1
+Key: exchange_code",,,,,,"RAW: N/A
+COM_T: COM_R where etl_dt = <last available date>",,irem-stock,irem-7,KIBB,,
+KIBB,,MHBOS,m_gl_group_code,/,/,/,"Model 1
+Key: group_code",,,,,,"RAW: N/A
+COM_T: COM_R where etl_dt = <last available date>",,irem-ref,irem-6a,KIBB,,
+KIBB,,MHBOS,m_holiday,/,/,/,"Model 5B
+Key: Date in YYYY
+Partition: YEAR (Date in YYYY)",,,,,,"RAW: N/A
+COM_T: all",,irem-ref,irem-6a,KIBB,,
+KIBB,,MHBOS,m_holiday_foreign,/,/,/,"Model 5B
+Key: Date in YYYY
+Partition: YEAR (Date in YYYY)",,,,,,"RAW: N/A
+COM_T: all",,irem-ref,irem-6a,KIBB,,
+NTT,CK,MHBOS,m_mcd_client_addr,/,/,/,"Model 3
+Key: client_no
+Partition: N/A",,,,,,"RAW: All (Prod only)
+COM_T: COM_T where etl_dt = <last available date>",,irem-acc;irem-acc-trader;einv-acc,irem-2a,NTT,,
+KIBB,,MHBOS,m_para,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_R where etl_dt = <last available date>",,irem-ref,irem-6a,KIBB,,
+NTT,CK,MHBOS,m_price_cap_client,/,/,/,Model 2A,,,,,,"RAW: All (Prod)
+COM_T: COM_R where etl_dt = <last available date>",,other,other-1a-4,NTT,,
+KIBB,,MHBOS,m_product_type,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_R where etl_dt = <last available date>",,irem-ref,irem-6a,KIBB,,
+NTT,CK,MHBOS,m_stock,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_R where etl_dt = <last available date>",,irem-ledger;irem-stock;einv-ref;einv-trx,irem-5a,NTT,,
+NTT,CK,MHBOS,m_trader,/,/,/,Model 2A,,,,,,"RAW: N/A (as it's full extraction)
+COM_T: COM_R where etl_dt = <last available date>",,irem-acc; irem-ledger;irem-acc-trader;irem-acc-trader-cpe;irem-stock-bal;einv-acc;einv-agent-profile;einv-trx,irem-2a,NTT,,
+NTT,CK,MHBOS,m_trader_cmsrl,/,/,/,Model 2A,,,,,,"RAW: N/A (as it's full extraction)
+COM_T: COM_R where etl_dt = <last available date>",,irem-acc-trader-assistant;irem-acc-trader-cpe;einv-acc;einv-agent-profile,irem-2a,NTT,,
+NTT,CK,MHBOS,t_bdt_dt,/,/,/,"Model 5B
+Key: date_created (YYYY-MM-DD HH)
+Partition: year_month (date_created in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: all from COM_R",,other,other-1a-4,NTT,,
+NTT,CK,MHBOS,t_bdt_hd,/,/,/,"Model 4
+Key: client_no, con_no, tran_date
+Partition: YEAR_MONTH (tran_date in YYYYMM)",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,irem-ledger,irem-5a,NTT,,
+NTT,CK,MHBOS,t_cashbook,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_R where etl_dt = <last available date>",,irem-ledger,irem-5a,NTT,,
+NTT,Aiqal,MHBOS,t_client_balance,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_R where etl_dt = <last available date>",,irem-ledger;irem-stock-bal; irem-eipo,irem-5a,NTT,,
+KIBB,,MHBOS,t_close_price,/,/,/,"Model 5B
+Key: Date in YYYY-MM-DD
+Partition: YEAR_MONTH (Date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R 
+*If same Date appears in different COM_R partition, choose the one with latest etl_dt partition",,irem-stock,irem-7,KIBB,,
+NTT,CK,MHBOS,t_contract,/,/,/,"Model 3
+Key: replace(con_no, chr(31), ''), client_no, con_date
+Selection logic when multiple records for same key: partition by replace(con_no, char(31), ''),client_no,con_date order by isnull(amend_date, '9999-12-31') desc, date_created desc
+Partition: N/A
+*Refer to DevOps story 7566 acceptance criteria",,,,,,"RAW: All (Prod only)
+COM_T: COM_T where etl_dt = <last available date>",,irem-acc-con;einv-trx;ailab-mhbos,irem-2a,NTT,,
+NTT,CK,MHBOS,t_ctr_hd,/,/,/,"Model 4
+Key: ctr_no, tran_date
+Partition: YEAR_MONTH (tran_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R partition by ctr_no + tran_date, get top 1 order by etl_dt desc",,einv-trx,einv-2a-4,NTT,,
+NTT,Aiqal,MHBOS,t_currency,/,/,/,"Model 5B
+Key: effective_date in YYYY-MM-DD
+Partition: YEAR_MONTH (effective_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R 
+*If same effective_date appears in different COM_R partition, choose the one with latest etl_dt partition",,irem-ref;einv-ref;irem-acc-agent,"irem-6a
+irem-2a","KIBB
+NTT",,
+NTT,CK,MHBOS,t_disposal_gain_loss,/,/,/,"Model 5B
+Key: rpt_seq_date (YYYY-MM-DD HH)
+Partition: year_month (rpt_seq_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: all from COM_R",,other,other-1a-4,NTT,"DEV, UAT",
+KIBB,,MHBOS,t_glled_dt,/,/,/,"Model 6
+Key: jnl_no, key_date
+Partition: YEAR_MONTH (key_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R 
+*If same jnl_no + key_date appears in different COM_R partition, choose the one with latest etl_dt partition",,irem-glled;einv-trx,irem-12,KIBB,,
+NTT,CK,MHBOS,t_glled_hd,/,/,/,"Model 4
+Key: jnl_no, jnl_date
+Partition: YEAR_MONTH (jnl_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R partition by jnl_no + jnl_date, get top 1 order by etl_dt desc",,einv-trx,einv-2a-4,NTT,,
+NTT,CK,MHBOS,t_ledger_dt,/,/,/,"Model 6
+Key: client_no, con_no, key_date
+Partition: YEAR_MONTH (key_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R",,einv-trx;ailab-mhbos,einv-2a-4,NTT,,
+NTT,CK,MHBOS,t_ledger_hd,/,/,/,"Model 4
+Key: client_no, con_no, tran_date
+Partition: YEAR_MONTH (tran_date in YYYYMM)",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,irem-ledger;irem-stock-bal;einv-trx;ailab-mhbos,irem-5a,NTT,,
+NTT,CK,MHBOS,t_payt_dt,/,/,/,"Model 6
+Key: pay_no, key_date
+Partition: YEAR_MONTH (key_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R ",,einv-trx,einv-2a-4,NTT,,
+NTT,CK,MHBOS,t_payt_hd,/,/,/,"Model 4
+Key: pay_no, tran_date
+Partition: YEAR_MONTH (tran_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R partition by pay_no + tran_date, get top 1 order by etl_dt desc",,einv-trx,einv-2a-4,NTT,,
+NTT,CK,MHBOS,t_rec_dta,/,/,/,"Model 6
+Key: rec_no, proc_date
+Partition: YEAR_MONTH (proc_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R ",,irem-ledger;einv-trx,irem-5a,NTT,,
+NTT,CK,MHBOS,t_rec_dtb,/,/,/,"Model 6
+Key: rec_no, proc_date
+Partition: YEAR_MONTH (proc_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R ",,irem-ledger;einv-trx,irem-5a,NTT,,
+NTT,CK,MHBOS,t_rec_hd,/,/,/,"Model 4
+Key: rec_no, proc_date
+Partition: YEAR_MONTH (proc_date in YYYYMM)",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,irem-ledger;einv-trx,irem-5a,NTT,,
+NTT,CK,MHBOS,t_setoff_dt,/,/,/,"Model 6
+Key: setoff_no, key_date
+Partition: YEAR_MONTH (key_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R ",,einv-trx,einv-2a-4,NTT,,
+NTT,CK,MHBOS,t_setoff_hd,/,/,/,"Model 4
+Key: setoff_no, tran_date
+Partition: YEAR_MONTH (tran_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R partition by setoff_no + tran_date, get top 1 order by etl_dt desc",,einv-trx,einv-2a-4,NTT,,
+NTT,CK,MHBOS,t_trust_acc,/,/,/,"Model 5B
+Key: date_created in YYYY-MM-DD HH
+Partition: YEAR_MONTH (date_created in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R ",,irem-ledger;ailab-mhbos,irem-5a,NTT,,
+NTT,Faris,MHBOS,tmp_bfe613,/,/,/,"Model 3
+Key: tdr_code",,,,,,"RAW: All (Prod)
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-4,NTT,,
+NTT,CK,MHBOS,tmp_bfe614,/,/,/,"Model 3
+Key: Account_Number
+Partition: N/A",,,,,,"RAW: All (Prod)
+COM_T: COM_T where etl_dt = <last available date>",,irem-acc; irem-ledger,irem-2a,NTT,,
+KIBB,,MHBOS,tmp_cft017,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,irem-dormant,irem-10,KIBB,,
+NTT,CK,MHBOS,tmp_perm_paytrans,/,/,/,"Model 5B
+Key: date_created (YYYY-MM-DD HH)
+Partition: year_month (date_created in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: all from COM_R",,other,other-1a-4,NTT,,
+NTT,Faris,MHBOS,tradercollateralsummary (view),/,/,/,Model 2A,,,,,,"RAW: All (Prod)
+COM_T: COM_R where start_dt <= <today> and end_dt > <today>",,other,other-1a-4,NTT,,
+NTT,CK,RAKUTEN,RAKCUST_yyyyMMdd.txt,/,/,/,"Model 3, 
+Key: Account_No",/,"Follow COM_M in Model 3 (not need partition, keep only latest snapshot copy)",,,,"RAW: All (Prod)
+COM_T: COM_T where etl_dt = <last available date>
+COM_M: COM_M where etl_dt = <last available date>",,einv-acc;einv-cust,einv-1a-5,NTT,,
+NTT,CK,RAKUTEN,RAKTRX_HK_yyyyMMdd.dat,/,/,/,"Model 5B,
+Key: transaction_date
+Partition: YEAR_MONTH (transaction_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R",,einv-trx,einv-2a-5,NTT,,
+NTT,CK,RAKUTEN,RAKTRX_MY_yyyyMMdd.dat,/,/,/,"Model 5B,
+Key: transaction_date
+Partition: YEAR_MONTH (transaction_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R",,einv-trx,einv-2a-5,NTT,,
+NTT,CK,RAKUTEN,RAKTRX_US_yyyyMMdd.dat,/,/,/,"Model 5B,
+Key: transaction_date
+Partition: YEAR_MONTH (transaction_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R",,einv-trx,einv-2a-5,NTT,,
+KIBB,,SBL,sbl_tbl_einvoicing_clientdata,/,/,/,"Model 3, 
+Key: account_number",/,"Follow COM_M in Model 3 (not need partition, keep only latest snapshot copy)",,,,"RAW: All (Prod only)
+COM_T: COM_T where etl_dt = <last available date>
+COM_M: COM_M where etl_dt = <last available date>",,einv-acc;einv-cust,einv-1a-6,KIBB,,
+KIBB,,SBL,sbl_tbl_einvoicing_transactiondata,/,/,/,"Model 5B,
+Key: transaction_date
+Partition: YEAR_MONTH (transaction_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R
+*If same transaction_date exists in multiple COM_R partition, select the one with latest etl_dt",,einv-trx,einv-2a-6,KIBB,,
+KIBB,,SBL,tbl_account,/,/,/,"Model 3
+Key: account_id",,,,,,"RAW: All (Prod)
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust,einv-1a-6,KIBB,,
+KIBB,,SBL,tbl_AccountStatus,/,/,/,"Model 1
+Key: account_status_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust,einv-1a-6,KIBB,,
+KIBB,,SBL,tbl_BUMIStatus,/,/,/,"Model 1
+Key: bumi_status_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust,einv-1a-6,KIBB,,
+NTT,Faris,SBL,tbl_CompanyType,/,/,/,"Model 1
+Key: company_type_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-5,NTT,,
+KIBB,,SBL,tbl_counterparty,/,/,/,"Model 3
+Key: COUNTERPARTY_ID",,,,,,"RAW: All (Prod)
+COM_T: COM_T where etl_dt = <last available date>",dim_account_cif,einv-acc;einv-cust,einv-1a-6,KIBB,,
+KIBB,,SBL,tbl_CounterpartyClass,/,/,/,"Model 1
+Key: counterparty_class_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-cust,einv-1a-6,KIBB,,
+KIBB,,SBL,tbl_Country,/,/,/,"Model 1
+Key: country_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-cust,einv-1a-6,KIBB,,
+NTT,Faris,SBL,tbl_CountryState,/,/,/,"Model 1
+Key: country_state_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-5,NTT,,
+NTT,Faris,SBL,tbl_DayCountConvention,/,/,/,"Model 1
+Key: country_state_id",,,,,,"RAW: N/A
+COM_T: All",,other,other-1a-5,NTT,,
+NTT,Faris,SBL,tbl_EmploymentSector,/,/,/,"Model 1
+Key: employment_sector_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-5,NTT,,
+NTT,Faris,SBL,tbl_EmploymentStatusType,/,/,/,"Model 1
+Key: employment_status_type_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-5,NTT,,
+NTT,Faris,SBL,tbl_InvestmentProfilingEstimatedNetWorth,/,/,/,"Model 1
+Key: investment_profiling_estimated_net_worth_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-5,NTT,,
+NTT,Faris,SBL,tbl_LoanModel,/,/,/,"Model 1
+Key: Loan_Model_Id",,,,,,"RAW: N/A
+COM_T: All",,other,other-1a-5,NTT,,
+NTT,Faris,SBL,tbl_LoanSide,/,/,/,"Model 1
+Key: Loan_Side_Id",,,,,,"RAW: N/A
+COM_T: All",,other,other-1a-5,NTT,,
+KIBB,,SBL,tbl_MaritalStatus,/,/,/,"Model 1
+Key: marital_status_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",dim_account_cif,einv-acc;einv-cust,einv-1a-6,KIBB,,
+KIBB,,SBL,tbl_Occupation,/,/,/,"Model 1
+Key: occupation_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",dim_account_cif,einv-acc;,einv-1a-6,KIBB,,
+NTT,Faris,SBL,tbl_PurposeOfSecurityBorrowing,/,/,/,"Model 1
+Key: Purpose_Of_Sec_Borrowing_Id",,,,,,"RAW: N/A
+COM_T: All",,other,other-1a-5,NTT,,
+KIBB,,SBL,tbl_Race,/,/,/,"Model 1
+Key: race_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",dim_account_cif,einv-acc;einv-cust,einv-1a-6,KIBB,,
+NTT,Faris,SBL,tbl_Remisier,/,/,/,"Model 1
+Key: Remisier_Id",,,,,,"RAW: N/A
+COM_T: All",,other,other-1a-5,NTT,,
+KIBB,,SBL,tbl_ResidencyStatus,/,/,/,"Model 1
+Key: residency_status_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-cust,einv-1a-6,KIBB,,
+NTT,Faris,SBL,tbl_SBLLoan,/,/,/,"Model 3
+Key: SBL_Loan_Id",,,,,,"RAW: All (Prod)
+COM_T: All ",,other,other-1a-5,NTT,,
+NTT,Faris,SBL,tbl_SBLLoanPosition,/,/,/,"Model 5B
+Key: as_of_date
+Partition: year_month (as_of_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All ",,other,other-1a-5,NTT,,
+NTT,Faris,SBL,tbl_Security,/,/,/,"Model 1
+Key: security_id",,,,,,"RAW: N/A
+COM_T: All",,other,other-1a-5,NTT,,
+NTT,Faris,SBL,tbl_TenureType,/,/,/,"Model 1
+Key: Tenure_Type_Id",,,,,,"RAW: N/A
+COM_T: All",,other,other-1a-5,NTT,,
+NTT,Faris,SBL,tbl_TermType,/,/,/,"Model 1
+Key: Term_Type_Id",,,,,,"RAW: N/A
+COM_T: All",,other,other-1a-5,NTT,,
+KIBB,,SBL,tbl_Title,/,/,/,"Model 1
+Key: title_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,einv-cust,einv-1a-6,KIBB,,
+KIBB,,SBL,tbl_TypeOfBusiness,/,/,/,"Model 1
+Key: type_of_business_id",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",dim_account_cif,einv-acc;einv-cust,einv-1a-6,KIBB,,
+NTT,CK,SMF,smf_tbl_einvoicing_clientdata,/,/,/,"Model 3
+Key: client_no
+Partition: N/A",,,,,,"RAW: All (Prod only)
+COM_T: COM_T where etl_dt = <last available date>",,irem-acc-fee,irem-2a,NTT,,"COM_M: Not following latest merging logic with update/insert to mapping table, so far result seems ok as if all SMF accounts found in MHBOS"
+NTT,CK,SMF,smf_tbl_einvoicing_transactiondata,/,/,/,"Model 5B,
+Key: transaction_date
+Partition: YEAR_MONTH (transaction_date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All from COM_R
+*If same transaction_date exists in multiple COM_R partition, select the one with latest etl_dt",,einv-trx,einv-2a-8,NTT,,
+KIBB,,SMF,tbl_Account,/,/,/,"Model 3
+Key: Account_Id",,,,,,"RAW: All (Prod)
+COM_T: COM_T where etl_dt = <last available date>",,ailab-dm,ailab-3a,KIBB,,
+KIBB,,SMF,tbl_PolicyType,/,/,/,"Model 1
+Key: policy_type_id",,,,,,"RAW: N/A
+COM_T: All",,ailab-dm,ailab-3a,KIBB,,
+KIBB,,SMF,tbl_Security,/,/,/,"Model 1
+Key: security_id",,,,,,"RAW: N/A
+COM_T: All",,ailab-dm,ailab-3a,KIBB,,
+KIBB,,SMF,tbl_V3_Cache_AccountMarginPosition,/,/,/,"Model 5b
+Key: as_of_date
+Partition: YEAR_MONTH (As_Of_Date in YYYYMM)",,,,,,"RAW: All (Prod)
+COM_T: All ",,ailab-dm,ailab-3a,KIBB,,
+KIBB,,TOMS,eAccountBalanceOpening,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_R where etl_dt = <last available date>",,other,other-1a-6,KIBB,,
+KIBB,,TOMS,eAgentDetails,/,/,/,"Model 3
+Key: agentcode",,,,,,"RAW: All (Prod only)
+COM_T: COM_T where etl_dt = <last available date>",,einv-acc;einv-agent-profile,einv-1a-7,KIBB,,
+KIBB,,TOMS,eAgentSB,/,/,/,"Model 5B
+Key: SyDt
+Partition: YEAR_MONTH (SyDt in YYYYMM)",,,,,,"RAW: All (Prod only)
+COM_T: All from COM_R",,einv-trx,einv-2a-7,KIBB,,
+KIBB,,TOMS,eAgentSB_IUTA,/,/,/,"Model 5B
+Key: SyDtU
+Partition: YEAR_MONTH (SyDtU in YYYYMM)",,,,,,"RAW: All (Prod only)
+COM_T: All from COM_R",,einv-trx,einv-2a-7,KIBB,,
+NTT,Aiqal,TOMS,eCorporate_Account,/,/,/,"Model 3
+Key: accountno
+Partition: N/A",,,,,,"RAW: All (Prod only)
+COM_T: COM_T where etl_dt = <last available date>",,irem-acc-lob;einv-acc;einv-cust,irem-2a,NTT,,
+KIBB,,TOMS,eCorporate_Benefi,/,/,/,Model 2A,,,,,,"RAW: N/A
+COM_T: COM_R where etl_dt = <last available date>",,other,other-1a-6,KIBB,,
+NTT,Aiqal,TOMS,eCorporate_CIF,/,/,/,"Model 3
+Key: busreg
+Partition: N/A",/,"Follow COM_M in Model 3 (not need partition, keep only latest snapshot copy)",,,,"RAW: All (Prod only)
+COM_T: COM_T where etl_dt = <last available date>
+COM_M: COM_M where etl_dt = <last available date>",,irem-acc-lob;einv-acc;einv-cust,irem-2a,NTT,,
+NTT,Aiqal,TOMS,eRetail_Account,/,/,/,"Model 3
+Key: accountno
+Partition: N/A",,,,,,"RAW: All (Prod only)
+COM_T: COM_T where etl_dt = <last available date>",,irem-acc-lob;einv-acc;einv-cust,irem-2a,NTT,,
+NTT,Aiqal,TOMS,eRetail_CIf,/,/,/,"Model 3
+Key: idref
+Partition: N/A",/,"Follow COM_M in Model 3 (not need partition, keep only latest snapshot copy)",,,,"RAW: All (Prod only)
+COM_T: COM_T where etl_dt = <last available date>
+COM_M: COM_M where etl_dt = <last available date>",,irem-acc-lob;einv-acc;einv-cust,irem-2a,NTT,,
+KIBB,,TOMS,eTransactions,/,/,/,"Model 5B
+Key: SyDtC
+Partition: yar_month (sydtc in YYYYMM)",,,,,,"RAW: All (Prod only)
+COM_T: All ",,other,other-1a-6,KIBB,,
+KIBB,,TOMS,mapfund,/,/,/,"Model 1
+Key: fundcode",,,,,,"RAW: N/A
+COM_T: COM_T where etl_dt = <last available date>",,other,other-1a-6,KIBB,,
+KIBB,,TOMS API,Agent List,/,/,/,"AgentDetails: Model 3
+RankHistory: Model 6
+Key: agtCd",,,,,,All,,einv-agent-profile;reach,einv-3,KIBB,"DEV, UAT",
+KIBB,,TOMS API,Agent Transaction,/,/,/,follow existing,,,,,,"RAW: All (Prod)
+COM_T: All",,reach,reach-1a,KIBB,"DEV, UAT",
+KIBB,,TOMS API,Asset Under Management Summary,/,/,/,follow existing,,,,,,"RAW: All (Prod)
+COM_T: All",,reach,reach-1a,KIBB,"DEV, UAT",
+KIBB,,TOMS API,Calendar Date,/,/,/,follow existing,,,,,,"RAW: All (Prod)
+COM_T: All",,reach,reach-1a,KIBB,"DEV, UAT",
+KIBB,,TOMS API,Currency Rate,/,/,/,follow existing,,,,,,"RAW: All (Prod)
+COM_T: All",,reach,reach-1a,KIBB,"DEV, UAT",
+KIBB,,TOMS API,Sales Fee,/,/,/,follow existing,,,,,,"RAW: All (Prod)
+COM_T: All",,reach,reach-1a,KIBB,"DEV, UAT",
+KIBB,,TOMS API,Fund Ledger,/,/,/,follow existing,,,,,,"RAW: All (Prod)
+COM_T: All",,reach,reach-1a,KIBB,"DEV, UAT",
+KIBB,,TOMS API,Fund Parameter,/,/,/,follow existing,,,,,,"RAW: All (Prod)
+COM_T: All",,reach,reach-1a,KIBB,"DEV, UAT",
+KIBB,,TOMS API,Investor List,/,/,/,follow existing,,,,,,"RAW: All (Prod)
+COM_T: All",,reach,reach-1a,KIBB,"DEV, UAT",
+KIBB,,TOMS API,Nav,/,/,/,follow existing,,,,,,"RAW: All (Prod)
+COM_T: All",,reach,reach-1a,KIBB,"DEV, UAT",
+KIBB,,TOMS API,Reference,/,/,/,follow existing,,,,,,"RAW: All (Prod)
+COM_T: All",,reach,reach-1a,KIBB,"DEV, UAT",
+KIBB,,Data Lake - COM,M_CUSTOMER_ID_MAPPING,,,,,,,,,,All,,"irem-acc, irem-acc-lob;irem-crs;irem-cust;einv-acc;einv-cust",irem-1a,KIBB,,"ACID table. 
+Data migration only. "
+KIBB,,Data Lake - COM,M_CUSTOMER_ID_MAPPING_H,,,,,,Partition: LOG_PERIOD (end_timestamp in YYYYMM),,,,"All, with partition",,,irem-1a,KIBB,,Data migration only. 
+KIBB,,Data Lake - COM,com_customer_type_patch,,,,,/,Follow existing script,,,,N/A,,other,other-9,KIBB,,
+NTT/KIBB (by source),CK,Data Lake - CUR,DIM_ACCOUNT,,,,,,,/,"Model 3
+Key: ACCOUNT_ID
+Partition: SOURCE_KEY (same value as source_name)",,"etl_dt = <last available date>
+*To partition the data according to column L partition value. ",,"irem-acc (mhbos), irem-acc-bank (mhbos); irem-ledger (mhbos); irem-acc-lob (m21, toms);irem-acc-agent (mhbos);einv-acc;ailab-dm;irem-trx",irem-2b,NTT/KIBB (by source),,
+NTT/KIBB (by source),CK,Data Lake - CUR,DIM_ACCOUNT_BANK,,,,,,,/,"Model 3
+Key: ACCOUNT_ID, BANK_ACCOUNT_TYPE, BANK_ACCOUNT_LOCALE
+Partition: SOURCE_KEY (same value as source_name, except for data from MHBOS m_client_thirdparty)
+- MHBOS m_client_thirdparty - hardcode source_key = 'MHBOS_THIRDPARTY'
+",,"Dataset for source_name = 'MHBOS' and BANK_ACCOUNT_TYPE = 'THIRDPARTY' = Suggest to do full load from COM_T, as source table also doing full extraction from source
+
+All except above dataset: etl_dt = <last available date>
+
+*To follow partition defined in column L",,irem-acc-bank (mhbos),irem-2b,NTT/KIBB (by source),,
+"NTT/KIBB
+(by source)",CK,Data Lake - CUR,DIM_ACCOUNT_CIF,,,,,,,/,"Model 3
+Key: ACCOUNT_ID
+Partition: Follow existing",,"All, with partition defined in column L",,einv-acc,einv-1b,"NTT/KIBB
+(by source)",,
+KIBB,,Data Lake - CUR,DIM_ACCOUNT_CIF_SNAPSHOT,,,,,,,/,follow existing script,,All,,other,other-1b,KIBB,,
+NTT,CK,Data Lake - CUR,DIM_ACCOUNT_FEE,,,,,,,/,"Model 3
+Key: ACCOUNT_ID, FEE_TYPE, SOURCE_NAME
+Hash value: FEE_RATE, FEE_PERIOD
+Partition: SOURCE_KEY = 'SMF'",,"etl_dt = <last available date>
+
+*To follow partition defined in column L",,irem-acc-fee,irem-2b,NTT,"DEV, UAT",
+NTT,CK,Data Lake - CUR,DIM_ACCOUNT_FEE_H,,,,,,,/,"Partition: LOG_PERIOD (etl_timestamp in YYYYMM)
+
+Log records when: 
+- hash value different in existing vs new (changed records)
+- records in existing but not in new for same ACCOUNT_ID, SOURCE_NAME (removed records)",,"All, with partition",,irem-acc-fee,irem-2b,NTT,,Script to be merged into main table script
+NTT,CK,Data Lake - CUR,DIM_ACCOUNT_RELATIONSHIP,,,,,,,/,"Model 3
+Key: SOURCE_NAME, source_record_id
+
+*source_record_id to map to com_t.mhbos_m_client_thirdparty.thirdpartyid",,"Suggest to do full load from COM_T, as source table also doing full extraction from source",,irem-acc-rel,irem-2b,NTT,,
+NTT,Aiqal,Data Lake - CUR,DIM_ACCOUNT_TRADE_BROKERAGE,,,,,,,/,"Model 3
+Key: account_id",,etl_dt = <last available date>,, irem-acc-brkg (mhbos),irem-2b,NTT,,
+NTT,CK,Data Lake - CUR,DIM_ACCOUNT_TRADE_MARKET,,,,,,,/,"Model 3
+Key: Customer_Id, TRADE_MARKET_TYPE
+Partition: Source_Key (same value as source_name)
+Hash value = TRADE_MARKET_FLAG + TRADE_MARKET_LIMIT ",,"etl_dt = <last available date>
+*To partition the data according to column L partition value. ",,irem-acc (mhbos);ailab-dm,irem-2b,NTT,,
+NTT,,Data Lake - CUR,DIM_ACCOUNT_TRADE_MARKET_H,,,,,,,/,"Partition: LOG_PERIOD (etl_timestamp in YYYYMM)
+
+Log records when: 
+- hash value different in existing vs new (changed records)
+- records in existing but not in new for same ACCOUNT_ID, SOURCE_NAME (removed records)",,"All, with partition",,irem-acc (mhbos);ailab-dm,irem-2b,NTT,,Script to be merged into main table script
+NTT,CK,Data Lake - CUR,DIM_ACCOUNT_TRADE_SETTING,,,,,,,/,"Model 3
+Key: Customer_Id, TRADE_SETTING_TYPE
+Partition: Source_Key (same value as source_name)
+Hash value = TRADE_SETTING_FLAG + TRADE_SETTING_VALUE_STRING + TRADE_SETTING_VALUE_INTEGER",,"etl_dt = <last available date>
+*To partition the data according to column L partition value. ",,irem-acc (mhbos); irem-acc-brkg (mhbos),irem-2b,NTT,,
+NTT,,Data Lake - CUR,DIM_ACCOUNT_TRADE_SETTING_H,,,,,,,/,"Partition: LOG_PERIOD (etl_timestamp in YYYYMM)
+
+Log records when: 
+- hash value different in existing vs new (changed records)
+- records in existing but not in new for same ACCOUNT_ID, SOURCE_NAME (removed records)",,"All, with partition",,irem-acc (mhbos); irem-acc-brkg (mhbos),irem-2b,NTT,,Script to be merged into main table script
+KIBB,,Data Lake - CUR,DIM_ADDRESS,,,,,,,/,"Model 3 (Delete and insert based on Keys - to handle if address removed in source)
+Key: Source_Key, Address_Owner_Type, Owner_Id
+Partition: Source_Key (source_name + address_owner_type)
+- CUSTOMER (address_owner_type = 'CUSTOMER', no need populate source_name, leave source_name as null)
+- GUAVA_ACCOUNT
+- KDI_ACCOUNT
+- LMS_ACCOUNT
+- M21_ACCOUNT
+- M21_AGENT
+- MHBOS_ACCOUNT
+- MHBOS_AGENT
+- MHBOS_AGENT_ASSISTANT
+- MHBOS_BRANCH
+- RAKUTEN_ACCOUNT
+- SBL_ACCOUNT
+- TOMS_ACCOUNT
+- TOMS_AGENT",,"etl_dt = <last available date>
+*To partition the data according to column L partition value. ",,irem-acc-trader (mhbos);irem-acc-trader-assistant (mhbos); irem-cust (mhbos);einv-cust;ailab-dm,irem-1b,KIBB,,
+NTT,Faris,Data Lake - CUR,DIM_AGENT,,,,,,,/,"Partition: SOURCE_KEY (source_name + AGENT_TYPE)
+Model by SOURCE_KEY: 
+- MHBOS_AGENT : Model 1
+- M21_AGENT : Model 1
+- TOMS_AGENT : Model 3
+- MHBOS_AGENT_ASSISTANT : Model 1
+Key: Agent_Id",,"etl_dt = <last available date>
+*To partition the data according to column L partition value. ",,irem-acc (mhbos); irem-acc-con (mhbos);irem-acc-agent (mhbos);irem-acc-agent-assistant (mhbos);einv-acc;einv-agent-profile;ailab-dm;irem-trx,irem-2b,NTT,,
+NTT,Fatihah,Data Lake - CUR,DIM_AGENT_FINANCIAL_MAPPING,,,,,,,/,Follow existing script,,ALL,,irem-acc-trader-profile,irem-2b,NTT,"DEV, UAT",
+NTT,Fatihah,Data Lake - CUR,DIM_AGENT_FINANCIAL_MAPPING_H,,,,,,,,"Partition: LOG_PERIOD (renamed from HIST_END_PERIOD)
+",,"All, with partition",,irem-acc-trader-profile,irem-2b,NTT,"DEV, UAT",
+NTT,Fatihah,Data Lake - CUR,DIM_AGENT_LICENCE,,,,,,,/,"Model 1
+Key: AGENT_ID
+Partition: source_key (same value as source_name)",,"etl_dt = <last available date>
+*To partition the data according to column L partition value. ",,irem-acc-agent-cpe (mhbos),irem-2b,NTT,,
+NTT,Faris,Data Lake - CUR,DIM_AGENT_TRADE_LIMIT,,,,,,,/,"Model 1
+Key: AGENT_ID",,etl_dt = <last available date>,,irem-acc-trader-profile,irem-2b,NTT,,
+NTT,Faris,Data Lake - CUR,DIM_AGENT_TRADE_MARKET,,,,,,,/,"Model 3
+Key: Agent_Id, TRADE_MARKET_TYPE
+Hash value = TRADE_MARKET_FLAG + TRADE_MARKET_LIMIT ",,etl_dt = <last available date>,,irem-acc-trader-profile,irem-2b,NTT,,
+NTT,Faris,Data Lake - CUR,DIM_AGENT_TRADE_MARKET_H,,,,,,,/,"Partition: LOG_PERIOD (etl_timestamp in YYYYMM)
+
+Log records when: 
+- hash value different in existing vs new (changed records)
+- records in existing but not in new for same AGENT_ID, SOURCE_NAME (removed records)",,"All, with partition",,irem-acc-trader-profile,irem-2b,NTT,,Script to be merged into main table script
+NTT,Faris,Data Lake - CUR,DIM_AGENT_TRADE_SETTING,,,,,,,/,"Model 3
+Key: AGENT_ID, TRADE_SETTING_TYPE
+Hash value = TRADE_SETTING_FLAG + TRADE_SETTING_VALUE_STRING + TRADE_SETTING_VALUE_INTEGER",,etl_dt = <last available date>,,irem-acc-trader-profile,irem-2b,NTT,,
+NTT,Faris,Data Lake - CUR,DIM_AGENT_TRADE_SETTING_H,,,,,,,/,"Partition: LOG_PERIOD (etl_timestamp in YYYYMM)
+
+Log records when: 
+- hash value different in existing vs new (changed records)
+- records in existing but not in new for same AGENT_ID, SOURCE_NAME (removed records)",,"All, with partition",,irem-acc-trader-profile,irem-2b,NTT,,Script to be merged into main table script
+NTT/KIBB (by source),Michael,Data Lake - CUR,DIM_BRANCH,,,,,,,/,"Model 1
+Key: Branch_Id
+Partition: source_key (same value as source_name)",,"etl_dt = <last available date>
+*To partition the data according to column L partition value. ",,irem-acc (mhbos); irem-ref; irem-glled (mhbos);irem-acc-trader;irem-acc-trader-assistant;irem-acc-trader-profile;einv-acc;einv-ref (mhbos);einv-agent-profile;ailab-dm;irem-trx,irem-2b,NTT/KIBB (by source),,
+KIBB,,Data Lake - CUR,DIM_BROKER,,,,,,,/,"Model 3
+Key: BROKER_ID
+hash value = BROKER_NAME + BROKER_STATUS + CLOSED_DATE",,etl_dt = <last available date>,,irem-ref,irem-6b,KIBB,,
+KIBB,,Data Lake - CUR,DIM_BROKER_H,,,,,,,/,"Partition: LOG_PERIOD (etl_timestamp in YYYYMM)
+
+Log records when: 
+- hash value different in existing vs new (changed records)
+- reocrds in previous snapshot but not in latest snapshot (removed records)",,"All, with partition",,irem-ref,irem-6b,KIBB,,Script to be merged into main table script
+NTT,Michael,Data Lake - CUR,DIM_CDS_ACCOUNT,,,,,,,/,Model 2A,,etl_dt = <last available date>,,irem-acc;irem-acc-trader,irem-2b,NTT,,
+KIBB,,Data Lake - CUR,DIM_CDS_DORMANT_ACCOUNT_NOTICE,,,,,,,/,Follow existing script,,All,,irem-dormant,irem-10,KIBB,,
+KIBB,,Data Lake - CUR,DIM_CDS_DORMANT_ACCOUNT_NOTICE_H,,,,,,,,Partition: LOG_PERIOD (etl_timestamp in YYYYMM),,"All, with partition",,irem-dormant,irem-10,KIBB,,
+KIBB,,Data Lake - CUR,DIM_CONNECTED_PARTY,,,,,,,/,Model 2A,,etl_dt = <last available date>,cur.dim_declaration,irem-acc (mhbos); irem-cust(mhbos);einv-cust,irem-1b,KIBB,,
+NTT/KIBB (by source),CK,Data Lake - CUR,DIM_CONTACT,,,,,,,/,"Model 3 (Delete and insert based on Keys - to handle if address removed in source)
+Key: Source_Key, Address_Owner_Type, Owner_Id
+Partition: Source_Key (source_name + address_owner_type)
+- CUSTOMER (address_owner_type = 'CUSTOMER', no need populate source_name, leave source_name as null)
+- GUAVA_ACCOUNT
+- KDI_ACCOUNT
+- LMS_ACCOUNT
+- M21_ACCOUNT
+- M21_AGENT
+- MHBOS_ACCOUNT
+- MHBOS_AGENT
+- MHBOS_AGENT_ASSISTANT
+- MHBOS_BRANCH
+- MUSASHI_ACCOUNT
+- SBL_ACCOUNT
+- TOMS_ACCOUNT
+- TOMS_AGENT",,"etl_dt = <last available date>
+*To partition the data according to column L partition value. ",,,irem-1b,NTT/KIBB (by source),,
+NTT/KIBB (by source),Michael,Data Lake - CUR,DIM_CRS,,,,,,,/,"Model 6 
+Model 1
+Key: Source_Name, Customer_Id, CRS_COUNTRY, TAXPAYER_IDENTIFICATION_NO_1
+Partition: source_key (same value as source_name)
+Hash value: CRS_ENTITY_TYPE+NAME_OF_CONTROLLING_PERSON_1+NAME_OF_CONTROLLING_PERSON_2+CRS_COUNTRY+CRS_TAX_RESIDENCE+TAXPAYER_IDENTIFICATION_NO_1+TAXPAYER_IDENTIFICATION_NO_2+TIN_UNAVAILABLE_REASON+TIN_REMARKS",,"etl_dt = <last available date>
+*To partition the data according to column L partition value. ",,irem-acc-lob (m21); irem-crs (mhbos);einv-cust,irem-2b,NTT/KIBB (by source),,CUR - Customer level by source system
+NTT,Michael,Data Lake - CUR,DIM_CRS_H,,,,,,,/,"Partition: LOG_PERIOD (etl_timestamp in YYYYMM)
+
+Log records when: 
+- hash value different in existing vs new (changed records)
+- reocrds in previous snapshot but not in latest snapshot (removed records)",,"All, with partition",,irem-acc-lob (m21); irem-crs (mhbos);einv-cust,irem-2b,NTT,,Script to be merged into main table script
+NTT/KIBB (by source),CK,Data Lake - CUR,DIM_CUSTOMER,,,,,,,/,"Model 1
+Key: Customer_Id
+
+*To split records with DL_Record_Status = 'X' into history table
+*To log outdated cur records into history table (dim_customer_h)",,etl_dt = <last available date>,,"irem-acc (mhbos); irem-acc-bank (mhbos); irem-acc-lob (m21, toms);irem-cust (mhbos);einv-cust;ailab-dm",irem-1b,NTT/KIBB (by source),,
+NTT,CK,Data Lake - CUR,DIM_CUSTOMER_CUSTOM,,,,,,,/,Model 2A,,tl_dt = <last available date>,,einv-cust,einv-1b,NTT,,Only for rakuten
+NTT/KIBB (by source),CK,Data Lake - CUR,DIM_CUSTOMER_EMPLOYMENT,,,,,,,/,"Model 3
+Key: Customer_Id
+Partition: Source_Key (same value as source_name)
+Hash value = CUSTOMER_EMPLOYER_NAME + CUSTOMER_EMPLOYER_INDUSTRY + CUSTOMER_EMPLOYER_TYPE + CUSTOMER_AMLA_OCCUPATION + CUSTOMER_CCRIS_OCCUPATION + CUSTOMER_EMPLOYER_TYPE_OF_BUSINESS",,"etl_dt = <last available date>
+*To partition the data according to column L partition value. ",,irem-cust(mhbos);ailab-dm,irem-1b,NTT/KIBB (by source),,CUR - Customer level by source system
+NTT/KIBB (by source),,Data Lake - CUR,DIM_CUSTOMER_EMPLOYMENT_H,,,,,,,/,"Partition: LOG_PERIOD (etl_timestamp in YYYYMM)
+
+Log records when: 
+- hash value different in existing vs new (changed records)
+- key in existing but not in new (removed records)",,"All, with partition",,irem-cust(mhbos);ailab-dm,irem-1b,NTT/KIBB (by source),,Script to be merged into main table script
+KIBB,,Data Lake - CUR,DIM_CUSTOMER_RETIREMENT,,,,,,,,,,N/A,,other,other-1b,KIBB,-,Yet to develop
+KIBB,,Data Lake - CUR,DIM_CUSTOMER_UNIT_TRUST,,,,,,,/,,,N/A,,other,other-1b,KIBB,,Not needed
+NTT/KIBB (by source),CK,Data Lake - CUR,DIM_DECLARATION,,,,,,,/,"Model 3
+Key: Customer_Id, DECLARATION_TYPE
+Partition: Source_Key (same value as source_name)
+Hash value = DECLARATION_FLAG + DECLARATION_VALUE_STRING + DECLARATION_VALUE_INTEGER",,"etl_dt = <last available date>
+*To partition the data according to column L partition value. ",cur.dim_customer,irem-acc (mhbos); irem-cust (mhbos),irem-1b,NTT/KIBB (by source),,CUR - Customer level by source system
+NTT/KIBB (by source),,Data Lake - CUR,DIM_DECLARATION_H,,,,,,,/,"Partition: LOG_PERIOD (etl_timestamp in YYYYMM)
+
+Log records when: 
+- hash value different in existing vs new (changed records)
+- key in existing but not in new (removed records)",,"All, with partition",,irem-acc (mhbos); irem-acc-lob (m21);irem-cust (mhbos);einv-cust,irem-1b,NTT/KIBB (by source),,Script to be merged into main table script
+NTT/KIBB (by source),CK,Data Lake - CUR,DIM_FATCA,,,,,,,/,"Model 3
+Key: Customer_Id
+Partition: Source_Key (same value as source_name)
+Hash value = FATCA_ACCOUNT_TYPE + FATCA_ACCOUNT_CLASSIFICATION + FATCA_ENTITY_TYPE + FATCA_US_TAX_PAYER_NO + FATCA_DOCUMENT_TYPE + FATCA_RECIEVED_DATE + FATCA_EXPIRY_DATE",,"etl_dt = <last available date>
+*To partition the data according to column L partition value. ",cur.dim_customer,irem-acc (mhbos);irem-cust(mhbos);einv-cust,irem-1b,NTT/KIBB (by source),,CUR - Customer level by source system
+NTT/KIBB (by source),,Data Lake - CUR,DIM_FATCA_H,,,,,,,/,"Partition: LOG_PERIOD (etl_timestamp in YYYYMM)
+
+Log records when: 
+- hash value different in existing vs new (changed records)
+- key in existing but not in new (removed records)",,"All, with partition",,irem-acc (mhbos);irem-cust(mhbos);einv-cust,irem-1b,NTT/KIBB (by source),,Script to be merged into main table script
+KIBB,,Data Lake - CUR,DIM_FUND,,,,,,,/,follow existing script,,All,,other,other-1b,KIBB,"DEV, UAT",
+KIBB,,Data Lake - CUR,DIM_FUND_H,,,,,,,,"Partition: LOG_PERIOD (renamed from END_PERIOD)
+",,"All, with partition",,other,other-1b,KIBB,"DEV, UAT",
+KIBB,,Data Lake - CUR,"DIM_GL_JOURNAL_HEADER
+*Rename to prefix FACT",,,,,,,/,follow existing script,,All,,other,other-1b,KIBB,,
+KIBB,,Data Lake - CUR,"DIM_GL_JOURNAL_HEADER_H
+*Rename to prefix FACT",,,,,,,/,"Partition: follow existing (rename END_PERIOD to LOG_PERIOD)
+",,"All, with partition",,other,other-1b,KIBB,,Propose rename table with prefix FACT
+KIBB,,Data Lake - CUR,DIM_INDICATORS,,,,,,,/,Follow existing script,,All,,einv-cust,einv-1b,KIBB,,
+KIBB,,Data Lake - CUR,DIM_INDICATORS_H,,,,,,,,Partition: LOG_PERIOD (end_timestamp in YYYYMM),,"All, with partition",,einv-cust,einv-1b,KIBB,,
+KIBB,,Data Lake - CUR,DIM_INTERNAL_BANK,,,,,,,/,Follow existing script,,All,,irem-ref,irem-6b,KIBB,,
+KIBB,,Data Lake - CUR,DIM_INTERNAL_BANK_H,,,,,,,,Partition: LOG_PERIOD (etl_timestamp in YYYYMM),,"All, with partition",,irem-ref,irem-6b,KIBB,,
+KIBB,,Data Lake - CUR,DIM_JOINT_ACCOUNT_HOLDER,,,,,,,/,"Model 6
+Key: account_id
+Partition: source_key",,"etl_dt = <last_available_date>, with partition defined in column L",,other,other-1b,KIBB,,
+KIBB,,Data Lake - CUR,DIM_MARGIN_THIRD_PARTY_PLEDGOR,,,,,,,/,"Model 5B
+Key: DATE_CREATED in YYYY-MM-DD",,All,,irem-pledgor,irem-9,KIBB,,
+KIBB,,Data Lake - CUR,DIM_NOMINEES_ACCOUNT,,,,,,,/,"Model 3
+Key: Account_Id",,N/A,,other,other-1b,KIBB,,"Job/flow not scheduled in Prod, and table not exist"
+NTT/KIBB (by source),CK,Data Lake - CUR,DIM_RISK_PROFILE,,,,,,,/,"Model 3
+Key: Customer_Id
+Partition: Source_Key (same value as source_name)
+Hash value = AMLATF_RISK + ESTIMATED_NETWORTH + ANNUAL_INCOME",,"etl_dt = <last available date>
+*To partition the data according to column L partition value. ",,irem-cust (mhbos);ailab-dm,irem-1b,NTT/KIBB (by source),,CUR - Customer level by source system
+NTT/KIBB (by source),,Data Lake - CUR,DIM_RISK_PROFILE_H,,,,,,,/,"Partition: LOG_PERIOD (etl_timestamp in YYYYMM)
+
+Log records when: 
+- hash value different in existing vs new (changed records)
+- key in existing but not in new (removed records)",,"All, with partition",,irem-cust (mhbos);ailab-dm,irem-1b,NTT/KIBB (by source),,Script to be merged into main table script
+KIBB,,Data Lake - CUR,DIM_SBL_LOAN,,,,,,,/,follow existing script,,All,,ailab-dm,ailab-3b,KIBB,DEV,Development in progress
+NTT,CK,Data Lake - CUR,DIM_STOCK,,,,,,,/,"Model 1
+Key: Stock_Id",,etl_dt = <last available date>,,irem-acc-con (mhbos); irem-ledger (mhbos);irem-stock;irem-acc-agent;einv-ref,irem-2b,NTT,,
+KIBB,,Data Lake - CUR,DIM_STOCK_EXCHANGE,,,,,,,/,"Model 1
+Key: STOCK_EXCHANGE_ID",,etl_dt = <last available date>,,irem-stock,irem-7,KIBB,,
+NTT,Michael,Data Lake - CUR,DIM_TRADING_CONTRACT,,,,,,,/,"Model 3
+Key: TRADING_CONTRACT_ID",,etl_dt = <last available date>,,irem-acc-con;irem-acc-agent;ailab-dm,irem-2b,NTT,,
+KIBB,,Data Lake - CUR,EXC_MISSING_ACC_KDI,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_ACC_LMS,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_ACC_M21_A,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_ACC_M21_O,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_ACC_MHBOS,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_ACC_RAK,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_ACC_SBL,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_ACC_TOMS,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_TRX_KDI_COUNT,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_TRX_LMS_COUNT,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_TRX_M21_A_COUNT,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_TRX_M21_O_COUNT,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_TRX_MHBOS_T_CONTRACT_COUNT,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_TRX_MHBOS_T_CTR_COUNT,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_TRX_MHBOS_T_GLLED_COUNT,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_TRX_MHBOS_T_LEDGER_COUNT,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_TRX_MHBOS_T_PAYT_COUNT,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_TRX_MHBOS_T_REC_COUNT,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_TRX_MHBOS_T_SETOFF_COUNT,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_TRX_RAK_COUNT,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_TRX_SBL_COUNT,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_TRX_SMF_COUNT,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,EXC_MISSING_TRX_TOMS_COUNT,,,,,,,/,follow existing with etl_dt partition,/,"All, with partition",,einv-exc,einv-5,KIBB,,
+KIBB,,Data Lake - CUR,FACT_AGENT_TRANSACTION_EVENT,,,,,,,/,"Model 5B
+Key: source_key, transaction_date
+Partition: YEAR_MONTH (transaction_date in YYYYMM)",,"All, with partition updated using column transaction_date in YYYYMM",,einv-trx (toms),einv-2b,KIBB,,
+NTT/KIBB (by source),CK,Data Lake - CUR,FACT_CURRENCY_CONVERSION_RATE,,,,,,,/,"Model 6
+Key: source_key, CONVERSION_RATE_DATE",,"RAW: All (Prod)
+COM_T: All",,"irem-ref (mhbos), einv-ref",irem-6b,NTT/KIBB (by source),,
+KIBB,,Data Lake - CUR,FACT_DIGITAL_INVEST_POSITION,,,,,,,/,follow existing script,,All,,ailab-dm,ailab-3b,KIBB,"DEV, UAT",Development in progress
+KIBB,,Data Lake - CUR,FACT_EPAYMENT,,,,,,,/,Follow existing script,,All,,irem-trx,irem-8,KIBB,,
+KIBB,,Data Lake - CUR,FACT_GL_JOURNAL_DETAIL,,,,,,,/,Follow existing script,,All,,irem-glled;einv-trx,irem-12,KIBB,,
+NTT,,Data Lake - CUR,FACT_GL_JOURNAL_DETAIL_H,,,,,,,,Partition: LOG_PERIOD (end_timestamp in YYYYMM),,N/A,,einv-trx,einv-2b,NTT,,Not needed
+KIBB,,Data Lake - CUR,FACT_LOAN_PAYMENT_SCHEDULE,,,,,,,/,"Model 6
+Key: LOAN_TRANCHE_HEADER_ID",,All,,other,other-1b,KIBB,,
+KIBB,,Data Lake - CUR,FACT_LOAN_PAYMENT_SCHEDULE_H,,,,,,,,,,N/A,,other,other-1b,KIBB,,Not needed
+KIBB,,Data Lake - CUR,FACT_LOAN_POSITION,,,,,,,/,Follow existing script,,All,,other,other-1b,KIBB,,
+KIBB,,Data Lake - CUR,FACT_LOAN_POSITION_H,,,,,,,,,,N/A,,other,other-1b,KIBB,,Not needed
+KIBB,,Data Lake - CUR,"FACT_LOAN_TRANCHE
+*Rename to prefix DIM",,,,,,,/,"Model 3
+Key: HEADER_ID",,All,,other,other-1b,KIBB,,
+KIBB,,Data Lake - CUR,"FACT_LOAN_TRANCHE_H
+*Rename to prefix DIM",,,,,,,,Partition: LOG_PERIOD (renamed from END_PERIOD),,"All, with partition",,other,other-1b,KIBB,,
+KIBB,,Data Lake - CUR,FACT_MARGIN_POSITION,,,,,,,/,follow existing script,,All,,ailab-dm,ailab-3b,KIBB,"DEV, UAT",Development in progress
+KIBB,,Data Lake - CUR,FACT_MARGIN_POSITION_H,,,,,,,,,,N/A,,ailab-dm,ailab-3b,KIBB,,Not needed
+KIBB,,Data Lake - CUR,FACT_PRICE,,,,,,,/,"Model 2B
+Key: Valuation_Date
+Partition: year_month (valuation_date in YYYYMM)",,"All, with partition",,other,other-1b,KIBB,"DEV, UAT",
+KIBB,,Data Lake - CUR,FACT_PRICE_H,,,,1,,,/,,,N/A,,other,other-1b,KIBB,"DEV, UAT",Not needed
+KIBB,,Data Lake - CUR,FACT_SBL_LOAN_POSITION,,,,,,,/,follow existing script,,All,,ailab-dm,ailab-3b,KIBB,DEV,Development in progress
+KIBB,,Data Lake - CUR,FACT_STOCK_CLOSING,,,,,,,/,"Model 5b
+Key: closing_date
+Partition: YEAR_MONTH (closing_date in YYYYMM)",,"All, with partition defined in column L",,irem-stock,irem-7,KIBB,,
+NTT,CK,Data Lake - CUR,FACT_TRADING_CONTRA_HEADER,,,,,,,/,"Follow existing script.
+Remove query section of insert to history table.",,All,,einv-trx,einv-2b,NTT,,
+NTT,,Data Lake - CUR,FACT_TRADING_CONTRA_HEADER_H,,,,,,,,"Partition: follow existing (rename END_PERIOD to LOG_PERIOD)
+",,"All, with partition",,einv-trx,einv-2b,NTT,,
+NTT,CK,Data Lake - CUR,FACT_TRADING_CONTRACT_BALANCE,,,,,,,/,"Model 2B
+Key: balance_date
+partition: year_month (balance_date in YYYYMM)",,"All, with partition",,,other-1b,NTT,,
+NTT,CK,Data Lake - CUR,FACT_TRADING_LEDGER_DETAIL,,,,,,,/,"Model 5B
+Key: CREATED_DATE
+Partition: YEAR_MONTH (CREATED_DATE in YYYYMM)
+*additional changes in script required 
+- to map field TRANSACTION_DATE = t_ledger_dt.tran_date
+- to add new field CREATED_DATE = t_ledger_dt.date_created",,"Full reload from COM_T, as old DL transaction_date in CUR is incorrect logic. 
+To partition according to column L",,einv-trx,einv-2b,NTT,,
+NTT,CK,Data Lake - CUR,FACT_TRADING_LEDGER_HEADER,,,,,,,/,Follow existing script.,,All,,einv-trx,einv-2b,NTT,,
+NTT,,Data Lake - CUR,FACT_TRADING_LEDGER_HEADER_H,,,,,,,,"Partition: follow existing (rename END_PERIOD to LOG_PERIOD)
+",,"All, with partition",,einv-trx,einv-2b,NTT,,
+NTT,CK,Data Lake - CUR,FACT_TRADING_OTHER_BALANCE,,,,,,,/,"Model 2B
+Key: balance_date
+partition: year_month (balance_date in YYYYMM)",,"All, with partition",,,other-1b,NTT,,
+NTT,CK,Data Lake - CUR,FACT_TRADING_PAYMENT_DETAIL,,,,,,,/,"Follow existing script.
+Remove query section of insert to history table.",,All,,einv-trx,einv-2b,NTT,,
+NTT,,Data Lake - CUR,FACT_TRADING_PAYMENT_DETAIL_H,,,,,,,,,,N/A,,einv-trx,einv-2b,NTT,,Not needed
+NTT,CK,Data Lake - CUR,FACT_TRADING_PAYMENT_HEADER,,,,,,,/,Follow existing script.,,All,,einv-trx,einv-2b,NTT,,
+NTT,,Data Lake - CUR,FACT_TRADING_PAYMENT_HEADER_H,,,,,,,,"Partition: follow existing (rename END_PERIOD to LOG_PERIOD)
+",,"All, with partition",,einv-trx,einv-2b,NTT,,
+NTT,CK,Data Lake - CUR,FACT_TRADING_RECEIPT_DETAIL,,,,,,,/,"Follow existing script.
+Remove query section of insert to history table.",,All,,einv-trx,einv-2b,NTT,,
+NTT,,Data Lake - CUR,FACT_TRADING_RECEIPT_DETAIL_H,,,,,,,,,,N/A,,einv-trx,einv-2b,NTT,,Not needed
+NTT,CK,Data Lake - CUR,FACT_TRADING_RECEIPT_HEADER,,,,,,,/,Follow existing script.,,All,,einv-trx,einv-2b,NTT,,
+NTT,,Data Lake - CUR,FACT_TRADING_RECEIPT_HEADER_H,,,,,,,,"Partition: follow existing (rename END_PERIOD to LOG_PERIOD)
+",,"All, with partition",,einv-trx,einv-2b,NTT,,
+NTT,CK,Data Lake - CUR,FACT_TRADING_SETOFF_DETAIL,,,,,,,/,"Follow existing script.
+Remove query section of insert to history table.",,All,,einv-trx,einv-2b,NTT,,
+NTT,,Data Lake - CUR,FACT_TRADING_SETOFF_DETAIL_H,,,,,,,,,,N/A,,einv-trx,einv-2b,NTT,,Not needed
+NTT,CK,Data Lake - CUR,FACT_TRADING_SETOFF_HEADER,,,,,,,/,Follow existing script.,,All,,einv-trx,einv-2b,NTT,,
+NTT,,Data Lake - CUR,FACT_TRADING_SETOFF_HEADER_H,,,,,,,,"Partition: follow existing (rename END_PERIOD to LOG_PERIOD)
+",,"All, with partition",,einv-trx,einv-2b,NTT,,
+KIBB,,Data Lake - CUR,FACT_TRADING_STOCK_BALANCE,,,,,,,/,"Model 2B
+Key: stock_balance_date
+partition: year_month (stock_balance_datein YYYYMM)",,"All, with partition",,other,other-1b,KIBB,,
+KIBB,,Data Lake - CUR,FACT_TRADING_TRUST_BALANCE,,,,,,,/,"Model 2B
+Key: balance_date
+partition: year_month (balance_date in YYYYMM)",,"All, with partition",,other,other-1b,KIBB,,
+"NTT/KIBB 
+(by source)",CK,Data Lake - CUR,FACT_TRANSACTION_EVENT,,,,,,,/,"Model 5B
+Key: source_key, transaction_date
+Partition: year_month (transaction_date in YYYYMM)",,"All, with partition updated using column transaction_date in YYYYMM",,einv-trx;ailab-dm,einv-2c,"NTT/KIBB 
+(by source)",,
+NTT,CK,Data Lake - CUR,LEDGER_CLIENT_LIMIT,,,,,,,/,Model 2A,,etl_dt = <last available date>,,irem-ledger;ailab-dm,irem-5b,NTT,,
+KIBB,,Data Lake - CUR,LEDGER_CLIENT_STOCK_PRICE,,,,,,,/,Model 2A,,etl_dt = <last available date>,,other,other-1b,KIBB,,
+NTT,Aiqal,Data Lake - CUR,LEDGER_FOREX_RATE,,,,,,,/,Model 2A,,All,,irem-acc-agent,irem-2b,NTT,,
+NTT,CK,Data Lake - CUR,LEDGER_FUND_PENDING_CLEARANCE,,,,,,,/,Model 2A,,etl_dt = <last available date>,,irem-ledger,irem-5b,NTT,,
+NTT,Aiqal,Data Lake - CUR,LEDGER_OUTSTANDING_TRANSACTION,,,,,,,/,Model 2A,,All,cur.ledger_position_summary,irem-ledger;irem-acc-agent;ailab-dm,irem-2b,NTT,,
+NTT,CK,Data Lake - CUR,LEDGER_POSITION_SUMMARY,,,,,,,/,"Model 2B
+Partition: year_month (Snapshot_date in YYYYMM)
+*add new column Snapshot_Date = etl_dt",,"All, with partition",,irem-ledger,irem-5b,NTT,,
+NTT,Aiqal,Data Lake - CUR,LEDGER_STOCK_BALANCE,,,,,,,/,"Model 2B
+Partition: year_month (Snapshot_date in YYYYMM)
+*add new column Snapshot_Date = etl_dt",,"All, with partition",cur.ledger_position_summary,irem-ledger; irem-stock-bal;irem-acc-agent;ailab-dm,irem-2b,NTT,,
+NTT,Aiqal,Data Lake - CUR,LEDGER_TRUST_BALANCE,,,,,,,/,"Model 2B
+Partition: year_month (Snapshot_date in YYYYMM)
+*add new column Snapshot_Date = etl_dt",,"All, with partition",cur.ledger_position_summary,irem-ledger;ailab-dm,irem-5b,NTT,,
+KIBB,,Data Lake - CUR,LOG_FIELD_VALUE_CHANGE,,,,,,,/,follow existing script,,All,,ailab-dm,ailab-3b,KIBB,,
+NTT,Aiqal,Data Lake - CUR,REF_BANK,,,,,,,/,Follow existing script,,All,,irem-ref; irem-acc-bank (mhbos),irem-2b,NTT,,
+NTT,,Data Lake - CUR,REF_BANK_H,,,,,,,,Partition: LOG_PERIOD (renamed from END_PERIOD),,"All, with partition",,irem-ref,irem-2b,NTT,,
+KIBB,,Data Lake - CUR,REF_COUNTRY,,,,,,,/,"Model 1
+Key: COUNTRY_CODE",,etl_dt = <last available date>,cur.dim_customer,irem-acc; irem-ref; irem-acc-lob;irem-acc-trader; irem-cust;einv-acc;einv-cust;einv-ref,irem-1b,KIBB,,
+NTT,CK,Data Lake - CUR,"REF_CUSTOMER_ID_MAPPING_RAK
+*to move to COM layer, rename to m_customer_id_mapping_rak",,,,,,,/,Follow existing script,,"All, to move to COM layer, rename to m_customer_id_mapping_rak",,einv-cust,einv-1a-5,NTT,,
+NTT,,Data Lake - CUR,"REF_CUSTOMER_ID_MAPPING_RAK_H
+*to move to COM layer, rename to m_customer_id_mapping_rak_h",,,,,,,,"Partition: LOG_PERIOD (end_timestamp in YYYYMM)
+*To add new field end_timestamp = <current timestamp> for records inserted to history table",,"All, with partition, to move to COM layer, rename to m_customer_id_mapping_rak_h",,einv-cust,einv-1a-5,NTT,,Update from com_m_rak_customer.sql file
+KIBB,,Data Lake - CUR,REF_HOLIDAY,,,,,,,/,follow existing script,,All,,irem-ref,irem-6b,KIBB,,
+NTT/KIBB (by source),Michael,Data Lake - CUR,REF_LOOKUP,,,,,,,/,Follow existing script,,All,,"irem-acc (general); irem-acc-bank (general); irem-ref (general, mhbos); irem-acc-lob (general);einv-acc;einv-ref (general);einv-agent-profile (general);einv-trx (toms);ailab-dm",irem-2b,NTT/KIBB (by source),,
+0,,Data Lake - CUR,REF_LOOKUP_H,,,,,,,,Partition: LOG_PERIOD (renamed from END_PERIOD),,"All, with partition",,irem-ref,irem-2b,,,
+NTT,Aiqal,Data Lake - CUR,TRADER_AGGREGATE_POSITION_SUMMARY,,,,,,,/,"Model 2B
+Partition: year_month (Snapshot_date in YYYYMM)
+*add new column Snapshot_Date = etl_dt",,"All, with partition",,irem-acc-trader,irem-2b,NTT,,
+NTT,CK,Data Lake - CUR,vw_dim_account_bank_mhbos_nrt,,,,,,,/,N/A,,N/A,,irem-bank-nrt,irem-3,NTT,,
+NTT,CK,Data Lake - CUR,vw_iremisier_account_bank_mhbos_nrt,,,,,,,/,N/A,/,N/A,,irem-bank-nrt,irem-3,NTT,,
+NTT,Faisal,Data Lake - AILAB,AILAB_COUNTERPARTY,,,,,,,/,follow existing with etl_dt partition,/,N/A,,ailab-lms,ailab-1b,NTT,,Propose to rename the script to prefix AILAB_LMS_ for standardization as per UNL
+KIBB,,Data Lake - AILAB,AILAB_DM_ACCOUNT,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_DM_ADDRESS,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_DM_AGENT,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_DM_BRANCH,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_DM_CONTACT,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_DM_CUSTOMER,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_DM_EMPLOYMENT,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_DM_LEDGER_CLIENT_LIMIT,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_DM_LEDGER_POSITION_SUMMARY,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_DM_LEDGER_STOCK_BALANCE,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_DM_LEDGER_TRUST_BALANCE,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_DM_REF_LOOKUP,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_DM_RISK_PROFILE,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_DM_TRADE_MARKET,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_DM_TRADING_CONTRACT,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_DM_TRANSACTION_EVENT,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+NTT,Faisal,Data Lake - AILAB,AILAB_ENTITY,,,,,,,/,follow existing with etl_dt partition,/,N/A,,ailab-lms,ailab-1b,NTT,,Propose to rename the script to prefix AILAB_LMS_ for standardization as per UNL
+NTT,Faisal,Data Lake - AILAB,AILAB_LOANPOSITIONCACHE_NEW,,,,,,,/,follow existing with etl_dt partition,/,N/A,,ailab-lms,ailab-1b,NTT,,Propose to rename the script to prefix AILAB_LMS_ for standardization as per UNL
+NTT,Faisal,Data Lake - AILAB,AILAB_LOANSTATUS,,,,,,,/,follow existing with etl_dt partition,/,N/A,,ailab-lms,ailab-1b,NTT,,Propose to rename the script to prefix AILAB_LMS_ for standardization as per UNL
+NTT,Faisal,Data Lake - AILAB,AILAB_LOANTRANCHE,,,,,,,/,follow existing with etl_dt partition,/,N/A,,ailab-lms,ailab-1b,NTT,,Propose to rename the script to prefix AILAB_LMS_ for standardization as per UNL
+NTT,Faisal,Data Lake - AILAB,AILAB_LOANTRANCHECHILD2,,,,,,,/,follow existing with etl_dt partition,/,N/A,,ailab-lms,ailab-1b,NTT,,Propose to rename the script to prefix AILAB_LMS_ for standardization as per UNL
+NTT,Faisal,Data Lake - AILAB,AILAB_LOANTRANCHETYPE,,,,,,,/,follow existing with etl_dt partition,/,N/A,,ailab-lms,ailab-1b,NTT,,Propose to rename the script to prefix AILAB_LMS_ for standardization as per UNL
+KIBB,,Data Lake - AILAB,AILAB_MHBOS_M_CLIENT,,,,,,,,,/,N/A,,ailab-mhbos,ailab-2,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_MHBOS_M_CLIENT_EXT,,,,,,,,,/,N/A,,ailab-mhbos,ailab-2,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_MHBOS_T_CONTRACT,,,,,,,,,/,N/A,,ailab-mhbos,ailab-2,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_MHBOS_T_LEDGER_DT,,,,,,,,,/,N/A,,ailab-mhbos,ailab-2,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_MHBOS_T_LEDGER_HD,,,,,,,,,/,N/A,,ailab-mhbos,ailab-2,KIBB,,
+KIBB,,Data Lake - AILAB,AILAB_MHBOS_T_TRUST_ACC,,,,,,,,,/,N/A,,ailab-mhbos,ailab-2,KIBB,,
+NTT,Faisal,Data Lake - AILAB,AILAB_RECORDSTATUS,,,,,,,/,follow existing with etl_dt partition,/,N/A,,ailab-lms,ailab-1b,NTT,,Propose to rename the script to prefix AILAB_LMS_ for standardization as per UNL
+KIBB,,Data Lake - eInvoice,EINVOICE_ACCOUNT,,,,,,,/,follow existing with etl_dt partition,/,N/A,,einv-acc,einv-1c,KIBB,,
+KIBB,,Data Lake - eInvoice,EINVOICE_AGENT_PROFILE,,,,,,,/,follow existing with etl_dt partition,/,N/A,,einv-agent-profile,einv-3,KIBB,,
+KIBB,,Data Lake - eInvoice,EINVOICE_CUSTOMER,,,,,,,/,follow existing with etl_dt partition,/,N/A,,einv-cust,einv-1c,KIBB,,
+KIBB,,Data Lake - eInvoice,EINVOICE_CUSTOMER_ADDRESS,,,,,,,/,follow existing with etl_dt partition,/,N/A,,einv-cust,einv-1c,KIBB,,
+KIBB,,Data Lake - eInvoice,EINVOICE_CUSTOMER_CONTACT,,,,,,,/,follow existing with etl_dt partition,/,N/A,,einv-cust,einv-1c,KIBB,,
+KIBB,,Data Lake - eInvoice,EINVOICE_CUSTOMER_CUSTOM,,,,,,,/,follow existing with etl_dt partition,/,N/A,,einv-cust,einv-1c,KIBB,,
+KIBB,,Data Lake - eInvoice,EINVOICE_CUSTOMER_EINVOICE_INDICATOR,,,,,,,/,follow existing with etl_dt partition,/,N/A,,einv-cust,einv-1c,KIBB,,
+NTT,Faisal,Data Lake - eInvoice,EINVOICE_REF_BRANCH,,,,,,,/,follow existing with etl_dt partition,/,N/A,,einv-ref,einv-4,NTT,,
+NTT,Faisal,Data Lake - eInvoice,EINVOICE_REF_COUNTRY,,,,,,,/,follow existing with etl_dt partition,/,N/A,,einv-ref,einv-4,NTT,,
+NTT,Faisal,Data Lake - eInvoice,EINVOICE_REF_CURRENCY,,,,,,,/,follow existing with etl_dt partition,/,N/A,,einv-ref,einv-4,NTT,,
+NTT,Faisal,Data Lake - eInvoice,EINVOICE_REF_STATE,,,,,,,/,follow existing with etl_dt partition,/,N/A,,einv-ref,einv-4,NTT,,
+NTT,Faisal,Data Lake - eInvoice,EINVOICE_REF_STOCK,,,,,,,/,follow existing with etl_dt partition,/,N/A,,einv-ref,einv-4,NTT,,
+KIBB,,Data Lake - eInvoice,EINVOICE_STAGING_TRANSACTION,,,,,,,/,follow existing with etl_dt partition,/,N/A,,einv-trx,einv-2d,KIBB,,
+KIBB,,Data Lake - eInvoice,EINVOICE_STAGING_TRANSACTION_CN,,,,,,,/,follow existing with etl_dt partition,/,N/A,,einv-trx,einv-2d,KIBB,,
+NTT,Faisal,Data Lake - iRemisier,IREMISIER_ACCOUNT,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-acc,irem-2c,NTT,,
+NTT,Faisal,Data Lake - iRemisier,IREMISIER_ACCOUNT_BANK,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-acc-bank,irem-2c,NTT,,
+NTT,Faisal,Data Lake - iRemisier,IREMISIER_ACCOUNT_BROKERAGE,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-acc-brkg,irem-2c,NTT,,
+NTT,Faisal,Data Lake - iRemisier,IREMISIER_ACCOUNT_CONTRACT,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-acc-con,irem-2c,NTT,,
+KIBB,,Data Lake - iRemisier,IREMISIER_ACCOUNT_GLLED,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-glled,irem-12,KIBB,"DEV, UAT",
+NTT,Faisal,Data Lake - iRemisier,IREMISIER_ACCOUNT_LEDGER,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-ledger,irem-5c,NTT,,
+NTT,Faisal,Data Lake - iRemisier,IREMISIER_ACCOUNT_LEDGER_DETAIL,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-ledger,irem-5c,NTT,,
+NTT,CK,Data Lake - iRemisier,IREMISIER_ACCOUNT_FEE,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-acc-fee,irem-2c,NTT,"DEV, UAT",
+NTT,Faisal,Data Lake - iRemisier,IREMISIER_ACCOUNT_OTHERS_LOB,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-acc-lob,irem-2c,NTT,,
+KIBB,,Data Lake - iRemisier,IREMISIER_ACCOUNT_PLEDGOR,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-pledgor,irem-9,KIBB,,
+NTT,Aiqal,Data Lake - iRemisier,IREMISIER_ACCOUNT_RELATIONSHIP,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-acc-rel,irem-2c,NTT,,
+KIBB,,Data Lake - iRemisier,IREMISIER_ACCOUNT_STOCK_BALANCE,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-stock-bal,irem-7,KIBB,,
+KIBB,,Data Lake - iRemisier,IREMISIER_CDS_DORMANT_ACCOUNT_NOTICE,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-dormant,irem-10,KIBB,,
+NTT,Faisal,Data Lake - iRemisier,IREMISIER_CRS,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-crs,irem-4,NTT,,
+KIBB,,Data Lake - iRemisier,IREMISIER_CUSTOMER,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-cust,irem-1c,KIBB,,
+KIBB,,Data Lake - iRemisier,IREMISIER_CUSTOMER_ADDRESS,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-cust,irem-1c,KIBB,,
+KIBB,,Data Lake - iRemisier,IREMISIER_CUSTOMER_CONTACT,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-cust,irem-1c,KIBB,,
+KIBB,,Data Lake - iRemisier,IREMISIER_CUSTOMER_H,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-cust,irem-1c,KIBB,,Is this being used in iRemisier? 
+KIBB,,Data Lake - iRemisier,IREMISIER_EIPO_CLIENT_BALANCE,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-eipo,irem-11,KIBB,,
+KIBB,,Data Lake - iRemisier,IREMISIER_GUAVA_COMPANY,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-guava,irem-13,KIBB,,
+KIBB,,Data Lake - iRemisier,IREMISIER_REF_APPLCODE,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-ref,irem-6c,KIBB,,
+KIBB,,Data Lake - iRemisier,IREMISIER_REF_BANK,,,,,,,/,"follow existing with etl_dt partition
+
+*Required filter CUR.DL_Record_Status = 'A'",/,N/A,,irem-ref,irem-6c,KIBB,,
+KIBB,,Data Lake - iRemisier,IREMISIER_REF_BRANCH,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-ref,irem-6c,KIBB,,
+KIBB,,Data Lake - iRemisier,IREMISIER_REF_BROKER,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-ref,irem-6c,KIBB,,
+KIBB,,Data Lake - iRemisier,IREMISIER_REF_COUNTRY,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-ref,irem-6c,KIBB,,
+KIBB,,Data Lake - iRemisier,IREMISIER_REF_FOREX,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-ref,irem-6c,KIBB,,
+KIBB,,Data Lake - iRemisier,IREMISIER_REF_GROUP_CODE,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-ref,irem-6c,KIBB,"DEV, UAT",
+KIBB,,Data Lake - iRemisier,IREMISIER_REF_HOLIDAY,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-ref,irem-6c,KIBB,,
+KIBB,,Data Lake - iRemisier,IREMISIER_REF_SYSTEM_PARAMETERS,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-ref,irem-6c,KIBB,,
+KIBB,,Data Lake - iRemisier,IREMISIER_STOCK,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-stock,irem-7,KIBB,,
+KIBB,,Data Lake - iRemisier,IREMISIER_STOCK_EXCHANGE,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-stock,irem-7,KIBB,,
+NTT,Faisal,Data Lake - iRemisier,IREMISIER_TRADER_ACCOUNT,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-acc-trader,irem-2c,NTT,,
+NTT,Faisal,Data Lake - iRemisier,IREMISIER_TRADER_ADDRESS,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-acc-trader,irem-2c,NTT,,
+NTT,Faisal,Data Lake - iRemisier,IREMISIER_TRADER_ASSISTANT_CONTACT,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-acc-trader-assistant,irem-2c,NTT,,
+NTT,Faisal,Data Lake - iRemisier,IREMISIER_TRADER_ASSISTANT_PROFILE,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-acc-trader-assistant,irem-2c,NTT,,
+NTT,Faisal,Data Lake - iRemisier,IREMISIER_TRADER_BUSINESSDONE_SUMMARY,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-acc-trader-sum,irem-2c,NTT,,
+NTT,Faisal,Data Lake - iRemisier,IREMISIER_TRADER_CONTACT,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-acc-trader,irem-2c,NTT,,
+NTT,Aiqal,Data Lake - iRemisier,IREMISIER_TRADER_CPE,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-acc-trader-cpe,irem-2c,NTT,,
+NTT,Aiqal,Data Lake - iRemisier,IREMISIER_TRADER_POSITION_SUMMARY,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-acc-trader-sum,irem-2c,NTT,,
+NTT,Faisal,Data Lake - iRemisier,IREMISIER_TRADER_PROFILE,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-acc-trader-profile,irem-2c,NTT,,
+KIBB,,Data Lake - iRemisier,IREMISIER_TRANSACTION_REQUEST,,,,,,,/,follow existing with etl_dt partition,/,N/A,,irem-trx,irem-8,KIBB,,
+KIBB,,Data Lake - Reach,REACH_ADVISOR_PROFILE,,,,,,,/,follow existing with etl_dt partition,/,N/A,,reach,reach-1b,KIBB,"DEV, UAT",
+KIBB,,Data Lake - Reach,REACH_BRANCH,,,,,,,/,follow existing with etl_dt partition,/,N/A,,reach,reach-1b,KIBB,"DEV, UAT",
+KIBB,,Data Lake - Reach,REACH_INVESTOR,,,,,,,/,follow existing with etl_dt partition,/,N/A,,reach,reach-1b,KIBB,"DEV, UAT",
+KIBB,,Data Lake - Reach,REACH_INVESTOR_ACCOUNT,,,,,,,/,follow existing with etl_dt partition,/,N/A,,reach,reach-1b,KIBB,"DEV, UAT",
+KIBB,,Data Lake - Reach,REACH_INVESTOR_ADDRESS,,,,,,,/,follow existing with etl_dt partition,/,N/A,,reach,reach-1b,KIBB,"DEV, UAT",
+KIBB,,Data Lake - Reach,REACH_INVESTOR_BANK,,,,,,,/,follow existing with etl_dt partition,/,N/A,,reach,reach-1b,KIBB,"DEV, UAT",
+KIBB,,Data Lake - Reach,REACH_REF_BRANCH,,,,,,,/,follow existing with etl_dt partition,/,N/A,,reach,reach-1b,KIBB,"DEV, UAT",
+KIBB,,Data Lake - Reach,REACH_REF_MASTER,,,,,,,/,follow existing with etl_dt partition,/,N/A,,reach,reach-1b,KIBB,"DEV, UAT",
+KIBB,Tharisini,General,GENERAL_REFERENCE_LOOKUP,/,/,/,"Model 1
+Key: source_name, reference_type, reference_code",,,,,,"RAW: All
+COM_T: All from COM_R",cur.ref_lookup,irem-acc;einv-trx,irem-1a,KIBB,,
+KIBB,,Data Lake - AILAB,ailab_dm_log_field_value_change,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,Data Lake - AILAB,ailab_dm_margin_position,,,,,,,,,/,N/A,,ailab-dm,ailab-3c,KIBB,,
+KIBB,,General,GENERAL_COUNTRY.txt,/,/,/,"Model 1
+Key: country_code",,,,,,"RAW: All
+COM_T: All from COM_R",,other,other-9,KIBB,"DEV, UAT",
+NTT,,General,GENERAL_bank.txt,/,/,/,"Model 1
+Key: bank_code",,,,,,"RAW: All
+COM_T: All from COM_R",cur.ref_bank,irem-ref; irem-acc-bank,irem-2a,NTT,,
+KIBB,,Lookup,lookup_clientno_custname.csv,/,/,/,"Model 1
+Key: source_system, client_no",,,,,,"RAW: All
+COM_T: All from COM_R",com.t_mhbos_m_client,irem-acc;irem-cust,irem-1a,KIBB,,
+KIBB,,Lookup,lookup_custname_custname.csv,/,/,/,"Model 1
+Key: source_system, cust_name",,,,,,"RAW: All
+COM_T: All from COM_R",com.t_mhbos_m_client,irem-acc;irem-cust,irem-1a,KIBB,,
+KIBB,,Lookup,lookup_custname_primaryidno.csv,/,/,/,"Model 1
+Key: source_system, cust_name",,,,,,"RAW: All
+COM_T: All from COM_R","com.t_mhbos_m_client;
+com.t_m21_customer;
+com.t_m21_a_customer;
+com.t_m21_o_customer",irem-acc;irem-cust,irem-1a,KIBB,,
+KIBB,,Lookup,lookup_primaryidno_newcustname.csv,/,/,/,"Model 1
+Key: source_system, primary_id_no",,,,,,"RAW: All
+COM_T: All from COM_R","com.t_mhbos_m_client;
+com.t_m21_customer;
+com.t_m21_a_customer;
+com.t_m21_o_customer;
+com.t_sbl_tbl_einvoicing_clientdata",irem-acc;irem-cust,irem-1a,KIBB,,

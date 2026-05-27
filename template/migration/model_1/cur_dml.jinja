@@ -3,7 +3,6 @@
 {###  Model       : {{ model_type }}#}
 {###  Generated   : {{ generated_at }}#}
 {###  Source      : {{ pipeline_id }} (migrated from Datalake Old)#}
-
 {% if header_comments %}
 {{ header_comments }}
 {% endif %}
@@ -17,7 +16,8 @@ from pyspark.sql.functions import current_timestamp
 source_name = "{{ source_name }}"
 table_name  = "{{ base_table }}"
 
-spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source_name, table_name)
+# spark session
+spark, today_date = run_etl_cur(source_name, table_name)
 batch_date = today_date
 params = set_parameter(spark)
 

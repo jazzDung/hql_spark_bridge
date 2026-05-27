@@ -1,0 +1,30 @@
+-- Purpose:    curated - Snapshot table script
+-- Author:     Sunline
+-- Usage:      python $ETL_HOME/script/main.py yyyymmdd [file_name]
+-- CreateDate: 2023-08-17 00:00:00
+-- FileType:   DML
+-- Logs:
+--     Table name: DIM_CUSTOMER
+--     Table comment: DIM_CUSTOMER
+--     Creation date: 2023-08-17 00:00:00
+--     Primary key field: CUSTOMER_ID
+--     Attribution hierarchy: curated
+--     Attribution subject: cust
+--     Main application: None
+--     Analyst: zhairuoping
+--     Time granularity: None
+--     Retention period: None
+--     Descriptive information: None
+--     marcoong 20250326  add new source: sbl/lms/kdi, add new field CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS
+--     marcoong 20250409  update update_date field, update logic for CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION for MHBOS
+--     marcoong 20250423  include primary_id_no = 6 for Corporate, and update REF_LOOKUP joining to include field SOURCE_KEY and remove ETL_DT filter
+--     marcoong 20250715  add new field vulnerable_flag
+--     syhmi    20251014  updated CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS logic for MHBOS
+--     syhmi    20251016  updated CUSTOMER_COMPANY_TYPE_OF_BUSINESS logic for TOMS | updated CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION logic for M21
+--     syhmi    20251017  uupdated CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS & CUSTOMER_COMPANY_TYPE_OF_BUSINESS logic for MHBOS
+--     marcoong 20251017  updated CUSTOMER_COUNTRY_OF_RESIDENCE, CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS for GUAVA_CUSTOMER
+--     marcoong 20251024  updated CUSTOMER_COUNTRY_OF_RESIDENCE, CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS for KDI_CUSTOMER
+--     syhmi    20251024  updated CUSTOMER_COUNTRY_OF_RESIDENCE, CUSTOMER_COMPANY_TYPE_OF_BUSINESS for M21
+--     syhmi    20251028  updated CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION logic
+--     afiq     20260223  change sources from kdi customer to kdi clientreport 
+-- 0.1 set parameter

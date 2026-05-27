@@ -1,0 +1,27 @@
+-- Purpose:    curated - Snapshot table script
+-- Purpose:    curated - Snapshot table script
+-- Author:     Sunline
+-- Usage:      python $ETL_HOME/script/main.py yyyymmdd [file_name]
+-- CreateDate: 2023-08-18 00:00:00
+-- FileType:   DML
+-- Logs:
+--     Table name: DIM_CRS
+--     Table comment: DIM_CRS
+--     Creation date: 2023-08-18 00:00:00
+--     Primary key field: CUSTOMER_ID
+--     Attribution hierarchy: curated
+--     Attribution subject: cust
+--     Main application: None
+--     Analyst: zhairuoping
+--     Time granularity: None
+--     Retention period: None
+--     Descriptive information: None
+--     lixiaotian      20240616     add Group.2.TOMS
+--     version2:
+--              lixiaotian       20240718        add Group.3, Group.4, Group.5
+--              lixiaotian       20240626        add Group.6, Group.7, Group.8
+--              marcoong         20250326        add new source: toms_eretail
+--              gia dung         20251030        add cust_id + source name + tin_no consolidation logic
+--              afiq azizi		 20260225        change KDI source from KDI Customer to KDI Clientreport
+
+-- 0.1 set parameter

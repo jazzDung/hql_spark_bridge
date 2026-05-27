@@ -89,10 +89,11 @@ class CurPySparkGenerator:
         formatted_header_comments = format_header_comments(header_comments)
 
         # Read source processing SQLs
-        source_processing_sqls = []
         dml_contexts = {}
 
         for step in pipeline_config.get("source_processing_steps", []):
+            source_processing_sqls = []
+
             if step.get("action") == "skip":
                 continue
 
@@ -102,16 +103,19 @@ class CurPySparkGenerator:
             source_id = step["source_id"]
 
             # Extract base_table from target_table_name
+            base_table = pipeline_config['target_table_name'].lower()
             target_table_name = f"{pipeline_config['target_table_name'].lower()}_{source_id.lower()}"
 
             if step_file.exists():
                 # Create a context for the transformer
                 context = HiveScriptParser.parse_file(str(step_file))
                 context.source_name = source_id
+
+                print(f"Processing source: {source_id}, from file: {step_file.stem}")
                 # print(context.source_name, context.sub_layer)
                 
                 # Apply the CurPysparkTransformer
-                jinja_render_model = self.transformer.transform(pipeline_config, context, )
+                jinja_render_model = self.transformer.transform(pipeline_config, context)
                 
                 # Extract the transformed queries
                 for query_obj in jinja_render_model.transformed_queries:
@@ -141,8 +145,8 @@ class CurPySparkGenerator:
                 "pipeline_id": pipeline_config["pipeline_id"],
                 "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "target_table_name": target_table_name,
-                "source_name": source_id,
-                "base_table": target_table_name,
+                "source_name": source_id.lower(),
+                "base_table": base_table,
                 "original_columns": original_columns,
                 "header_comments": formatted_header_comments,
                 "delta_columns": pipeline_config.get("delta_columns", []),

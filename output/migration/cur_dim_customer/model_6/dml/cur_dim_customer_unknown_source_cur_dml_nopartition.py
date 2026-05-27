@@ -1,0 +1,1414 @@
+
+"""
+Purpose:    curated - Snapshot table script
+Author:     Sunline
+Usage:      python $ETL_HOME/script/main.py yyyymmdd [file_name]
+CreateDate: 2023-08-17 00:00:00
+FileType:   DML
+Logs:
+Table name: DIM_CUSTOMER
+Table comment: DIM_CUSTOMER
+Creation date: 2023-08-17 00:00:00
+Primary key field: CUSTOMER_ID
+Attribution hierarchy: curated
+Attribution subject: cust
+Main application: None
+Analyst: zhairuoping
+Time granularity: None
+Retention period: None
+Descriptive information: None
+marcoong 20250326  add new source: sbl/lms/kdi, add new field CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS
+marcoong 20250409  update update_date field, update logic for CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION for MHBOS
+marcoong 20250423  include primary_id_no = 6 for Corporate, and update REF_LOOKUP joining to include field SOURCE_KEY and remove ETL_DT filter
+marcoong 20250715  add new field vulnerable_flag
+syhmi    20251014  updated CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS logic for MHBOS
+syhmi    20251016  updated CUSTOMER_COMPANY_TYPE_OF_BUSINESS logic for TOMS | updated CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION logic for M21
+syhmi    20251017  uupdated CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS & CUSTOMER_COMPANY_TYPE_OF_BUSINESS logic for MHBOS
+marcoong 20251017  updated CUSTOMER_COUNTRY_OF_RESIDENCE, CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS for GUAVA_CUSTOMER
+marcoong 20251024  updated CUSTOMER_COUNTRY_OF_RESIDENCE, CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS for KDI_CUSTOMER
+syhmi    20251024  updated CUSTOMER_COUNTRY_OF_RESIDENCE, CUSTOMER_COMPANY_TYPE_OF_BUSINESS for M21
+syhmi    20251028  updated CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION logic
+afiq     20260223  change sources from kdi customer to kdi clientreport
+0.1 set parameter
+"""
+
+import os
+import sys
+sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
+from etl_common_function import run_etl, set_parameter
+from pyspark.sql.functions import current_timestamp
+
+source_name = "UNKNOWN_SOURCE"
+table_name  = "dim_customer_unknown_source"
+
+spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source_name, table_name)
+batch_date = today_date
+params = set_parameter(spark)
+
+
+# ─── DELTA TABLE SETUP (EXTRACT IMPACTED primary_key FROM COM_T) ───────────────────
+# Find all distinct key columns where records were updated in the current batch
+# Then pull ALL active records from COM_T for those primary_key.
+spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_dim_customer_unknown_source_delta""")
+spark.sql(f"""
+    CREATE TABLE {params["com_schema"]}.temp_dim_customer_unknown_source_delta (
+        customer_id VARCHAR(20)
+        , customer_type VARCHAR(10)
+        , customer_title VARCHAR(20)
+        , customer_name VARCHAR(250)
+        , customer_primary_identification_no_type VARCHAR(20)
+        , customer_primary_identification_no VARCHAR(20)
+        , customer_primary_identification_no_expiry_date DATE
+        , customer_secondary_identification_no_type VARCHAR(20)
+        , customer_secondary_identification_no VARCHAR(20)
+        , customer_secondary_identification_no_expiry_date DATE
+        , customer_nationality VARCHAR(2)
+        , customer_country_of_residence VARCHAR(2)
+        , customer_country_of_birth VARCHAR(2)
+        , customer_date_of_birth DATE
+        , customer_bumiputra_status VARCHAR(1)
+        , customer_race VARCHAR(20)
+        , customer_gender VARCHAR(10)
+        , customer_marital_status VARCHAR(20)
+        , customer_company_contact_person VARCHAR(100)
+        , customer_company_ownership VARCHAR(5)
+        , customer_company_country_of_registration VARCHAR(2)
+        , customer_company_type_of_business VARCHAR(200)
+        , customer_company_date_of_incorporation DATE
+        , customer_company_website VARCHAR(100)
+        , customer_company_type_of_organization VARCHAR(100)
+        , pdpa_flag VARCHAR(1)
+        , connected_party_flag VARCHAR(1)
+        , politically_exposed_person_flag VARCHAR(3)
+        , cross_selling_consent_flag VARCHAR(4)
+        , dcf_flag VARCHAR(5)
+        , multi_trading_account_flag VARCHAR(6)
+        , fatca_flag VARCHAR(7)
+        , crs_flag VARCHAR(8)
+        , customer_company_personnel_designation VARCHAR(150)
+        , customer_residency_status VARCHAR(1)
+        , auto_einvoice_indicator VARCHAR(1)
+        , sst_registration_no VARCHAR(20)
+        , customer_company_country_of_business VARCHAR(2)
+        , vulnerable_flag VARCHAR(1)
+    )
+    stored as parquet
+    tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
+""")
+
+spark.sql(f"""
+    INSERT INTO TABLE {params["com_schema"]}.temp_dim_customer_unknown_source_delta
+    SELECT
+        com_t.customer_id,
+        com_t.customer_type,
+        com_t.customer_title,
+        com_t.customer_name,
+        com_t.customer_primary_identification_no_type,
+        com_t.customer_primary_identification_no,
+        com_t.customer_primary_identification_no_expiry_date,
+        com_t.customer_secondary_identification_no_type,
+        com_t.customer_secondary_identification_no,
+        com_t.customer_secondary_identification_no_expiry_date,
+        com_t.customer_nationality,
+        com_t.customer_country_of_residence,
+        com_t.customer_country_of_birth,
+        com_t.customer_date_of_birth,
+        com_t.customer_bumiputra_status,
+        com_t.customer_race,
+        com_t.customer_gender,
+        com_t.customer_marital_status,
+        com_t.customer_company_contact_person,
+        com_t.customer_company_ownership,
+        com_t.customer_company_country_of_registration,
+        com_t.customer_company_type_of_business,
+        com_t.customer_company_date_of_incorporation,
+        com_t.customer_company_website,
+        com_t.customer_company_type_of_organization,
+        com_t.pdpa_flag,
+        com_t.connected_party_flag,
+        com_t.politically_exposed_person_flag,
+        com_t.cross_selling_consent_flag,
+        com_t.dcf_flag,
+        com_t.multi_trading_account_flag,
+        com_t.fatca_flag,
+        com_t.crs_flag,
+        com_t.customer_company_personnel_designation,
+        com_t.customer_residency_status,
+        com_t.auto_einvoice_indicator,
+        com_t.sst_registration_no,
+        com_t.customer_company_country_of_business,
+        com_t.vulnerable_flag
+    FROM {params["com_schema"]}.dim_customer_unknown_source com_t
+    INNER JOIN (
+        SELECT DISTINCT CUSTOMER_ID        FROM {params["com_schema"]}.dim_customer_unknown_source
+        WHERE DATE_FORMAT(dl_record_updated_date, 'yyyyMMdd') = '{batch_date}'
+    ) delta_key
+    ON com_t.CUSTOMER_ID = delta_key.CUSTOMER_ID    WHERE com_t.dl_record_status = 'A'
+""")
+
+# ─── UPDATED TABLE SETUP ─────────────────────────────────────────────────────
+spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_dim_customer_unknown_source_updated""")
+spark.sql(f"""
+    CREATE TABLE {params["com_schema"]}.temp_dim_customer_unknown_source_updated (
+        customer_id VARCHAR(20)
+        , customer_type VARCHAR(10)
+        , customer_title VARCHAR(20)
+        , customer_name VARCHAR(250)
+        , customer_primary_identification_no_type VARCHAR(20)
+        , customer_primary_identification_no VARCHAR(20)
+        , customer_primary_identification_no_expiry_date DATE
+        , customer_secondary_identification_no_type VARCHAR(20)
+        , customer_secondary_identification_no VARCHAR(20)
+        , customer_secondary_identification_no_expiry_date DATE
+        , customer_nationality VARCHAR(2)
+        , customer_country_of_residence VARCHAR(2)
+        , customer_country_of_birth VARCHAR(2)
+        , customer_date_of_birth DATE
+        , customer_bumiputra_status VARCHAR(1)
+        , customer_race VARCHAR(20)
+        , customer_gender VARCHAR(10)
+        , customer_marital_status VARCHAR(20)
+        , customer_company_contact_person VARCHAR(100)
+        , customer_company_ownership VARCHAR(5)
+        , customer_company_country_of_registration VARCHAR(2)
+        , customer_company_type_of_business VARCHAR(200)
+        , customer_company_date_of_incorporation DATE
+        , customer_company_website VARCHAR(100)
+        , customer_company_type_of_organization VARCHAR(100)
+        , pdpa_flag VARCHAR(1)
+        , connected_party_flag VARCHAR(1)
+        , politically_exposed_person_flag VARCHAR(3)
+        , cross_selling_consent_flag VARCHAR(4)
+        , dcf_flag VARCHAR(5)
+        , multi_trading_account_flag VARCHAR(6)
+        , fatca_flag VARCHAR(7)
+        , crs_flag VARCHAR(8)
+        , customer_company_personnel_designation VARCHAR(150)
+        , customer_residency_status VARCHAR(1)
+        , auto_einvoice_indicator VARCHAR(1)
+        , sst_registration_no VARCHAR(20)
+        , customer_company_country_of_business VARCHAR(2)
+        , vulnerable_flag VARCHAR(1)
+        , dl_record_created_date TIMESTAMP
+        , dl_record_updated_date TIMESTAMP
+    )
+    stored as parquet
+    tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
+""")
+
+# ─── STEP 1: Keep existing records from CUR that are NOT in impacted primary_key ──
+spark.sql(f"""
+    INSERT INTO TABLE {params["com_schema"]}.temp_dim_customer_unknown_source_updated
+    SELECT
+        cur.customer_id,
+        cur.customer_type,
+        cur.customer_title,
+        cur.customer_name,
+        cur.customer_primary_identification_no_type,
+        cur.customer_primary_identification_no,
+        cur.customer_primary_identification_no_expiry_date,
+        cur.customer_secondary_identification_no_type,
+        cur.customer_secondary_identification_no,
+        cur.customer_secondary_identification_no_expiry_date,
+        cur.customer_nationality,
+        cur.customer_country_of_residence,
+        cur.customer_country_of_birth,
+        cur.customer_date_of_birth,
+        cur.customer_bumiputra_status,
+        cur.customer_race,
+        cur.customer_gender,
+        cur.customer_marital_status,
+        cur.customer_company_contact_person,
+        cur.customer_company_ownership,
+        cur.customer_company_country_of_registration,
+        cur.customer_company_type_of_business,
+        cur.customer_company_date_of_incorporation,
+        cur.customer_company_website,
+        cur.customer_company_type_of_organization,
+        cur.pdpa_flag,
+        cur.connected_party_flag,
+        cur.politically_exposed_person_flag,
+        cur.cross_selling_consent_flag,
+        cur.dcf_flag,
+        cur.multi_trading_account_flag,
+        cur.fatca_flag,
+        cur.crs_flag,
+        cur.customer_company_personnel_designation,
+        cur.customer_residency_status,
+        cur.auto_einvoice_indicator,
+        cur.sst_registration_no,
+        cur.customer_company_country_of_business,
+        cur.vulnerable_flag,
+        cur.dl_record_created_date,
+        cur.dl_record_updated_date
+    FROM {params["cur_schema"]}.dim_customer_unknown_source cur
+    WHERE
+cur.source_key = 'UNKNOWN_SOURCE' AND         NOT EXISTS (
+            SELECT 1 FROM {params["com_schema"]}.temp_dim_customer_unknown_source_delta delta
+            WHERE delta.CUSTOMER_ID = cur.CUSTOMER_ID        )
+""")
+
+# ─── STEP 2: Insert transformed delta into temp table ────────────────────────
+# main_processing_sqls is expected to transform data from temp_{target_table_name}_delta
+# ─── INSERT INTO CONSOLIDATED TABLE ────────────────────────────────────────────────────────
+
+spark.sql(f"""
+ALTER TABLE {params["cur_schema"]}.temp_DIM_CUSTOMER_main_consolidated DROP IF EXISTS
+""")
+
+spark.sql(f"""
+/* ==============[Group.11]============== */
+    INSERT INTO {params["cur_schema"]}.temp_DIM_CUSTOMER_main_consolidated (
+      CUSTOMER_ID, /* None */
+      CUSTOMER_TYPE, /* None */
+      CUSTOMER_TITLE, /* None */
+      CUSTOMER_NAME, /* None */
+      CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE, /* None */
+      CUSTOMER_PRIMARY_IDENTIFICATION_NO, /* None */
+      CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE, /* None */
+      CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE, /* None */
+      CUSTOMER_SECONDARY_IDENTIFICATION_NO, /* None */
+      CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE, /* None */
+      CUSTOMER_NATIONALITY, /* None */
+      CUSTOMER_COUNTRY_OF_RESIDENCE, /* None */
+      CUSTOMER_COUNTRY_OF_BIRTH, /* None */
+      CUSTOMER_DATE_OF_BIRTH, /* None */
+      CUSTOMER_BUMIPUTRA_STATUS, /* None */
+      CUSTOMER_RACE, /* None */
+      CUSTOMER_GENDER, /* None */
+      CUSTOMER_MARITAL_STATUS, /* None */
+      CUSTOMER_COMPANY_CONTACT_PERSON, /* None */
+      CUSTOMER_COMPANY_OWNERSHIP, /* None */
+      CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, /* None */
+      CUSTOMER_COMPANY_TYPE_OF_BUSINESS, /* None */
+      CUSTOMER_COMPANY_DATE_OF_INCORPORATION, /* None */
+      CUSTOMER_COMPANY_WEBSITE, /* None */
+      CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION, /* None */
+      PDPA_FLAG, /* None */
+      CONNECTED_PARTY_FLAG, /* None */
+      POLITICALLY_EXPOSED_PERSON_FLAG, /* None */
+      CROSS_SELLING_CONSENT_FLAG, /* None */
+      DCF_FLAG, /* None */
+      MULTI_TRADING_ACCOUNT_FLAG, /* None */
+      FATCA_FLAG, /* None */
+      CRS_FLAG, /* None */
+      CUSTOMER_COMPANY_PERSONNEL_DESIGNATION, /* None */
+      CUSTOMER_RESIDENCY_STATUS, /* None */
+      AUTO_EINVOICE_INDICATOR, /* None */
+      SST_REGISTRATION_NO, /* None */
+      CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS, /* None */
+      VULNERABLE_FLAG, /* 20250715 */
+      ETL_TIMESTAMP
+    )
+    SELECT
+      T1.CUSTOMER_ID AS CUSTOMER_ID, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_TYPE, '') <> ''
+          THEN T1.CUSTOMER_TYPE
+          WHEN COALESCE(T2.CUSTOMER_TYPE, '') <> ''
+          THEN T2.CUSTOMER_TYPE
+          WHEN COALESCE(T3.CUSTOMER_TYPE, '') <> ''
+          THEN T3.CUSTOMER_TYPE
+          WHEN COALESCE(T4.CUSTOMER_TYPE, '') <> ''
+          THEN T4.CUSTOMER_TYPE
+          WHEN COALESCE(T5.CUSTOMER_TYPE, '') <> ''
+          THEN T5.CUSTOMER_TYPE
+          WHEN COALESCE(T6.CUSTOMER_TYPE, '') <> ''
+          THEN T6.CUSTOMER_TYPE
+          WHEN COALESCE(T7.CUSTOMER_TYPE, '') <> ''
+          THEN T7.CUSTOMER_TYPE
+          WHEN COALESCE(T8.CUSTOMER_TYPE, '') <> ''
+          THEN T8.CUSTOMER_TYPE
+          WHEN COALESCE(T9.CUSTOMER_TYPE, '') <> ''
+          THEN T9.CUSTOMER_TYPE
+          WHEN COALESCE(T10.CUSTOMER_TYPE, '') <> ''
+          THEN T10.CUSTOMER_TYPE
+          WHEN COALESCE(T11.CUSTOMER_TYPE, '') <> ''
+          THEN T11.CUSTOMER_TYPE
+          ELSE COALESCE(T1.CUSTOMER_TYPE, '')
+        END
+      ) AS CUSTOMER_TYPE, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_TITLE, '') <> ''
+          THEN T1.CUSTOMER_TITLE
+          WHEN COALESCE(T2.CUSTOMER_TITLE, '') <> ''
+          THEN T2.CUSTOMER_TITLE
+          WHEN COALESCE(T3.CUSTOMER_TITLE, '') <> ''
+          THEN T3.CUSTOMER_TITLE
+          WHEN COALESCE(T4.CUSTOMER_TITLE, '') <> ''
+          THEN T4.CUSTOMER_TITLE
+          WHEN COALESCE(T5.CUSTOMER_TITLE, '') <> ''
+          THEN T5.CUSTOMER_TITLE
+          WHEN COALESCE(T6.CUSTOMER_TITLE, '') <> ''
+          THEN T6.CUSTOMER_TITLE
+          WHEN COALESCE(T7.CUSTOMER_TITLE, '') <> ''
+          THEN T7.CUSTOMER_TITLE
+          WHEN COALESCE(T8.CUSTOMER_TITLE, '') <> ''
+          THEN T8.CUSTOMER_TITLE
+          WHEN COALESCE(T9.CUSTOMER_TITLE, '') <> ''
+          THEN T9.CUSTOMER_TITLE
+          WHEN COALESCE(T10.CUSTOMER_TITLE, '') <> ''
+          THEN T10.CUSTOMER_TITLE
+          WHEN COALESCE(T11.CUSTOMER_TITLE, '') <> ''
+          THEN T11.CUSTOMER_TITLE
+          ELSE COALESCE(T1.CUSTOMER_TITLE, '')
+        END
+      ) AS CUSTOMER_TITLE, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_NAME, '') <> ''
+          THEN T1.CUSTOMER_NAME
+          WHEN COALESCE(T2.CUSTOMER_NAME, '') <> ''
+          THEN T2.CUSTOMER_NAME
+          WHEN COALESCE(T3.CUSTOMER_NAME, '') <> ''
+          THEN T3.CUSTOMER_NAME
+          WHEN COALESCE(T4.CUSTOMER_NAME, '') <> ''
+          THEN T4.CUSTOMER_NAME
+          WHEN COALESCE(T5.CUSTOMER_NAME, '') <> ''
+          THEN T5.CUSTOMER_NAME
+          WHEN COALESCE(T6.CUSTOMER_NAME, '') <> ''
+          THEN T6.CUSTOMER_NAME
+          WHEN COALESCE(T7.CUSTOMER_NAME, '') <> ''
+          THEN T7.CUSTOMER_NAME
+          WHEN COALESCE(T8.CUSTOMER_NAME, '') <> ''
+          THEN T8.CUSTOMER_NAME
+          WHEN COALESCE(T9.CUSTOMER_NAME, '') <> ''
+          THEN T9.CUSTOMER_NAME
+          WHEN COALESCE(T10.CUSTOMER_NAME, '') <> ''
+          THEN T10.CUSTOMER_NAME
+          WHEN COALESCE(T11.CUSTOMER_NAME, '') <> ''
+          THEN T11.CUSTOMER_NAME
+          ELSE COALESCE(T1.CUSTOMER_NAME, '')
+        END
+      ) AS CUSTOMER_NAME, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T1.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T2.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T2.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T3.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T3.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T4.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T4.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T5.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T5.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T6.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T6.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T7.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T7.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T8.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T8.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T9.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T9.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T10.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T10.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T11.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T11.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE
+          ELSE COALESCE(T1.CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE, '')
+        END
+      ) AS CUSTOMER_PRIMARY_IDENTIFICATION_NO_TYPE, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_PRIMARY_IDENTIFICATION_NO, '') <> ''
+          THEN T1.CUSTOMER_PRIMARY_IDENTIFICATION_NO
+          WHEN COALESCE(T2.CUSTOMER_PRIMARY_IDENTIFICATION_NO, '') <> ''
+          THEN T2.CUSTOMER_PRIMARY_IDENTIFICATION_NO
+          WHEN COALESCE(T3.CUSTOMER_PRIMARY_IDENTIFICATION_NO, '') <> ''
+          THEN T3.CUSTOMER_PRIMARY_IDENTIFICATION_NO
+          WHEN COALESCE(T4.CUSTOMER_PRIMARY_IDENTIFICATION_NO, '') <> ''
+          THEN T4.CUSTOMER_PRIMARY_IDENTIFICATION_NO
+          WHEN COALESCE(T5.CUSTOMER_PRIMARY_IDENTIFICATION_NO, '') <> ''
+          THEN T5.CUSTOMER_PRIMARY_IDENTIFICATION_NO
+          WHEN COALESCE(T6.CUSTOMER_PRIMARY_IDENTIFICATION_NO, '') <> ''
+          THEN T6.CUSTOMER_PRIMARY_IDENTIFICATION_NO
+          WHEN COALESCE(T7.CUSTOMER_PRIMARY_IDENTIFICATION_NO, '') <> ''
+          THEN T7.CUSTOMER_PRIMARY_IDENTIFICATION_NO
+          WHEN COALESCE(T8.CUSTOMER_PRIMARY_IDENTIFICATION_NO, '') <> ''
+          THEN T8.CUSTOMER_PRIMARY_IDENTIFICATION_NO
+          WHEN COALESCE(T9.CUSTOMER_PRIMARY_IDENTIFICATION_NO, '') <> ''
+          THEN T9.CUSTOMER_PRIMARY_IDENTIFICATION_NO
+          WHEN COALESCE(T10.CUSTOMER_PRIMARY_IDENTIFICATION_NO, '') <> ''
+          THEN T10.CUSTOMER_PRIMARY_IDENTIFICATION_NO
+          WHEN COALESCE(T11.CUSTOMER_PRIMARY_IDENTIFICATION_NO, '') <> ''
+          THEN T11.CUSTOMER_PRIMARY_IDENTIFICATION_NO
+          ELSE COALESCE(T1.CUSTOMER_PRIMARY_IDENTIFICATION_NO, '')
+        END
+      ) AS CUSTOMER_PRIMARY_IDENTIFICATION_NO, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T1.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T2.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T2.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T3.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T3.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T4.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T4.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T5.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T5.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T6.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T6.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T7.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T7.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T8.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T8.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T9.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T9.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T10.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T10.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T11.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T11.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE
+          ELSE COALESCE(T1.CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE, '')
+        END
+      ) AS CUSTOMER_PRIMARY_IDENTIFICATION_NO_EXPIRY_DATE, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T1.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T2.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T2.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T3.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T3.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T4.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T4.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T5.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T5.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T6.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T6.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T7.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T7.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T8.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T8.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T9.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T9.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T10.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T10.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE
+          WHEN COALESCE(T11.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE, '') <> ''
+          THEN T11.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE
+          ELSE COALESCE(T1.CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE, '')
+        END
+      ) AS CUSTOMER_SECONDARY_IDENTIFICATION_NO_TYPE, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_SECONDARY_IDENTIFICATION_NO, '') <> ''
+          THEN T1.CUSTOMER_SECONDARY_IDENTIFICATION_NO
+          WHEN COALESCE(T2.CUSTOMER_SECONDARY_IDENTIFICATION_NO, '') <> ''
+          THEN T2.CUSTOMER_SECONDARY_IDENTIFICATION_NO
+          WHEN COALESCE(T3.CUSTOMER_SECONDARY_IDENTIFICATION_NO, '') <> ''
+          THEN T3.CUSTOMER_SECONDARY_IDENTIFICATION_NO
+          WHEN COALESCE(T4.CUSTOMER_SECONDARY_IDENTIFICATION_NO, '') <> ''
+          THEN T4.CUSTOMER_SECONDARY_IDENTIFICATION_NO
+          WHEN COALESCE(T5.CUSTOMER_SECONDARY_IDENTIFICATION_NO, '') <> ''
+          THEN T5.CUSTOMER_SECONDARY_IDENTIFICATION_NO
+          WHEN COALESCE(T6.CUSTOMER_SECONDARY_IDENTIFICATION_NO, '') <> ''
+          THEN T6.CUSTOMER_SECONDARY_IDENTIFICATION_NO
+          WHEN COALESCE(T7.CUSTOMER_SECONDARY_IDENTIFICATION_NO, '') <> ''
+          THEN T7.CUSTOMER_SECONDARY_IDENTIFICATION_NO
+          WHEN COALESCE(T8.CUSTOMER_SECONDARY_IDENTIFICATION_NO, '') <> ''
+          THEN T8.CUSTOMER_SECONDARY_IDENTIFICATION_NO
+          WHEN COALESCE(T9.CUSTOMER_SECONDARY_IDENTIFICATION_NO, '') <> ''
+          THEN T9.CUSTOMER_SECONDARY_IDENTIFICATION_NO
+          WHEN COALESCE(T10.CUSTOMER_SECONDARY_IDENTIFICATION_NO, '') <> ''
+          THEN T10.CUSTOMER_SECONDARY_IDENTIFICATION_NO
+          WHEN COALESCE(T11.CUSTOMER_SECONDARY_IDENTIFICATION_NO, '') <> ''
+          THEN T11.CUSTOMER_SECONDARY_IDENTIFICATION_NO
+          ELSE COALESCE(T1.CUSTOMER_SECONDARY_IDENTIFICATION_NO, '')
+        END
+      ) AS CUSTOMER_SECONDARY_IDENTIFICATION_NO, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T1.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T2.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T2.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T3.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T3.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T4.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T4.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T5.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T5.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T6.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T6.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T7.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T7.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T8.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T8.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T9.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T9.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T10.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T10.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE
+          WHEN COALESCE(T11.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE, '') <> ''
+          THEN T11.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE
+          ELSE COALESCE(T1.CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE, '')
+        END
+      ) AS CUSTOMER_SECONDARY_IDENTIFICATION_NO_EXPIRY_DATE, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_NATIONALITY, '') <> ''
+          THEN T1.CUSTOMER_NATIONALITY
+          WHEN COALESCE(T2.CUSTOMER_NATIONALITY, '') <> ''
+          THEN T2.CUSTOMER_NATIONALITY
+          WHEN COALESCE(T3.CUSTOMER_NATIONALITY, '') <> ''
+          THEN T3.CUSTOMER_NATIONALITY
+          WHEN COALESCE(T4.CUSTOMER_NATIONALITY, '') <> ''
+          THEN T4.CUSTOMER_NATIONALITY
+          WHEN COALESCE(T5.CUSTOMER_NATIONALITY, '') <> ''
+          THEN T5.CUSTOMER_NATIONALITY
+          WHEN COALESCE(T6.CUSTOMER_NATIONALITY, '') <> ''
+          THEN T6.CUSTOMER_NATIONALITY
+          WHEN COALESCE(T7.CUSTOMER_NATIONALITY, '') <> ''
+          THEN T7.CUSTOMER_NATIONALITY
+          WHEN COALESCE(T8.CUSTOMER_NATIONALITY, '') <> ''
+          THEN T8.CUSTOMER_NATIONALITY
+          WHEN COALESCE(T9.CUSTOMER_NATIONALITY, '') <> ''
+          THEN T9.CUSTOMER_NATIONALITY
+          WHEN COALESCE(T10.CUSTOMER_NATIONALITY, '') <> ''
+          THEN T10.CUSTOMER_NATIONALITY
+          WHEN COALESCE(T11.CUSTOMER_NATIONALITY, '') <> ''
+          THEN T11.CUSTOMER_NATIONALITY
+          ELSE COALESCE(T1.CUSTOMER_NATIONALITY, '')
+        END
+      ) AS CUSTOMER_NATIONALITY, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_COUNTRY_OF_RESIDENCE, '') <> ''
+          THEN T1.CUSTOMER_COUNTRY_OF_RESIDENCE
+          WHEN COALESCE(T2.CUSTOMER_COUNTRY_OF_RESIDENCE, '') <> ''
+          THEN T2.CUSTOMER_COUNTRY_OF_RESIDENCE
+          WHEN COALESCE(T3.CUSTOMER_COUNTRY_OF_RESIDENCE, '') <> ''
+          THEN T3.CUSTOMER_COUNTRY_OF_RESIDENCE
+          WHEN COALESCE(T4.CUSTOMER_COUNTRY_OF_RESIDENCE, '') <> ''
+          THEN T4.CUSTOMER_COUNTRY_OF_RESIDENCE
+          WHEN COALESCE(T5.CUSTOMER_COUNTRY_OF_RESIDENCE, '') <> ''
+          THEN T5.CUSTOMER_COUNTRY_OF_RESIDENCE
+          WHEN COALESCE(T6.CUSTOMER_COUNTRY_OF_RESIDENCE, '') <> ''
+          THEN T6.CUSTOMER_COUNTRY_OF_RESIDENCE
+          WHEN COALESCE(T7.CUSTOMER_COUNTRY_OF_RESIDENCE, '') <> ''
+          THEN T7.CUSTOMER_COUNTRY_OF_RESIDENCE
+          WHEN COALESCE(T8.CUSTOMER_COUNTRY_OF_RESIDENCE, '') <> ''
+          THEN T8.CUSTOMER_COUNTRY_OF_RESIDENCE
+          WHEN COALESCE(T9.CUSTOMER_COUNTRY_OF_RESIDENCE, '') <> ''
+          THEN T9.CUSTOMER_COUNTRY_OF_RESIDENCE
+          WHEN COALESCE(T10.CUSTOMER_COUNTRY_OF_RESIDENCE, '') <> ''
+          THEN T10.CUSTOMER_COUNTRY_OF_RESIDENCE
+          WHEN COALESCE(T11.CUSTOMER_COUNTRY_OF_RESIDENCE, '') <> ''
+          THEN T11.CUSTOMER_COUNTRY_OF_RESIDENCE
+          ELSE COALESCE(T1.CUSTOMER_COUNTRY_OF_RESIDENCE, '')
+        END
+      ) AS CUSTOMER_COUNTRY_OF_RESIDENCE, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_COUNTRY_OF_BIRTH, '') <> ''
+          THEN T1.CUSTOMER_COUNTRY_OF_BIRTH
+          WHEN COALESCE(T2.CUSTOMER_COUNTRY_OF_BIRTH, '') <> ''
+          THEN T2.CUSTOMER_COUNTRY_OF_BIRTH
+          WHEN COALESCE(T3.CUSTOMER_COUNTRY_OF_BIRTH, '') <> ''
+          THEN T3.CUSTOMER_COUNTRY_OF_BIRTH
+          WHEN COALESCE(T4.CUSTOMER_COUNTRY_OF_BIRTH, '') <> ''
+          THEN T4.CUSTOMER_COUNTRY_OF_BIRTH
+          WHEN COALESCE(T5.CUSTOMER_COUNTRY_OF_BIRTH, '') <> ''
+          THEN T5.CUSTOMER_COUNTRY_OF_BIRTH
+          WHEN COALESCE(T6.CUSTOMER_COUNTRY_OF_BIRTH, '') <> ''
+          THEN T6.CUSTOMER_COUNTRY_OF_BIRTH
+          WHEN COALESCE(T7.CUSTOMER_COUNTRY_OF_BIRTH, '') <> ''
+          THEN T7.CUSTOMER_COUNTRY_OF_BIRTH
+          WHEN COALESCE(T8.CUSTOMER_COUNTRY_OF_BIRTH, '') <> ''
+          THEN T8.CUSTOMER_COUNTRY_OF_BIRTH
+          WHEN COALESCE(T9.CUSTOMER_COUNTRY_OF_BIRTH, '') <> ''
+          THEN T9.CUSTOMER_COUNTRY_OF_BIRTH
+          WHEN COALESCE(T10.CUSTOMER_COUNTRY_OF_BIRTH, '') <> ''
+          THEN T10.CUSTOMER_COUNTRY_OF_BIRTH
+          WHEN COALESCE(T11.CUSTOMER_COUNTRY_OF_BIRTH, '') <> ''
+          THEN T11.CUSTOMER_COUNTRY_OF_BIRTH
+          ELSE COALESCE(T1.CUSTOMER_COUNTRY_OF_BIRTH, '')
+        END
+      ) AS CUSTOMER_COUNTRY_OF_BIRTH, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_DATE_OF_BIRTH, '') <> ''
+          THEN T1.CUSTOMER_DATE_OF_BIRTH
+          WHEN COALESCE(T2.CUSTOMER_DATE_OF_BIRTH, '') <> ''
+          THEN T2.CUSTOMER_DATE_OF_BIRTH
+          WHEN COALESCE(T3.CUSTOMER_DATE_OF_BIRTH, '') <> ''
+          THEN T3.CUSTOMER_DATE_OF_BIRTH
+          WHEN COALESCE(T4.CUSTOMER_DATE_OF_BIRTH, '') <> ''
+          THEN T4.CUSTOMER_DATE_OF_BIRTH
+          WHEN COALESCE(T5.CUSTOMER_DATE_OF_BIRTH, '') <> ''
+          THEN T5.CUSTOMER_DATE_OF_BIRTH
+          WHEN COALESCE(T6.CUSTOMER_DATE_OF_BIRTH, '') <> ''
+          THEN T6.CUSTOMER_DATE_OF_BIRTH
+          WHEN COALESCE(T7.CUSTOMER_DATE_OF_BIRTH, '') <> ''
+          THEN T7.CUSTOMER_DATE_OF_BIRTH
+          WHEN COALESCE(T8.CUSTOMER_DATE_OF_BIRTH, '') <> ''
+          THEN T8.CUSTOMER_DATE_OF_BIRTH
+          WHEN COALESCE(T9.CUSTOMER_DATE_OF_BIRTH, '') <> ''
+          THEN T9.CUSTOMER_DATE_OF_BIRTH
+          WHEN COALESCE(T10.CUSTOMER_DATE_OF_BIRTH, '') <> ''
+          THEN T10.CUSTOMER_DATE_OF_BIRTH
+          WHEN COALESCE(T11.CUSTOMER_DATE_OF_BIRTH, '') <> ''
+          THEN T11.CUSTOMER_DATE_OF_BIRTH
+          ELSE COALESCE(T1.CUSTOMER_DATE_OF_BIRTH, '')
+        END
+      ) AS CUSTOMER_DATE_OF_BIRTH, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_BUMIPUTRA_STATUS, '') <> ''
+          THEN T1.CUSTOMER_BUMIPUTRA_STATUS
+          WHEN COALESCE(T2.CUSTOMER_BUMIPUTRA_STATUS, '') <> ''
+          THEN T2.CUSTOMER_BUMIPUTRA_STATUS
+          WHEN COALESCE(T3.CUSTOMER_BUMIPUTRA_STATUS, '') <> ''
+          THEN T3.CUSTOMER_BUMIPUTRA_STATUS
+          WHEN COALESCE(T4.CUSTOMER_BUMIPUTRA_STATUS, '') <> ''
+          THEN T4.CUSTOMER_BUMIPUTRA_STATUS
+          WHEN COALESCE(T5.CUSTOMER_BUMIPUTRA_STATUS, '') <> ''
+          THEN T5.CUSTOMER_BUMIPUTRA_STATUS
+          WHEN COALESCE(T6.CUSTOMER_BUMIPUTRA_STATUS, '') <> ''
+          THEN T6.CUSTOMER_BUMIPUTRA_STATUS
+          WHEN COALESCE(T7.CUSTOMER_BUMIPUTRA_STATUS, '') <> ''
+          THEN T7.CUSTOMER_BUMIPUTRA_STATUS
+          WHEN COALESCE(T8.CUSTOMER_BUMIPUTRA_STATUS, '') <> ''
+          THEN T8.CUSTOMER_BUMIPUTRA_STATUS
+          WHEN COALESCE(T9.CUSTOMER_BUMIPUTRA_STATUS, '') <> ''
+          THEN T9.CUSTOMER_BUMIPUTRA_STATUS
+          WHEN COALESCE(T10.CUSTOMER_BUMIPUTRA_STATUS, '') <> ''
+          THEN T10.CUSTOMER_BUMIPUTRA_STATUS
+          WHEN COALESCE(T11.CUSTOMER_BUMIPUTRA_STATUS, '') <> ''
+          THEN T11.CUSTOMER_BUMIPUTRA_STATUS
+          ELSE COALESCE(T1.CUSTOMER_BUMIPUTRA_STATUS, '')
+        END
+      ) AS CUSTOMER_BUMIPUTRA_STATUS, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_RACE, '') <> ''
+          THEN T1.CUSTOMER_RACE
+          WHEN COALESCE(T2.CUSTOMER_RACE, '') <> ''
+          THEN T2.CUSTOMER_RACE
+          WHEN COALESCE(T3.CUSTOMER_RACE, '') <> ''
+          THEN T3.CUSTOMER_RACE
+          WHEN COALESCE(T4.CUSTOMER_RACE, '') <> ''
+          THEN T4.CUSTOMER_RACE
+          WHEN COALESCE(T5.CUSTOMER_RACE, '') <> ''
+          THEN T5.CUSTOMER_RACE
+          WHEN COALESCE(T6.CUSTOMER_RACE, '') <> ''
+          THEN T6.CUSTOMER_RACE
+          WHEN COALESCE(T7.CUSTOMER_RACE, '') <> ''
+          THEN T7.CUSTOMER_RACE
+          WHEN COALESCE(T8.CUSTOMER_RACE, '') <> ''
+          THEN T8.CUSTOMER_RACE
+          WHEN COALESCE(T9.CUSTOMER_RACE, '') <> ''
+          THEN T9.CUSTOMER_RACE
+          WHEN COALESCE(T10.CUSTOMER_RACE, '') <> ''
+          THEN T10.CUSTOMER_RACE
+          WHEN COALESCE(T11.CUSTOMER_RACE, '') <> ''
+          THEN T11.CUSTOMER_RACE
+          ELSE COALESCE(T1.CUSTOMER_RACE, '')
+        END
+      ) AS CUSTOMER_RACE, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_GENDER, '') <> ''
+          THEN T1.CUSTOMER_GENDER
+          WHEN COALESCE(T2.CUSTOMER_GENDER, '') <> ''
+          THEN T2.CUSTOMER_GENDER
+          WHEN COALESCE(T3.CUSTOMER_GENDER, '') <> ''
+          THEN T3.CUSTOMER_GENDER
+          WHEN COALESCE(T4.CUSTOMER_GENDER, '') <> ''
+          THEN T4.CUSTOMER_GENDER
+          WHEN COALESCE(T5.CUSTOMER_GENDER, '') <> ''
+          THEN T5.CUSTOMER_GENDER
+          WHEN COALESCE(T6.CUSTOMER_GENDER, '') <> ''
+          THEN T6.CUSTOMER_GENDER
+          WHEN COALESCE(T7.CUSTOMER_GENDER, '') <> ''
+          THEN T7.CUSTOMER_GENDER
+          WHEN COALESCE(T8.CUSTOMER_GENDER, '') <> ''
+          THEN T8.CUSTOMER_GENDER
+          WHEN COALESCE(T9.CUSTOMER_GENDER, '') <> ''
+          THEN T9.CUSTOMER_GENDER
+          WHEN COALESCE(T10.CUSTOMER_GENDER, '') <> ''
+          THEN T10.CUSTOMER_GENDER
+          WHEN COALESCE(T11.CUSTOMER_GENDER, '') <> ''
+          THEN T11.CUSTOMER_GENDER
+          ELSE COALESCE(T1.CUSTOMER_GENDER, '')
+        END
+      ) AS CUSTOMER_GENDER, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_MARITAL_STATUS, '') <> ''
+          THEN T1.CUSTOMER_MARITAL_STATUS
+          WHEN COALESCE(T2.CUSTOMER_MARITAL_STATUS, '') <> ''
+          THEN T2.CUSTOMER_MARITAL_STATUS
+          WHEN COALESCE(T3.CUSTOMER_MARITAL_STATUS, '') <> ''
+          THEN T3.CUSTOMER_MARITAL_STATUS
+          WHEN COALESCE(T4.CUSTOMER_MARITAL_STATUS, '') <> ''
+          THEN T4.CUSTOMER_MARITAL_STATUS
+          WHEN COALESCE(T5.CUSTOMER_MARITAL_STATUS, '') <> ''
+          THEN T5.CUSTOMER_MARITAL_STATUS
+          WHEN COALESCE(T6.CUSTOMER_MARITAL_STATUS, '') <> ''
+          THEN T6.CUSTOMER_MARITAL_STATUS
+          WHEN COALESCE(T7.CUSTOMER_MARITAL_STATUS, '') <> ''
+          THEN T7.CUSTOMER_MARITAL_STATUS
+          WHEN COALESCE(T8.CUSTOMER_MARITAL_STATUS, '') <> ''
+          THEN T8.CUSTOMER_MARITAL_STATUS
+          WHEN COALESCE(T9.CUSTOMER_MARITAL_STATUS, '') <> ''
+          THEN T9.CUSTOMER_MARITAL_STATUS
+          WHEN COALESCE(T10.CUSTOMER_MARITAL_STATUS, '') <> ''
+          THEN T10.CUSTOMER_MARITAL_STATUS
+          WHEN COALESCE(T11.CUSTOMER_MARITAL_STATUS, '') <> ''
+          THEN T11.CUSTOMER_MARITAL_STATUS
+          ELSE COALESCE(T1.CUSTOMER_MARITAL_STATUS, '')
+        END
+      ) AS CUSTOMER_MARITAL_STATUS, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_COMPANY_CONTACT_PERSON, '') <> ''
+          THEN T1.CUSTOMER_COMPANY_CONTACT_PERSON
+          WHEN COALESCE(T2.CUSTOMER_COMPANY_CONTACT_PERSON, '') <> ''
+          THEN T2.CUSTOMER_COMPANY_CONTACT_PERSON
+          WHEN COALESCE(T3.CUSTOMER_COMPANY_CONTACT_PERSON, '') <> ''
+          THEN T3.CUSTOMER_COMPANY_CONTACT_PERSON
+          WHEN COALESCE(T4.CUSTOMER_COMPANY_CONTACT_PERSON, '') <> ''
+          THEN T4.CUSTOMER_COMPANY_CONTACT_PERSON
+          WHEN COALESCE(T5.CUSTOMER_COMPANY_CONTACT_PERSON, '') <> ''
+          THEN T5.CUSTOMER_COMPANY_CONTACT_PERSON
+          WHEN COALESCE(T6.CUSTOMER_COMPANY_CONTACT_PERSON, '') <> ''
+          THEN T6.CUSTOMER_COMPANY_CONTACT_PERSON
+          WHEN COALESCE(T7.CUSTOMER_COMPANY_CONTACT_PERSON, '') <> ''
+          THEN T7.CUSTOMER_COMPANY_CONTACT_PERSON
+          WHEN COALESCE(T8.CUSTOMER_COMPANY_CONTACT_PERSON, '') <> ''
+          THEN T8.CUSTOMER_COMPANY_CONTACT_PERSON
+          WHEN COALESCE(T9.CUSTOMER_COMPANY_CONTACT_PERSON, '') <> ''
+          THEN T9.CUSTOMER_COMPANY_CONTACT_PERSON
+          WHEN COALESCE(T10.CUSTOMER_COMPANY_CONTACT_PERSON, '') <> ''
+          THEN T10.CUSTOMER_COMPANY_CONTACT_PERSON
+          WHEN COALESCE(T11.CUSTOMER_COMPANY_CONTACT_PERSON, '') <> ''
+          THEN T11.CUSTOMER_COMPANY_CONTACT_PERSON
+          ELSE COALESCE(T1.CUSTOMER_COMPANY_CONTACT_PERSON, '')
+        END
+      ) AS CUSTOMER_COMPANY_CONTACT_PERSON, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_COMPANY_OWNERSHIP, '') <> ''
+          THEN T1.CUSTOMER_COMPANY_OWNERSHIP
+          WHEN COALESCE(T2.CUSTOMER_COMPANY_OWNERSHIP, '') <> ''
+          THEN T2.CUSTOMER_COMPANY_OWNERSHIP
+          WHEN COALESCE(T3.CUSTOMER_COMPANY_OWNERSHIP, '') <> ''
+          THEN T3.CUSTOMER_COMPANY_OWNERSHIP
+          WHEN COALESCE(T4.CUSTOMER_COMPANY_OWNERSHIP, '') <> ''
+          THEN T4.CUSTOMER_COMPANY_OWNERSHIP
+          WHEN COALESCE(T5.CUSTOMER_COMPANY_OWNERSHIP, '') <> ''
+          THEN T5.CUSTOMER_COMPANY_OWNERSHIP
+          WHEN COALESCE(T6.CUSTOMER_COMPANY_OWNERSHIP, '') <> ''
+          THEN T6.CUSTOMER_COMPANY_OWNERSHIP
+          WHEN COALESCE(T7.CUSTOMER_COMPANY_OWNERSHIP, '') <> ''
+          THEN T7.CUSTOMER_COMPANY_OWNERSHIP
+          WHEN COALESCE(T8.CUSTOMER_COMPANY_OWNERSHIP, '') <> ''
+          THEN T8.CUSTOMER_COMPANY_OWNERSHIP
+          WHEN COALESCE(T9.CUSTOMER_COMPANY_OWNERSHIP, '') <> ''
+          THEN T9.CUSTOMER_COMPANY_OWNERSHIP
+          WHEN COALESCE(T10.CUSTOMER_COMPANY_OWNERSHIP, '') <> ''
+          THEN T10.CUSTOMER_COMPANY_OWNERSHIP
+          WHEN COALESCE(T11.CUSTOMER_COMPANY_OWNERSHIP, '') <> ''
+          THEN T11.CUSTOMER_COMPANY_OWNERSHIP
+          ELSE COALESCE(T1.CUSTOMER_COMPANY_OWNERSHIP, '')
+        END
+      ) AS CUSTOMER_COMPANY_OWNERSHIP, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, '') <> ''
+          THEN T1.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION
+          WHEN COALESCE(T2.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, '') <> ''
+          THEN T2.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION
+          WHEN COALESCE(T3.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, '') <> ''
+          THEN T3.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION
+          WHEN COALESCE(T4.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, '') <> ''
+          THEN T4.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION
+          WHEN COALESCE(T5.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, '') <> ''
+          THEN T5.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION
+          WHEN COALESCE(T6.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, '') <> ''
+          THEN T6.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION
+          WHEN COALESCE(T7.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, '') <> ''
+          THEN T7.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION
+          WHEN COALESCE(T8.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, '') <> ''
+          THEN T8.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION
+          WHEN COALESCE(T9.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, '') <> ''
+          THEN T9.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION
+          WHEN COALESCE(T10.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, '') <> ''
+          THEN T10.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION
+          WHEN COALESCE(T11.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, '') <> ''
+          THEN T11.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION
+          ELSE COALESCE(T1.CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, '')
+        END
+      ) AS CUSTOMER_COMPANY_COUNTRY_OF_REGISTRATION, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_COMPANY_TYPE_OF_BUSINESS, '') <> ''
+          THEN T1.CUSTOMER_COMPANY_TYPE_OF_BUSINESS
+          WHEN COALESCE(T2.CUSTOMER_COMPANY_TYPE_OF_BUSINESS, '') <> ''
+          THEN T2.CUSTOMER_COMPANY_TYPE_OF_BUSINESS
+          WHEN COALESCE(T3.CUSTOMER_COMPANY_TYPE_OF_BUSINESS, '') <> ''
+          THEN T3.CUSTOMER_COMPANY_TYPE_OF_BUSINESS
+          WHEN COALESCE(T4.CUSTOMER_COMPANY_TYPE_OF_BUSINESS, '') <> ''
+          THEN T4.CUSTOMER_COMPANY_TYPE_OF_BUSINESS
+          WHEN COALESCE(T5.CUSTOMER_COMPANY_TYPE_OF_BUSINESS, '') <> ''
+          THEN T5.CUSTOMER_COMPANY_TYPE_OF_BUSINESS
+          WHEN COALESCE(T6.CUSTOMER_COMPANY_TYPE_OF_BUSINESS, '') <> ''
+          THEN T6.CUSTOMER_COMPANY_TYPE_OF_BUSINESS
+          WHEN COALESCE(T7.CUSTOMER_COMPANY_TYPE_OF_BUSINESS, '') <> ''
+          THEN T7.CUSTOMER_COMPANY_TYPE_OF_BUSINESS
+          WHEN COALESCE(T8.CUSTOMER_COMPANY_TYPE_OF_BUSINESS, '') <> ''
+          THEN T8.CUSTOMER_COMPANY_TYPE_OF_BUSINESS
+          WHEN COALESCE(T9.CUSTOMER_COMPANY_TYPE_OF_BUSINESS, '') <> ''
+          THEN T9.CUSTOMER_COMPANY_TYPE_OF_BUSINESS
+          WHEN COALESCE(T10.CUSTOMER_COMPANY_TYPE_OF_BUSINESS, '') <> ''
+          THEN T10.CUSTOMER_COMPANY_TYPE_OF_BUSINESS
+          WHEN COALESCE(T11.CUSTOMER_COMPANY_TYPE_OF_BUSINESS, '') <> ''
+          THEN T11.CUSTOMER_COMPANY_TYPE_OF_BUSINESS
+          ELSE COALESCE(T1.CUSTOMER_COMPANY_TYPE_OF_BUSINESS, '')
+        END
+      ) AS CUSTOMER_COMPANY_TYPE_OF_BUSINESS, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_COMPANY_DATE_OF_INCORPORATION, '') <> ''
+          THEN T1.CUSTOMER_COMPANY_DATE_OF_INCORPORATION
+          WHEN COALESCE(T2.CUSTOMER_COMPANY_DATE_OF_INCORPORATION, '') <> ''
+          THEN T2.CUSTOMER_COMPANY_DATE_OF_INCORPORATION
+          WHEN COALESCE(T3.CUSTOMER_COMPANY_DATE_OF_INCORPORATION, '') <> ''
+          THEN T3.CUSTOMER_COMPANY_DATE_OF_INCORPORATION
+          WHEN COALESCE(T4.CUSTOMER_COMPANY_DATE_OF_INCORPORATION, '') <> ''
+          THEN T4.CUSTOMER_COMPANY_DATE_OF_INCORPORATION
+          WHEN COALESCE(T5.CUSTOMER_COMPANY_DATE_OF_INCORPORATION, '') <> ''
+          THEN T5.CUSTOMER_COMPANY_DATE_OF_INCORPORATION
+          WHEN COALESCE(T6.CUSTOMER_COMPANY_DATE_OF_INCORPORATION, '') <> ''
+          THEN T6.CUSTOMER_COMPANY_DATE_OF_INCORPORATION
+          WHEN COALESCE(T7.CUSTOMER_COMPANY_DATE_OF_INCORPORATION, '') <> ''
+          THEN T7.CUSTOMER_COMPANY_DATE_OF_INCORPORATION
+          WHEN COALESCE(T8.CUSTOMER_COMPANY_DATE_OF_INCORPORATION, '') <> ''
+          THEN T8.CUSTOMER_COMPANY_DATE_OF_INCORPORATION
+          WHEN COALESCE(T9.CUSTOMER_COMPANY_DATE_OF_INCORPORATION, '') <> ''
+          THEN T9.CUSTOMER_COMPANY_DATE_OF_INCORPORATION
+          WHEN COALESCE(T10.CUSTOMER_COMPANY_DATE_OF_INCORPORATION, '') <> ''
+          THEN T10.CUSTOMER_COMPANY_DATE_OF_INCORPORATION
+          WHEN COALESCE(T11.CUSTOMER_COMPANY_DATE_OF_INCORPORATION, '') <> ''
+          THEN T11.CUSTOMER_COMPANY_DATE_OF_INCORPORATION
+          ELSE COALESCE(T1.CUSTOMER_COMPANY_DATE_OF_INCORPORATION, '')
+        END
+      ) AS CUSTOMER_COMPANY_DATE_OF_INCORPORATION, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_COMPANY_WEBSITE, '') <> ''
+          THEN T1.CUSTOMER_COMPANY_WEBSITE
+          WHEN COALESCE(T2.CUSTOMER_COMPANY_WEBSITE, '') <> ''
+          THEN T2.CUSTOMER_COMPANY_WEBSITE
+          WHEN COALESCE(T3.CUSTOMER_COMPANY_WEBSITE, '') <> ''
+          THEN T3.CUSTOMER_COMPANY_WEBSITE
+          WHEN COALESCE(T4.CUSTOMER_COMPANY_WEBSITE, '') <> ''
+          THEN T4.CUSTOMER_COMPANY_WEBSITE
+          WHEN COALESCE(T5.CUSTOMER_COMPANY_WEBSITE, '') <> ''
+          THEN T5.CUSTOMER_COMPANY_WEBSITE
+          WHEN COALESCE(T6.CUSTOMER_COMPANY_WEBSITE, '') <> ''
+          THEN T6.CUSTOMER_COMPANY_WEBSITE
+          WHEN COALESCE(T7.CUSTOMER_COMPANY_WEBSITE, '') <> ''
+          THEN T7.CUSTOMER_COMPANY_WEBSITE
+          WHEN COALESCE(T8.CUSTOMER_COMPANY_WEBSITE, '') <> ''
+          THEN T8.CUSTOMER_COMPANY_WEBSITE
+          WHEN COALESCE(T9.CUSTOMER_COMPANY_WEBSITE, '') <> ''
+          THEN T9.CUSTOMER_COMPANY_WEBSITE
+          WHEN COALESCE(T10.CUSTOMER_COMPANY_WEBSITE, '') <> ''
+          THEN T10.CUSTOMER_COMPANY_WEBSITE
+          WHEN COALESCE(T11.CUSTOMER_COMPANY_WEBSITE, '') <> ''
+          THEN T11.CUSTOMER_COMPANY_WEBSITE
+          ELSE COALESCE(T1.CUSTOMER_COMPANY_WEBSITE, '')
+        END
+      ) AS CUSTOMER_COMPANY_WEBSITE, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION, '') <> ''
+          THEN T1.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION
+          WHEN COALESCE(T2.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION, '') <> ''
+          THEN T2.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION
+          WHEN COALESCE(T3.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION, '') <> ''
+          THEN T3.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION
+          WHEN COALESCE(T4.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION, '') <> ''
+          THEN T4.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION
+          WHEN COALESCE(T5.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION, '') <> ''
+          THEN T5.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION
+          WHEN COALESCE(T6.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION, '') <> ''
+          THEN T6.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION
+          WHEN COALESCE(T7.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION, '') <> ''
+          THEN T7.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION
+          WHEN COALESCE(T8.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION, '') <> ''
+          THEN T8.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION
+          WHEN COALESCE(T9.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION, '') <> ''
+          THEN T9.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION
+          WHEN COALESCE(T10.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION, '') <> ''
+          THEN T10.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION
+          WHEN COALESCE(T11.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION, '') <> ''
+          THEN T11.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION
+          ELSE COALESCE(T1.CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION, '')
+        END
+      ) AS CUSTOMER_COMPANY_TYPE_OF_ORGANIZATION, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.PDPA_FLAG, '') <> ''
+          THEN T1.PDPA_FLAG
+          WHEN COALESCE(T2.PDPA_FLAG, '') <> ''
+          THEN T2.PDPA_FLAG
+          WHEN COALESCE(T3.PDPA_FLAG, '') <> ''
+          THEN T3.PDPA_FLAG
+          WHEN COALESCE(T4.PDPA_FLAG, '') <> ''
+          THEN T4.PDPA_FLAG
+          WHEN COALESCE(T5.PDPA_FLAG, '') <> ''
+          THEN T5.PDPA_FLAG
+          WHEN COALESCE(T6.PDPA_FLAG, '') <> ''
+          THEN T6.PDPA_FLAG
+          WHEN COALESCE(T7.PDPA_FLAG, '') <> ''
+          THEN T7.PDPA_FLAG
+          WHEN COALESCE(T8.PDPA_FLAG, '') <> ''
+          THEN T8.PDPA_FLAG
+          WHEN COALESCE(T9.PDPA_FLAG, '') <> ''
+          THEN T9.PDPA_FLAG
+          WHEN COALESCE(T10.PDPA_FLAG, '') <> ''
+          THEN T10.PDPA_FLAG
+          WHEN COALESCE(T11.PDPA_FLAG, '') <> ''
+          THEN T11.PDPA_FLAG
+          ELSE COALESCE(T1.PDPA_FLAG, '')
+        END
+      ) AS PDPA_FLAG, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CONNECTED_PARTY_FLAG, '') <> ''
+          THEN T1.CONNECTED_PARTY_FLAG
+          WHEN COALESCE(T2.CONNECTED_PARTY_FLAG, '') <> ''
+          THEN T2.CONNECTED_PARTY_FLAG
+          WHEN COALESCE(T3.CONNECTED_PARTY_FLAG, '') <> ''
+          THEN T3.CONNECTED_PARTY_FLAG
+          WHEN COALESCE(T4.CONNECTED_PARTY_FLAG, '') <> ''
+          THEN T4.CONNECTED_PARTY_FLAG
+          WHEN COALESCE(T5.CONNECTED_PARTY_FLAG, '') <> ''
+          THEN T5.CONNECTED_PARTY_FLAG
+          WHEN COALESCE(T6.CONNECTED_PARTY_FLAG, '') <> ''
+          THEN T6.CONNECTED_PARTY_FLAG
+          WHEN COALESCE(T7.CONNECTED_PARTY_FLAG, '') <> ''
+          THEN T7.CONNECTED_PARTY_FLAG
+          WHEN COALESCE(T8.CONNECTED_PARTY_FLAG, '') <> ''
+          THEN T8.CONNECTED_PARTY_FLAG
+          WHEN COALESCE(T9.CONNECTED_PARTY_FLAG, '') <> ''
+          THEN T9.CONNECTED_PARTY_FLAG
+          WHEN COALESCE(T10.CONNECTED_PARTY_FLAG, '') <> ''
+          THEN T10.CONNECTED_PARTY_FLAG
+          WHEN COALESCE(T11.CONNECTED_PARTY_FLAG, '') <> ''
+          THEN T11.CONNECTED_PARTY_FLAG
+          ELSE COALESCE(T1.CONNECTED_PARTY_FLAG, '')
+        END
+      ) AS CONNECTED_PARTY_FLAG, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.POLITICALLY_EXPOSED_PERSON_FLAG, '') <> ''
+          THEN T1.POLITICALLY_EXPOSED_PERSON_FLAG
+          WHEN COALESCE(T2.POLITICALLY_EXPOSED_PERSON_FLAG, '') <> ''
+          THEN T2.POLITICALLY_EXPOSED_PERSON_FLAG
+          WHEN COALESCE(T3.POLITICALLY_EXPOSED_PERSON_FLAG, '') <> ''
+          THEN T3.POLITICALLY_EXPOSED_PERSON_FLAG
+          WHEN COALESCE(T4.POLITICALLY_EXPOSED_PERSON_FLAG, '') <> ''
+          THEN T4.POLITICALLY_EXPOSED_PERSON_FLAG
+          WHEN COALESCE(T5.POLITICALLY_EXPOSED_PERSON_FLAG, '') <> ''
+          THEN T5.POLITICALLY_EXPOSED_PERSON_FLAG
+          WHEN COALESCE(T6.POLITICALLY_EXPOSED_PERSON_FLAG, '') <> ''
+          THEN T6.POLITICALLY_EXPOSED_PERSON_FLAG
+          WHEN COALESCE(T7.POLITICALLY_EXPOSED_PERSON_FLAG, '') <> ''
+          THEN T7.POLITICALLY_EXPOSED_PERSON_FLAG
+          WHEN COALESCE(T8.POLITICALLY_EXPOSED_PERSON_FLAG, '') <> ''
+          THEN T8.POLITICALLY_EXPOSED_PERSON_FLAG
+          WHEN COALESCE(T9.POLITICALLY_EXPOSED_PERSON_FLAG, '') <> ''
+          THEN T9.POLITICALLY_EXPOSED_PERSON_FLAG
+          WHEN COALESCE(T10.POLITICALLY_EXPOSED_PERSON_FLAG, '') <> ''
+          THEN T10.POLITICALLY_EXPOSED_PERSON_FLAG
+          WHEN COALESCE(T11.POLITICALLY_EXPOSED_PERSON_FLAG, '') <> ''
+          THEN T11.POLITICALLY_EXPOSED_PERSON_FLAG
+          ELSE COALESCE(T1.POLITICALLY_EXPOSED_PERSON_FLAG, '')
+        END
+      ) AS POLITICALLY_EXPOSED_PERSON_FLAG, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CROSS_SELLING_CONSENT_FLAG, '') <> ''
+          THEN T1.CROSS_SELLING_CONSENT_FLAG
+          WHEN COALESCE(T2.CROSS_SELLING_CONSENT_FLAG, '') <> ''
+          THEN T2.CROSS_SELLING_CONSENT_FLAG
+          WHEN COALESCE(T3.CROSS_SELLING_CONSENT_FLAG, '') <> ''
+          THEN T3.CROSS_SELLING_CONSENT_FLAG
+          WHEN COALESCE(T4.CROSS_SELLING_CONSENT_FLAG, '') <> ''
+          THEN T4.CROSS_SELLING_CONSENT_FLAG
+          WHEN COALESCE(T5.CROSS_SELLING_CONSENT_FLAG, '') <> ''
+          THEN T5.CROSS_SELLING_CONSENT_FLAG
+          WHEN COALESCE(T6.CROSS_SELLING_CONSENT_FLAG, '') <> ''
+          THEN T6.CROSS_SELLING_CONSENT_FLAG
+          WHEN COALESCE(T7.CROSS_SELLING_CONSENT_FLAG, '') <> ''
+          THEN T7.CROSS_SELLING_CONSENT_FLAG
+          WHEN COALESCE(T8.CROSS_SELLING_CONSENT_FLAG, '') <> ''
+          THEN T8.CROSS_SELLING_CONSENT_FLAG
+          WHEN COALESCE(T9.CROSS_SELLING_CONSENT_FLAG, '') <> ''
+          THEN T9.CROSS_SELLING_CONSENT_FLAG
+          WHEN COALESCE(T10.CROSS_SELLING_CONSENT_FLAG, '') <> ''
+          THEN T10.CROSS_SELLING_CONSENT_FLAG
+          WHEN COALESCE(T11.CROSS_SELLING_CONSENT_FLAG, '') <> ''
+          THEN T11.CROSS_SELLING_CONSENT_FLAG
+          ELSE COALESCE(T1.CROSS_SELLING_CONSENT_FLAG, '')
+        END
+      ) AS CROSS_SELLING_CONSENT_FLAG, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.DCF_FLAG, '') <> ''
+          THEN T1.DCF_FLAG
+          WHEN COALESCE(T2.DCF_FLAG, '') <> ''
+          THEN T2.DCF_FLAG
+          WHEN COALESCE(T3.DCF_FLAG, '') <> ''
+          THEN T3.DCF_FLAG
+          WHEN COALESCE(T4.DCF_FLAG, '') <> ''
+          THEN T4.DCF_FLAG
+          WHEN COALESCE(T5.DCF_FLAG, '') <> ''
+          THEN T5.DCF_FLAG
+          WHEN COALESCE(T6.DCF_FLAG, '') <> ''
+          THEN T6.DCF_FLAG
+          WHEN COALESCE(T7.DCF_FLAG, '') <> ''
+          THEN T7.DCF_FLAG
+          WHEN COALESCE(T8.DCF_FLAG, '') <> ''
+          THEN T8.DCF_FLAG
+          WHEN COALESCE(T9.DCF_FLAG, '') <> ''
+          THEN T9.DCF_FLAG
+          WHEN COALESCE(T10.DCF_FLAG, '') <> ''
+          THEN T10.DCF_FLAG
+          WHEN COALESCE(T11.DCF_FLAG, '') <> ''
+          THEN T11.DCF_FLAG
+          ELSE COALESCE(T1.DCF_FLAG, '')
+        END
+      ) AS DCF_FLAG, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.MULTI_TRADING_ACCOUNT_FLAG, '') <> ''
+          THEN T1.MULTI_TRADING_ACCOUNT_FLAG
+          WHEN COALESCE(T2.MULTI_TRADING_ACCOUNT_FLAG, '') <> ''
+          THEN T2.MULTI_TRADING_ACCOUNT_FLAG
+          WHEN COALESCE(T3.MULTI_TRADING_ACCOUNT_FLAG, '') <> ''
+          THEN T3.MULTI_TRADING_ACCOUNT_FLAG
+          WHEN COALESCE(T4.MULTI_TRADING_ACCOUNT_FLAG, '') <> ''
+          THEN T4.MULTI_TRADING_ACCOUNT_FLAG
+          WHEN COALESCE(T5.MULTI_TRADING_ACCOUNT_FLAG, '') <> ''
+          THEN T5.MULTI_TRADING_ACCOUNT_FLAG
+          WHEN COALESCE(T6.MULTI_TRADING_ACCOUNT_FLAG, '') <> ''
+          THEN T6.MULTI_TRADING_ACCOUNT_FLAG
+          WHEN COALESCE(T7.MULTI_TRADING_ACCOUNT_FLAG, '') <> ''
+          THEN T7.MULTI_TRADING_ACCOUNT_FLAG
+          WHEN COALESCE(T8.MULTI_TRADING_ACCOUNT_FLAG, '') <> ''
+          THEN T8.MULTI_TRADING_ACCOUNT_FLAG
+          WHEN COALESCE(T9.MULTI_TRADING_ACCOUNT_FLAG, '') <> ''
+          THEN T9.MULTI_TRADING_ACCOUNT_FLAG
+          WHEN COALESCE(T10.MULTI_TRADING_ACCOUNT_FLAG, '') <> ''
+          THEN T10.MULTI_TRADING_ACCOUNT_FLAG
+          WHEN COALESCE(T11.MULTI_TRADING_ACCOUNT_FLAG, '') <> ''
+          THEN T11.MULTI_TRADING_ACCOUNT_FLAG
+          ELSE COALESCE(T1.MULTI_TRADING_ACCOUNT_FLAG, '')
+        END
+      ) AS MULTI_TRADING_ACCOUNT_FLAG, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.FATCA_FLAG, '') <> ''
+          THEN T1.FATCA_FLAG
+          WHEN COALESCE(T2.FATCA_FLAG, '') <> ''
+          THEN T2.FATCA_FLAG
+          WHEN COALESCE(T3.FATCA_FLAG, '') <> ''
+          THEN T3.FATCA_FLAG
+          WHEN COALESCE(T4.FATCA_FLAG, '') <> ''
+          THEN T4.FATCA_FLAG
+          WHEN COALESCE(T5.FATCA_FLAG, '') <> ''
+          THEN T5.FATCA_FLAG
+          WHEN COALESCE(T6.FATCA_FLAG, '') <> ''
+          THEN T6.FATCA_FLAG
+          WHEN COALESCE(T7.FATCA_FLAG, '') <> ''
+          THEN T7.FATCA_FLAG
+          WHEN COALESCE(T8.FATCA_FLAG, '') <> ''
+          THEN T8.FATCA_FLAG
+          WHEN COALESCE(T9.FATCA_FLAG, '') <> ''
+          THEN T9.FATCA_FLAG
+          WHEN COALESCE(T10.FATCA_FLAG, '') <> ''
+          THEN T10.FATCA_FLAG
+          WHEN COALESCE(T11.FATCA_FLAG, '') <> ''
+          THEN T11.FATCA_FLAG
+          ELSE COALESCE(T1.FATCA_FLAG, '')
+        END
+      ) AS FATCA_FLAG, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CRS_FLAG, '') <> ''
+          THEN T1.CRS_FLAG
+          WHEN COALESCE(T2.CRS_FLAG, '') <> ''
+          THEN T2.CRS_FLAG
+          WHEN COALESCE(T3.CRS_FLAG, '') <> ''
+          THEN T3.CRS_FLAG
+          WHEN COALESCE(T4.CRS_FLAG, '') <> ''
+          THEN T4.CRS_FLAG
+          WHEN COALESCE(T5.CRS_FLAG, '') <> ''
+          THEN T5.CRS_FLAG
+          WHEN COALESCE(T6.CRS_FLAG, '') <> ''
+          THEN T6.CRS_FLAG
+          WHEN COALESCE(T7.CRS_FLAG, '') <> ''
+          THEN T7.CRS_FLAG
+          WHEN COALESCE(T8.CRS_FLAG, '') <> ''
+          THEN T8.CRS_FLAG
+          WHEN COALESCE(T9.CRS_FLAG, '') <> ''
+          THEN T9.CRS_FLAG
+          WHEN COALESCE(T10.CRS_FLAG, '') <> ''
+          THEN T10.CRS_FLAG
+          WHEN COALESCE(T11.CRS_FLAG, '') <> ''
+          THEN T11.CRS_FLAG
+          ELSE COALESCE(T1.CRS_FLAG, '')
+        END
+      ) AS CRS_FLAG, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION, '') <> ''
+          THEN T1.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION
+          WHEN COALESCE(T2.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION, '') <> ''
+          THEN T2.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION
+          WHEN COALESCE(T3.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION, '') <> ''
+          THEN T3.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION
+          WHEN COALESCE(T4.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION, '') <> ''
+          THEN T4.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION
+          WHEN COALESCE(T5.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION, '') <> ''
+          THEN T5.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION
+          WHEN COALESCE(T6.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION, '') <> ''
+          THEN T6.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION
+          WHEN COALESCE(T7.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION, '') <> ''
+          THEN T7.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION
+          WHEN COALESCE(T8.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION, '') <> ''
+          THEN T8.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION
+          WHEN COALESCE(T9.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION, '') <> ''
+          THEN T9.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION
+          WHEN COALESCE(T10.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION, '') <> ''
+          THEN T10.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION
+          WHEN COALESCE(T11.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION, '') <> ''
+          THEN T11.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION
+          ELSE COALESCE(T1.CUSTOMER_COMPANY_PERSONNEL_DESIGNATION, '')
+        END
+      ) AS CUSTOMER_COMPANY_PERSONNEL_DESIGNATION, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_RESIDENCY_STATUS, '') <> ''
+          THEN T1.CUSTOMER_RESIDENCY_STATUS
+          WHEN COALESCE(T2.CUSTOMER_RESIDENCY_STATUS, '') <> ''
+          THEN T2.CUSTOMER_RESIDENCY_STATUS
+          WHEN COALESCE(T3.CUSTOMER_RESIDENCY_STATUS, '') <> ''
+          THEN T3.CUSTOMER_RESIDENCY_STATUS
+          WHEN COALESCE(T4.CUSTOMER_RESIDENCY_STATUS, '') <> ''
+          THEN T4.CUSTOMER_RESIDENCY_STATUS
+          WHEN COALESCE(T5.CUSTOMER_RESIDENCY_STATUS, '') <> ''
+          THEN T5.CUSTOMER_RESIDENCY_STATUS
+          WHEN COALESCE(T6.CUSTOMER_RESIDENCY_STATUS, '') <> ''
+          THEN T6.CUSTOMER_RESIDENCY_STATUS
+          WHEN COALESCE(T7.CUSTOMER_RESIDENCY_STATUS, '') <> ''
+          THEN T7.CUSTOMER_RESIDENCY_STATUS
+          WHEN COALESCE(T8.CUSTOMER_RESIDENCY_STATUS, '') <> ''
+          THEN T8.CUSTOMER_RESIDENCY_STATUS
+          WHEN COALESCE(T9.CUSTOMER_RESIDENCY_STATUS, '') <> ''
+          THEN T9.CUSTOMER_RESIDENCY_STATUS
+          WHEN COALESCE(T10.CUSTOMER_RESIDENCY_STATUS, '') <> ''
+          THEN T10.CUSTOMER_RESIDENCY_STATUS
+          WHEN COALESCE(T11.CUSTOMER_RESIDENCY_STATUS, '') <> ''
+          THEN T11.CUSTOMER_RESIDENCY_STATUS
+          ELSE COALESCE(T1.CUSTOMER_RESIDENCY_STATUS, '')
+        END
+      ) AS CUSTOMER_RESIDENCY_STATUS, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.AUTO_EINVOICE_INDICATOR, '') <> ''
+          THEN T1.AUTO_EINVOICE_INDICATOR
+          WHEN COALESCE(T2.AUTO_EINVOICE_INDICATOR, '') <> ''
+          THEN T2.AUTO_EINVOICE_INDICATOR
+          WHEN COALESCE(T3.AUTO_EINVOICE_INDICATOR, '') <> ''
+          THEN T3.AUTO_EINVOICE_INDICATOR
+          WHEN COALESCE(T4.AUTO_EINVOICE_INDICATOR, '') <> ''
+          THEN T4.AUTO_EINVOICE_INDICATOR
+          WHEN COALESCE(T5.AUTO_EINVOICE_INDICATOR, '') <> ''
+          THEN T5.AUTO_EINVOICE_INDICATOR
+          WHEN COALESCE(T6.AUTO_EINVOICE_INDICATOR, '') <> ''
+          THEN T6.AUTO_EINVOICE_INDICATOR
+          WHEN COALESCE(T7.AUTO_EINVOICE_INDICATOR, '') <> ''
+          THEN T7.AUTO_EINVOICE_INDICATOR
+          WHEN COALESCE(T8.AUTO_EINVOICE_INDICATOR, '') <> ''
+          THEN T8.AUTO_EINVOICE_INDICATOR
+          WHEN COALESCE(T9.AUTO_EINVOICE_INDICATOR, '') <> ''
+          THEN T9.AUTO_EINVOICE_INDICATOR
+          WHEN COALESCE(T10.AUTO_EINVOICE_INDICATOR, '') <> ''
+          THEN T10.AUTO_EINVOICE_INDICATOR
+          WHEN COALESCE(T11.AUTO_EINVOICE_INDICATOR, '') <> ''
+          THEN T11.AUTO_EINVOICE_INDICATOR
+          ELSE COALESCE(T1.AUTO_EINVOICE_INDICATOR, '')
+        END
+      ) AS AUTO_EINVOICE_INDICATOR, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.SST_REGISTRATION_NO, '') <> ''
+          THEN T1.SST_REGISTRATION_NO
+          WHEN COALESCE(T2.SST_REGISTRATION_NO, '') <> ''
+          THEN T2.SST_REGISTRATION_NO
+          WHEN COALESCE(T3.SST_REGISTRATION_NO, '') <> ''
+          THEN T3.SST_REGISTRATION_NO
+          WHEN COALESCE(T4.SST_REGISTRATION_NO, '') <> ''
+          THEN T4.SST_REGISTRATION_NO
+          WHEN COALESCE(T5.SST_REGISTRATION_NO, '') <> ''
+          THEN T5.SST_REGISTRATION_NO
+          WHEN COALESCE(T6.SST_REGISTRATION_NO, '') <> ''
+          THEN T6.SST_REGISTRATION_NO
+          WHEN COALESCE(T7.SST_REGISTRATION_NO, '') <> ''
+          THEN T7.SST_REGISTRATION_NO
+          WHEN COALESCE(T8.SST_REGISTRATION_NO, '') <> ''
+          THEN T8.SST_REGISTRATION_NO
+          WHEN COALESCE(T9.SST_REGISTRATION_NO, '') <> ''
+          THEN T9.SST_REGISTRATION_NO
+          WHEN COALESCE(T10.SST_REGISTRATION_NO, '') <> ''
+          THEN T10.SST_REGISTRATION_NO
+          WHEN COALESCE(T11.SST_REGISTRATION_NO, '') <> ''
+          THEN T11.SST_REGISTRATION_NO
+          ELSE COALESCE(T1.SST_REGISTRATION_NO, '')
+        END
+      ) AS SST_REGISTRATION_NO, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS, '') <> ''
+          THEN T1.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS
+          WHEN COALESCE(T2.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS, '') <> ''
+          THEN T2.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS
+          WHEN COALESCE(T3.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS, '') <> ''
+          THEN T3.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS
+          WHEN COALESCE(T4.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS, '') <> ''
+          THEN T4.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS
+          WHEN COALESCE(T5.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS, '') <> ''
+          THEN T5.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS
+          WHEN COALESCE(T6.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS, '') <> ''
+          THEN T6.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS
+          WHEN COALESCE(T7.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS, '') <> ''
+          THEN T7.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS
+          WHEN COALESCE(T8.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS, '') <> ''
+          THEN T8.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS
+          WHEN COALESCE(T9.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS, '') <> ''
+          THEN T9.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS
+          WHEN COALESCE(T10.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS, '') <> ''
+          THEN T10.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS
+          WHEN COALESCE(T11.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS, '') <> ''
+          THEN T11.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS
+          ELSE COALESCE(T1.CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS, '')
+        END
+      ) AS CUSTOMER_COMPANY_COUNTRY_OF_BUSINESS, /* None */
+      (
+        CASE
+          WHEN COALESCE(T1.VULNERABLE_FLAG, '') <> ''
+          THEN T1.VULNERABLE_FLAG
+          WHEN COALESCE(T2.VULNERABLE_FLAG, '') <> ''
+          THEN T2.VULNERABLE_FLAG
+          WHEN COALESCE(T3.VULNERABLE_FLAG, '') <> ''
+          THEN T3.VULNERABLE_FLAG
+          WHEN COALESCE(T4.VULNERABLE_FLAG, '') <> ''
+          THEN T4.VULNERABLE_FLAG
+          WHEN COALESCE(T5.VULNERABLE_FLAG, '') <> ''
+          THEN T5.VULNERABLE_FLAG
+          WHEN COALESCE(T6.VULNERABLE_FLAG, '') <> ''
+          THEN T6.VULNERABLE_FLAG
+          WHEN COALESCE(T7.VULNERABLE_FLAG, '') <> ''
+          THEN T7.VULNERABLE_FLAG
+          WHEN COALESCE(T8.VULNERABLE_FLAG, '') <> ''
+          THEN T8.VULNERABLE_FLAG
+          WHEN COALESCE(T9.VULNERABLE_FLAG, '') <> ''
+          THEN T9.VULNERABLE_FLAG
+          WHEN COALESCE(T10.VULNERABLE_FLAG, '') <> ''
+          THEN T10.VULNERABLE_FLAG
+          WHEN COALESCE(T11.VULNERABLE_FLAG, '') <> ''
+          THEN T11.VULNERABLE_FLAG
+          ELSE COALESCE(T1.VULNERABLE_FLAG, '')
+        END
+      ) AS VULNERABLE_FLAG, /* None */
+      CURRENT_TIMESTAMP() AS ETL_TIMESTAMP
+    FROM {params["cur_schema"]}.TEMP_DIM_CUSTOMER_MERGE AS T1 /* MHBOS */
+    LEFT JOIN {params["cur_schema"]}.TEMP_DIM_CUSTOMER_MERGE AS T2 /* M21 ALGO DB */
+      ON T1.CUSTOMER_ID = T2.CUSTOMER_ID AND T2.PRIORITY_LEVEL = 2
+    LEFT JOIN {params["cur_schema"]}.TEMP_DIM_CUSTOMER_MERGE AS T3 /* M21 ALGO File */
+      ON T1.CUSTOMER_ID = T3.CUSTOMER_ID AND T3.PRIORITY_LEVEL = 3
+    LEFT JOIN {params["cur_schema"]}.TEMP_DIM_CUSTOMER_MERGE AS T4 /* M21 OVEX File */
+      ON T1.CUSTOMER_ID = T4.CUSTOMER_ID AND T4.PRIORITY_LEVEL = 4
+    LEFT JOIN {params["cur_schema"]}.TEMP_DIM_CUSTOMER_MERGE AS T5 /* Guava company */
+      ON T1.CUSTOMER_ID = T5.CUSTOMER_ID AND T5.PRIORITY_LEVEL = 5
+    LEFT JOIN {params["cur_schema"]}.TEMP_DIM_CUSTOMER_MERGE AS T6 /* Guava customer */
+      ON T1.CUSTOMER_ID = T6.CUSTOMER_ID AND T6.PRIORITY_LEVEL = 6
+    LEFT JOIN {params["cur_schema"]}.TEMP_DIM_CUSTOMER_MERGE AS T7 /* Toms */
+      ON T1.CUSTOMER_ID = T7.CUSTOMER_ID AND T7.PRIORITY_LEVEL = 7
+    LEFT JOIN {params["cur_schema"]}.TEMP_DIM_CUSTOMER_MERGE AS T8 /* KDI */
+      ON T1.CUSTOMER_ID = T8.CUSTOMER_ID AND T8.PRIORITY_LEVEL = 8
+    LEFT JOIN {params["cur_schema"]}.TEMP_DIM_CUSTOMER_MERGE AS T9 /* SBL */
+      ON T1.CUSTOMER_ID = T9.CUSTOMER_ID AND T9.PRIORITY_LEVEL = 9
+    LEFT JOIN {params["cur_schema"]}.TEMP_DIM_CUSTOMER_MERGE AS T10 /* LMS_COUNTERPARTY */
+      ON T1.CUSTOMER_ID = T10.CUSTOMER_ID AND T10.PRIORITY_LEVEL = 10
+    LEFT JOIN {params["cur_schema"]}.TEMP_DIM_CUSTOMER_MERGE AS T11 /* LMS_CLIENTDATA */
+      ON T1.CUSTOMER_ID = T11.CUSTOMER_ID AND T11.PRIORITY_LEVEL = 11
+    /*   LEFT JOIN {params["cur_schema"]}.TEMP_DIM_CUSTOMER_MERGE AS T12 
+        ON T1.CUSTOMER_ID = T12.CUSTOMER_ID 
+       AND T12.PRIORITY_LEVEL = 12 */
+    WHERE
+      T1.PRIORITY_LEVEL = 1
+""")
+
+
+# ─── STEP 3: Overwrite CUR table ─────────────────────────────────────────────
+spark.sql(f"""
+    INSERT OVERWRITE TABLE {params["cur_schema"]}.dim_customer_unknown_source PARTITION (source_key = 'UNKNOWN_SOURCE')    SELECT
+        customer_id,
+        customer_type,
+        customer_title,
+        customer_name,
+        customer_primary_identification_no_type,
+        customer_primary_identification_no,
+        customer_primary_identification_no_expiry_date,
+        customer_secondary_identification_no_type,
+        customer_secondary_identification_no,
+        customer_secondary_identification_no_expiry_date,
+        customer_nationality,
+        customer_country_of_residence,
+        customer_country_of_birth,
+        customer_date_of_birth,
+        customer_bumiputra_status,
+        customer_race,
+        customer_gender,
+        customer_marital_status,
+        customer_company_contact_person,
+        customer_company_ownership,
+        customer_company_country_of_registration,
+        customer_company_type_of_business,
+        customer_company_date_of_incorporation,
+        customer_company_website,
+        customer_company_type_of_organization,
+        pdpa_flag,
+        connected_party_flag,
+        politically_exposed_person_flag,
+        cross_selling_consent_flag,
+        dcf_flag,
+        multi_trading_account_flag,
+        fatca_flag,
+        crs_flag,
+        customer_company_personnel_designation,
+        customer_residency_status,
+        auto_einvoice_indicator,
+        sst_registration_no,
+        customer_company_country_of_business,
+        vulnerable_flag,
+        dl_record_created_date,
+        dl_record_updated_date,
+        '{batch_date}' AS etl_dt,
+        current_timestamp() AS etl_timestamp
+    FROM {params["com_schema"]}.temp_dim_customer_unknown_source_updated
+""")
+
+spark.sql(f"""
+    ANALYZE TABLE {params["cur_schema"]}.dim_customer_unknown_source PARTITION (source_key = 'UNKNOWN_SOURCE') COMPUTE STATISTICS
+""")
+
+spark.stop()

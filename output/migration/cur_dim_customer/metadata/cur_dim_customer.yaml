@@ -1,8 +1,9 @@
+file_path: C:\Users\ext_giadung\projects\datalake-script\dml\cur\cur_dim_customer.sql
+ddl_source: C:/Users/ext_giadung/projects/datalake-script/ddl/cur/cur_dim_customer.sql
 pipeline_id: cur_dim_customer
 layer: cur
-model_type: 3a
-source_name: dim
-target_table_name: None_dim_customer
+model_type: UNKNOWN
+target_table_name: DIM_CUSTOMER
 columns:
 - name: customer_id
   type: VARCHAR(20)
@@ -124,230 +125,85 @@ columns:
 - name: etl_timestamp
   type: STRING
   remark: non_original_field
-key: customer_id
-key_detection_strategy: auto
-pre_processing:
-- name: TEMP_DIM_CUSTOMER_MHBOS
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_MHBOS.sql
+primary_key:
+  logical_primary_key:
+  - CUSTOMER_ID
+  frequency: 3
+  confidence: HIGH
+  reasoning: Found ROW_NUMBER() PARTITION BY matching this exact group 3 times.
+partition_key:
+  logical_partition_key:
+  - source_key
+header_comments:
+  file: output/migration/cur_dim_customer/processing_steps/00_header_comments.sql
+main_processing:
+  file: output/migration/cur_dim_customer/processing_steps/99_main_dml.sql
+source_processing_steps:
+- source_id: UNKNOWN_SOURCE
+  file: output/migration/cur_dim_customer/processing_steps/88_unknown_blocks.sql
   action: include
-  dependencies:
-  - TEMP_DIM_CUSTOMER_MHBOS:
-      schema: cur
-  - M_MHBOS_M_CLIENT:
-      schema: com
-  - T_MHBOS_M_CLIENT_EXT:
-      schema: com
-  - DIM_DECLARATION:
-      schema: cur
-  - DIM_FATCA:
-      schema: cur
-  - R_MHBOS_M_CLIENT_CRS:
-      schema: com
-  - R_K2_ACCOUNT:
-      schema: com
-  - R_K2_CIF_ACCOUNT:
-      schema: com
-  - R_K2_CIF_EXT:
-      schema: com
-  - REF_COUNTRY:
-      schema: cur
-  - R_K2_CIF_ALIAS:
-      schema: com
-  - R_K2_RULE_VALUE:
-      schema: com
-- name: TEMP_DIM_CUSTOMER_GUAVA_COMPANY
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_GUAVA_COMPANY.sql
+  interacted_temp_tables: []
+- source_id: FINAL_CONSOLIDATION
+  file: output/migration/cur_dim_customer/processing_steps/10_source_final_consolidation.sql
   action: include
-  dependencies:
-  - TEMP_DIM_CUSTOMER_GUAVA_COMPANY:
-      schema: cur
-  - M_GUAVA_COMPANY:
-      schema: com
-  - T_GUAVA_BRANCH:
-      schema: com
-  - REF_COUNTRY:
-      schema: cur
-  - R_K2_ACCOUNT:
-      schema: com
-  - R_K2_CIF_ACCOUNT:
-      schema: com
-  - R_K2_RULE_VALUE:
-      schema: com
-- name: TEMP_DIM_CUSTOMER_GUAVA_CUSTOMER
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_GUAVA_CUSTOMER.sql
+  interacted_temp_tables:
+  - TEMP_DIM_CUSTOMER_GUAVA_COMPANY
+  - TEMP_DIM_CUSTOMER_MERGE
+  - TEMP_DIM_CUSTOMER_MHBOS
+  - TEMP_DIM_CUSTOMER_SBL
+- source_id: GUAVA
+  file: output/migration/cur_dim_customer/processing_steps/10_source_guava.sql
   action: include
-  dependencies:
-  - TEMP_DIM_CUSTOMER_GUAVA_CUSTOMER:
-      schema: cur
-  - M_GUAVA_CUSTOMER:
-      schema: com
-  - REF_COUNTRY:
-      schema: cur
-- name: TEMP_DIM_CUSTOMER_M21
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_M21.sql
+  interacted_temp_tables:
+  - TEMP_DIM_CUSTOMER_GUAVA_CUSTOMER
+- source_id: M21
+  file: output/migration/cur_dim_customer/processing_steps/10_source_m21.sql
   action: include
-  dependencies:
-  - TEMP_DIM_CUSTOMER_M21:
-      schema: cur
-  - M_M21_CUSTOMER:
-      schema: com
-  - T_M21_STATEMENTRECIPIENT:
-      schema: com
-  - DIM_DECLARATION:
-      schema: cur
-  - DIM_FATCA:
-      schema: cur
-  - DIM_CRS:
-      schema: cur
-- name: TEMP_DIM_CUSTOMER_M21_A
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_M21_A.sql
+  interacted_temp_tables:
+  - TEMP_DIM_CUSTOMER_M21_O
+  - TEMP_DIM_CUSTOMER_M21_A
+  - TEMP_DIM_CUSTOMER_M21
+- source_id: TOMS
+  file: output/migration/cur_dim_customer/processing_steps/10_source_toms.sql
   action: include
-  dependencies:
-  - TEMP_DIM_CUSTOMER_M21_A:
-      schema: cur
-  - M_M21_A_CUSTOMER:
-      schema: com
-  - REF_COUNTRY:
-      schema: cur
-- name: TEMP_DIM_CUSTOMER_M21_O
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_M21_O.sql
+  interacted_temp_tables:
+  - TEMP_DIM_CUSTOMER_TOMS_ERETAIL_CIF
+  - TEMP_DIM_CUSTOMER_TOMS_MERGE
+  - TEMP_DIM_CUSTOMER_TOMS_ECORPORATE_CIF
+- source_id: KDI
+  file: output/migration/cur_dim_customer/processing_steps/10_source_kdi.sql
   action: include
-  dependencies:
-  - TEMP_DIM_CUSTOMER_M21_O:
-      schema: cur
-  - M_M21_O_CUSTOMER:
-      schema: com
-  - REF_COUNTRY:
-      schema: cur
-- name: TEMP_DIM_CUSTOMER_TOMS_ECORPORATE_CIF
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_TOMS_ECORPORATE_CIF.sql
+  interacted_temp_tables:
+  - TEMP_DIM_CUSTOMER_KDI_CLIENTREPORT
+- source_id: LMS
+  file: output/migration/cur_dim_customer/processing_steps/10_source_lms.sql
   action: include
-  dependencies:
-  - TEMP_DIM_CUSTOMER_TOMS_ECORPORATE_CIF:
-      schema: cur
-  - M_TOMS_ECORPORATE_CIF:
-      schema: com
-  - REF_LOOKUP:
-      schema: cur
-- name: TEMP_DIM_CUSTOMER_TOMS_ERETAIL_CIF
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_TOMS_ERETAIL_CIF.sql
+  interacted_temp_tables:
+  - TEMP_DIM_CUSTOMER_LMS_CLIENTDATA
+- source_id: LMSKIBB2
+  file: output/migration/cur_dim_customer/processing_steps/10_source_lmskibb2.sql
   action: include
-  dependencies:
-  - TEMP_DIM_CUSTOMER_TOMS_ERETAIL_CIF:
-      schema: cur
-  - M_TOMS_ERETAIL_CIF:
-      schema: com
-- name: TEMP_DIM_CUSTOMER_TOMS_MERGE
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_TOMS_MERGE.sql
-  action: include
-  dependencies:
-  - TEMP_DIM_CUSTOMER_TOMS_MERGE:
-      schema: cur
-  - TEMP_DIM_CUSTOMER_TOMS_ECORPORATE_CIF:
-      schema: cur
-  - TEMP_DIM_CUSTOMER_TOMS_ERETAIL_CIF:
-      schema: cur
-- name: TEMP_DIM_CUSTOMER_KDI_CLIENTREPORT
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_KDI_CLIENTREPORT.sql
-  action: include
-  dependencies:
-  - TEMP_DIM_CUSTOMER_KDI_CLIENTREPORT:
-      schema: cur
-  - M_KDI_CLIENTREPORT:
-      schema: com
-  - REF_COUNTRY:
-      schema: cur
-- name: TEMP_DIM_CUSTOMER_SBL
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_SBL.sql
-  action: include
-  dependencies:
-  - TEMP_DIM_CUSTOMER_SBL:
-      schema: cur
-  - M_SBL_TBL_EINVOICING_CLIENTDATA:
-      schema: com
-  - t_sblkibb_tbl_account:
-      schema: com
-  - t_sblkibb_tbl_counterparty:
-      schema: com
-  - t_sblkibb_tbl_title:
-      schema: com
-  - t_sblkibb_tbl_country:
-      schema: com
-  - t_sblkibb_tbl_bumistatus:
-      schema: com
-  - t_sblkibb_tbl_race:
-      schema: com
-  - t_sblkibb_tbl_maritalstatus:
-      schema: com
-  - t_sblkibb_tbl_typeofbusiness:
-      schema: com
-  - t_sblkibb_tbl_residencystatus:
-      schema: com
-- name: TEMP_DIM_CUSTOMER_LMS_CLIENTDATA
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_LMS_CLIENTDATA.sql
-  action: include
-  dependencies:
-  - TEMP_DIM_CUSTOMER_LMS_CLIENTDATA:
-      schema: cur
-  - M_LMS_TBL_EINVOICING_CLIENTDATA:
-      schema: com
-- name: TEMP_DIM_CUSTOMER_LMS_COUNTERPARTY
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_LMS_COUNTERPARTY.sql
-  action: include
-  dependencies:
-  - TEMP_DIM_CUSTOMER_LMS_COUNTERPARTY:
-      schema: cur
-  - M_LMSKIBB2_TBL_COUNTERPARTY:
-      schema: com
-- name: TEMP_DIM_CUSTOMER_MERGE
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_MERGE.sql
-  action: include
-  dependencies:
-  - TEMP_DIM_CUSTOMER_MERGE:
-      schema: cur
-  - TEMP_DIM_CUSTOMER_LMS_CLIENTDATA:
-      schema: cur
-  - TEMP_DIM_CUSTOMER_LMS_COUNTERPARTY:
-      schema: cur
-  - TEMP_DIM_CUSTOMER_SBL:
-      schema: cur
-  - TEMP_DIM_CUSTOMER_KDI_CLIENTREPORT:
-      schema: cur
-  - TEMP_DIM_CUSTOMER_TOMS_MERGE:
-      schema: cur
-  - TEMP_DIM_CUSTOMER_GUAVA_CUSTOMER:
-      schema: cur
-  - TEMP_DIM_CUSTOMER_GUAVA_COMPANY:
-      schema: cur
-  - TEMP_DIM_CUSTOMER_M21_O:
-      schema: cur
-  - TEMP_DIM_CUSTOMER_M21_A:
-      schema: cur
-  - TEMP_DIM_CUSTOMER_MHBOS:
-      schema: cur
-  - TEMP_DIM_CUSTOMER_M21:
-      schema: cur
-- name: DIM_CUSTOMER
-  file: output/migration/cur_dim_customer/processing_steps/cur_DIM_CUSTOMER.sql
-  action: include
-  dependencies:
-  - DIM_CUSTOMER:
-      schema: cur
-  - TEMP_DIM_CUSTOMER_MERGE:
-      schema: cur
-- name: TEMP_DIM_CUSTOMER_M21A
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_M21A.sql
-  action: include
-  dependencies: []
-- name: TEMP_DIM_CUSTOMER_M21O
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_M21O.sql
-  action: include
-  dependencies: []
-- name: TEMP_DIM_CUSTOMER_TOMS_ECORPORATE
-  file: output/migration/cur_dim_customer/processing_steps/cur_TEMP_DIM_CUSTOMER_TOMS_ECORPORATE.sql
-  action: include
-  dependencies: []
+  interacted_temp_tables:
+  - TEMP_DIM_CUSTOMER_LMS_COUNTERPARTY
+temp_table_registry:
+  GUAVA:
+  - TEMP_DIM_CUSTOMER_GUAVA_CUSTOMER
+  M21:
+  - TEMP_DIM_CUSTOMER_M21_O
+  - TEMP_DIM_CUSTOMER_M21_A
+  - TEMP_DIM_CUSTOMER_M21
+  TOMS:
+  - TEMP_DIM_CUSTOMER_TOMS_ERETAIL_CIF
+  - TEMP_DIM_CUSTOMER_TOMS_MERGE
+  - TEMP_DIM_CUSTOMER_TOMS_ECORPORATE_CIF
+  KDI:
+  - TEMP_DIM_CUSTOMER_KDI_CLIENTREPORT
+  LMS:
+  - TEMP_DIM_CUSTOMER_LMS_CLIENTDATA
+  LMSKIBB2:
+  - TEMP_DIM_CUSTOMER_LMS_COUNTERPARTY
 delta_columns:
+- customer_id
 - customer_type
 - customer_title
 - customer_name
@@ -387,4 +243,3 @@ delta_columns:
 - customer_company_country_of_business
 - vulnerable_flag
 applied_source_rule: default
-ddl_source: C:/Users/ext_giadung/projects/datalake-script/ddl/cur/cur_dim_customer.sql
