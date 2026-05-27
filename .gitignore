@@ -50,3 +50,4 @@ spark-warehouse/
 # Sample file
 samples/converted
 samples/generated
+output/
