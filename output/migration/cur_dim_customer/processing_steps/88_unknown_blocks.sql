@@ -1,1 +1,0 @@
-source / jcmAgent / etlscript / execution_engine / autocode / dml / para_config / all_tez_para.sql;
