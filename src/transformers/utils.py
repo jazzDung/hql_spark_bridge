@@ -28,6 +28,118 @@ def extract_columns_from_create(node: exp.Create) -> list:
     return columns
 
 
+
+def sql_to_unload_pyspark(sql: str) -> str:
+    # 1. Temporarily replace ${var} to avoid sqlglot parsing them as syntax errors
+    safe_sql = re.sub(r'\$\{([^}]+)\}', r'__VAR_\1__', sql)
+
+    # 2. Parse the SQL
+    ast = sqlglot.parse_one(safe_sql, read="hive")
+
+    # Extract the SELECT statement (ignoring INSERT OVERWRITE DIRECTORY)
+    select_ast = ast.expression if isinstance(ast, exp.Insert) else ast
+
+    def walk(node):
+        """Recursively translates SQLGlot AST nodes to PySpark syntax."""
+        if isinstance(node, exp.Column):
+            # Drop table aliases like T.etl_dt -> etl_dt for cleaner PySpark
+            return f'col("{node.name}")'
+
+        elif isinstance(node, exp.Alias):
+            alias_name = node.alias
+            # If selecting a column and aliasing it to the exact same name, skip the alias
+            if isinstance(node.this, exp.Column) and node.this.name.upper() == alias_name.upper():
+                 return walk(node.this)
+
+            # If selecting a literal value (like the ETL_TIMESTAMP parameter)
+            if isinstance(node.this, exp.Literal):
+                val = node.this.name
+                if val.startswith("__VAR_") and val.endswith("__"):
+                    var_name = val[6:-2]
+                    return f'lit(params["{var_name}"]).alias("{alias_name}")'
+                return f'lit("{val}").alias("{alias_name}")'
+
+            return f'{walk(node.this)}.alias("{alias_name}")'
+
+        elif isinstance(node, (exp.Anonymous, exp.Func)):
+            func_name = node.name.upper()
+            if func_name == 'REPLACE':
+                args = list(node.expressions)
+                this = walk(args[0])
+                search = walk(args[1])
+                replace = walk(args[2])
+                return f'regexp_replace({this}, {search}, {replace})'
+            elif func_name == 'CHR':
+                val = node.expressions[0].name
+                if val == '13': return '"\\r"'
+                if val == '10': return '"\\n"'
+                return f'chr({val})'
+            return f'{func_name.lower()}({", ".join(walk(e) for e in node.expressions)})'
+
+        elif isinstance(node, exp.Literal):
+            val = node.name
+            if val.startswith("__VAR_") and val.endswith("__"):
+                var_name = val[6:-2]
+                return f'params["{var_name}"]'
+            if node.is_string:
+                return f'"{val}"'
+            return str(val)
+
+        elif isinstance(node, exp.In):
+            this = walk(node.this)
+            exprs = [walk(e) for e in node.expressions]
+            return f'{this}.isin([{", ".join(exprs)}])'
+
+        elif isinstance(node, exp.EQ):
+            return f'{walk(node.left)} == {walk(node.right)}'
+
+        elif isinstance(node, exp.And):
+            return f'{walk(node.left)} & {walk(node.right)}'
+
+        return f'col("{node.name}")' # Fallback
+
+    # --- Extract FROM ---
+    table_node = select_ast.find(exp.Table)
+    db = table_node.db
+    name = table_node.name
+
+    if db.startswith("__VAR_") and db.endswith("__"):
+        db = f'{{params["{db[6:-2]}"]}}'
+
+    table_str = f'f"""{db}.{name}"""' if db else f'"{name}"'
+
+    # --- Extract WHERE ---
+    filters = []
+    if select_ast.args.get("where"):
+        where_expr = select_ast.args["where"].this
+
+        # Flatten AND conditions into separate .filter() calls
+        def extract_ands(expr):
+            if isinstance(expr, exp.And):
+                return extract_ands(expr.left) + extract_ands(expr.right)
+            return [expr]
+
+        for cond in extract_ands(where_expr):
+            filters.append(walk(cond))
+
+    # --- Extract SELECT ---
+    selects = [walk(proj) for proj in select_ast.expressions]
+
+    # --- Code Assembly ---
+    lines = [f"df = (", f'    spark.table({table_str})']
+
+    for f in filters:
+        lines.append(f'    .filter({f})')
+
+    lines.append('    .select(')
+    for i, s in enumerate(selects):
+        prefix = "        " if i == 0 else "        ,"
+        lines.append(f'{prefix}{s}')
+    lines.append('    )')
+    lines.append(')')
+
+    return "\n".join(lines)
+
 def format_header_comments(header_comments: str) -> str:
     """Converts SQL header comments into Python-style comments or docstrings."""
     python_header_comments = []
@@ -180,6 +292,70 @@ def remove_part_id_from_projections(expression: exp.Expression) -> exp.Expressio
     # Copy=True để đảm bảo an toàn không thay đổi trực tiếp cây gốc trong lúc duyệt
     return expression.copy().transform(transformer)
 
+
+def remove_non_standard_fields(node: exp.Expression) -> exp.Expression:
+    """Accepts a sqlglot AST node (e.g., exp.Select, exp.Insert, or a full tree)
+
+    and mutates/returns it with the etl_timestamp columns removed from any
+    underlying SELECT clauses.
+    """
+
+    def transformer(node_to_transform):
+        # ==========================================
+        # XỬ LÝ 1: XÓA CỘT Ở DANH SÁCH INSERT (Nếu có)
+        # Bắt cấu trúc: INSERT INTO table_name (col1, col2, etl_timestamp)
+        # ==========================================
+        if isinstance(node_to_transform, exp.Insert):
+            target_table = node_to_transform.this
+
+            # exp.Schema là node chứa danh sách cột (col1, col2, ...)
+            if isinstance(target_table, exp.Schema):
+                new_insert_columns = []
+                for col_ident in target_table.expressions:
+                    # sqlglot lưu tên cột trong thuộc tính 'name'
+                    if col_ident.name.lower() in ["etl_timestamp", "start_dt", "end_dt", "part_id", "etl_dt", "raw_sys_time"]:
+                        continue
+                    new_insert_columns.append(col_ident)
+
+                # Ghi đè danh sách cột mới
+                target_table.set("expressions", new_insert_columns)
+
+            return node_to_transform
+
+        # Trúng node SELECT thì mới xử lý biến đổi danh sách biểu thức (expressions)
+        if isinstance(node_to_transform, exp.Select):
+            new_select_expressions = []
+
+            for expression in node_to_transform.expressions:
+                # Rule 1: Loại bỏ alias 'etl_timestamp'
+                if isinstance(expression, exp.Alias) and expression.alias.lower() in ["etl_timestamp", "start_dt", "end_dt", "part_id", "etl_dt", "raw_sys_time"]:
+                    continue
+
+                # Rule 2: Loại bỏ literal/parameter '${batch_timestamp}'
+                unaliased_expr = (
+                    expression.this if isinstance(expression, exp.Alias) else expression
+                )
+                raw_expr_string = unaliased_expr.sql(dialect='hive').strip("'\"")
+
+                if raw_expr_string.lower() in  ["${batch_timestamp}", "raw_sys_time", "etl_timestamp", "start_dt", "end_dt", "part_id", "etl_dt"]:
+                    continue
+
+                # Rule 3: Exclude by Function Type (CURRENT_TIMESTAMP())
+                if isinstance(unaliased_expr, exp.CurrentTimestamp):
+                    continue
+
+                # Giữ lại các biểu thức hợp lệ
+                new_select_expressions.append(expression)
+
+            # Gán lại danh sách đã lọc cho node SELECT hiện tại
+            node_to_transform.set("expressions", new_select_expressions)
+            return node_to_transform
+
+        # Nếu không phải node SELECT, giữ nguyên để đi tiếp xuống các node con
+        return node_to_transform
+
+    # .transform() sẽ áp dụng hàm transformer lên toàn bộ cây AST đệ quy
+    return node.transform(transformer)
 
 def rename_remaining_identifiers_and_tables_for_com(expression: exp.Expression) -> exp.Expression:
     """
@@ -490,6 +666,7 @@ def is_rule_triggered(rule: dict, node: exp.Expression, context: SqlConversionCo
         if condition == "node_type":
             try:
                 node_type = map_trigger_to_node_type(trigger["node_type"])
+                print(f"node_type: {node_type}, {isinstance(node, node_type)}")
                 if isinstance(node, node_type):
                     condition_match_result.append(True)
                 else:

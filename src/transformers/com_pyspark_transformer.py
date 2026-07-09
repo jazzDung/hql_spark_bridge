@@ -43,6 +43,8 @@ class ComPySparkTransformer(BaseSqlTransformer):
                     "${com_schema}", target_table_name,
                     "${com_schema}", f"temp_{target_table_name}_consolidated")
 
+                node = remove_non_standard_fields(node)
+
                 node = strip_partition_clauses(node)
 
             # 1. Reuse base utilities for variables (Can be removed/changed if you want completely different logic)
@@ -73,6 +75,7 @@ class ComPySparkTransformer(BaseSqlTransformer):
             })
 
         return JinjaRenderModel(
+            layer=context.layer,
             source_name=context.source_name,
             table_name=context.table_name,
             transformed_queries=transformed_queries,

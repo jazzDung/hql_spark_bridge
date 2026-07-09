@@ -40,4 +40,7 @@ class ExtContext:
 
             return f'{{{str(self.variable_mapping[var_name])}}}'
 
-        return pattern.sub(replacer, self.query)
+        # Thực hiện biến đổi Regex
+        processed_query = pattern.sub(replacer, self.query)
+
+        return processed_query.strip().rstrip(';').strip()

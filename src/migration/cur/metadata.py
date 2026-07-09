@@ -24,8 +24,15 @@ class CurMetadataProcessor:
         # 1. Resolve DDL path
         ddl_resolver = DdlResolver(source_rules=self.source_rules)
         ddl_path = ddl_resolver.resolve_ddl_path(input_path)
+
         if not ddl_path:
-            raise FileNotFoundError(f"Could not resolve DDL for {input_path}. Make sure DDL file exists.")
+            if decomposed.target_table:
+                print(input_path.parent / f"cur_{decomposed.target_table.lower()}.sql")
+                ddl_path = ddl_resolver.resolve_ddl_path(input_path.parent / f"cur_{decomposed.target_table.lower()}.sql")
+
+        if not ddl_path:
+            pass
+            # raise FileNotFoundError(f"Could not resolve DDL for {input_path}. Make sure DDL file exists.")
 
         # 2. Extract schema
         columns = self.schema_extractor.extract(ddl_path)
@@ -70,7 +77,7 @@ class CurMetadataProcessor:
 
         pipeline_config = {
             "file_path": str(decomposed.file_path),
-            "ddl_source": str(ddl_path.as_posix()),
+            "ddl_source": str(ddl_path.as_posix()) if ddl_path else None,
             "pipeline_id": decomposed.pipeline_id,
             "layer": "cur",  # Hardcode layer as cur
             "model_type": model_type,

@@ -76,5 +76,6 @@ class CurSparkTransformer(BaseSqlTransformer):
             table_name=context.table_name,
             transformed_queries=transformed_queries,
             is_partitioned=is_partitioned,
-            header_comments=formatted_header_comments
+            header_comments=formatted_header_comments,
+            layer="cur"
         )

@@ -13,6 +13,9 @@ class SchemaExtractor:
         )
 
     def extract(self, ddl_path: Path) -> list[dict]:
+        if not ddl_path:
+            return []
+
         ddl_content = ddl_path.read_text(encoding="utf-8")
 
         # Remove custom SOURCE statements if exists

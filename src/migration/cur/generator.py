@@ -11,7 +11,7 @@ from src.paths import PROJECT_ROOT
 from src.context.sql_conversion_context import SqlConversionContext
 from src.transformers.cur_pyspark_transformer import CurSparkTransformer
 from src.transformers.raw_pyspark_transformer import RawPySparkTransformer
-from transformers.utils import format_header_comments
+from transformers.utils import format_header_comments, sql_to_unload_pyspark
 
 
 class CurPySparkGenerator:
@@ -68,7 +68,12 @@ class CurPySparkGenerator:
                     # Use a descriptive name for the output file
                     output_filename = f"{pipeline_config['layer']}_{pipeline_config['target_table_name'].lower()}_{template_path.stem}.sql"
                     ddl_file = output_dir / output_filename
-                    
+                    ddl_file.write_text(ddl_sql, encoding="utf-8")
+
+                    # Write to migration folder also
+                    output_dir = PROJECT_ROOT / "output" / "migration" / "ddl" / "cur"
+                    output_dir.mkdir(parents=True, exist_ok=True)
+                    ddl_file = output_dir / output_filename
                     ddl_file.write_text(ddl_sql, encoding="utf-8")
                     # print(f"Generated DDL from '{template_name}' at {ddl_file}")
 
@@ -84,9 +89,12 @@ class CurPySparkGenerator:
         ]
 
         # --- Process Header Comments ---
-        header_comments_path = PROJECT_ROOT / Path(pipeline_config.get("header_comments").get("file"))
-        header_comments = header_comments_path.read_text(encoding="utf-8")
-        formatted_header_comments = format_header_comments(header_comments)
+        if pipeline_config.get("header_comments").get("file"):
+            header_comments_path = PROJECT_ROOT / Path(pipeline_config.get("header_comments").get("file"))
+            header_comments = header_comments_path.read_text(encoding="utf-8")
+            formatted_header_comments = format_header_comments(header_comments)
+        else:
+            formatted_header_comments = ""
 
         # Read source processing SQLs
         dml_contexts = {}
@@ -103,8 +111,15 @@ class CurPySparkGenerator:
             source_id = step["source_id"]
 
             # Extract base_table from target_table_name
+            if not pipeline_config['target_table_name']:
+                pipeline_config['target_table_name'] = pipeline_config['pipeline_id']
+
             base_table = pipeline_config['target_table_name'].lower()
-            target_table_name = f"{pipeline_config['target_table_name'].lower()}_{source_id.lower()}"
+
+            if source_id.lower() == "unknown_source":
+                target_table_name = f"{pipeline_config['target_table_name'].lower()}"
+            else:
+                target_table_name = f"{pipeline_config['target_table_name'].lower()}_{source_id.lower()}"
 
             if step_file.exists():
                 # Create a context for the transformer
@@ -113,10 +128,10 @@ class CurPySparkGenerator:
 
                 print(f"Processing source: {source_id}, from file: {step_file.stem}")
                 # print(context.source_name, context.sub_layer)
-                
+
                 # Apply the CurPysparkTransformer
                 jinja_render_model = self.transformer.transform(pipeline_config, context)
-                
+
                 # Extract the transformed queries
                 for query_obj in jinja_render_model.transformed_queries:
                      if isinstance(query_obj, dict) and query_obj.get('type') == 'query':
@@ -126,15 +141,17 @@ class CurPySparkGenerator:
 
             # Read main processing SQLs
             main_processing_sqls = []
-            main_processing_sql_path = PROJECT_ROOT / Path(pipeline_config.get("main_processing").get("file"))
-            main_processing_context = HiveScriptParser.parse_file(str(main_processing_sql_path))
-            main_processing_render_model = self.transformer.transform(pipeline_config, main_processing_context)
 
-            for query_obj in main_processing_render_model.transformed_queries:
-                 if isinstance(query_obj, dict) and query_obj.get('type') == 'query':
-                     main_processing_sqls.append(query_obj.get('content'))
-                 elif isinstance(query_obj, str): # In case it's just a list of strings
-                     main_processing_sqls.append(query_obj)
+            if pipeline_config.get("main_processing").get("file"):
+                main_processing_sql_path = PROJECT_ROOT / Path(pipeline_config.get("main_processing").get("file"))
+                main_processing_context = HiveScriptParser.parse_file(str(main_processing_sql_path))
+                main_processing_render_model = self.transformer.transform(pipeline_config, main_processing_context)
+
+                for query_obj in main_processing_render_model.transformed_queries:
+                     if isinstance(query_obj, dict) and query_obj.get('type') == 'query':
+                         main_processing_sqls.append(query_obj.get('content'))
+                     elif isinstance(query_obj, str): # In case it's just a list of strings
+                         main_processing_sqls.append(query_obj)
 
             # Primary_key
             primary_key = pipeline_config["primary_key"].get('logical_primary_key', ["<<primary_key>>"])
@@ -156,7 +173,8 @@ class CurPySparkGenerator:
                 "partition_columns": ["<<partition_column>>"],
                 "key_date_column": "<<key_date_column>>",
                 "main_processing_sqls": main_processing_sqls,
-                "source_processing_sqls": source_processing_sqls
+                "source_processing_sqls": source_processing_sqls,
+                "unload_query": sql_to_unload_pyspark(Path(pipeline_config.get("file_path")).read_text())
             }
 
             dml_contexts[source_id] = dml_context
@@ -187,12 +205,71 @@ class CurPySparkGenerator:
                         dml_file = output_dir / output_filename
 
                         dml_file.write_text(dml_code, encoding="utf-8")
+
+                        #  Write to migration folder
+                        output_dir = PROJECT_ROOT / "output" / "migration" / "dml" / "cur" / model_name / template_path.stem
+                        output_dir.mkdir(parents=True, exist_ok=True)
+
+                        if source_id.lower() == "unknown_source":
+                            output_filename = f"{pipeline_config['layer']}_{pipeline_config['target_table_name'].lower()}.py"
+                        else:
+                            output_filename = f"{pipeline_config['layer']}_{pipeline_config['target_table_name'].lower()}_{source_id.lower()}.py"
+
+                        dml_file = output_dir / output_filename
+                        dml_file.write_text(dml_code, encoding="utf-8")
                         # print(f"Generated DML from '{template_name}' at {dml_file}")
 
                     except Exception as e:
                         print(f"Error rendering DML template {template_name}: {e}")
 
+
+            try:
+                print("[4] Rendering DAGs (optimized_pyspark.jinja)...")
+                dag = render_template(
+                    # template_name="pyspark/optimized_pyspark.jinja",
+                    template_name="migration/dags/dag_cur.jinja",
+                    render_model=dml_context
+                )
+
+                # 2. Load mapping configuration from YAML
+                dag_output = PROJECT_ROOT / "output" / "migration" / "dags" / "cur" / f"dag_{pipeline_config['layer']}_{pipeline_config['target_table_name'].lower()}.py"
+                dag_output.parent.mkdir(parents=True, exist_ok=True)
+                with open(dag_output, 'w', encoding='utf-8') as f:
+                    f.write(dag)
+
+            except:
+                print("[4] Rendering DAGs (optimized_pyspark.jinja)...")
+                dag = render_template(
+                    # template_name="pyspark/optimized_pyspark.jinja",
+                    template_name="migration/dags/dag_cur_unl.jinja",
+                    render_model=dml_context
+                )
+
+                # 2. Load mapping configuration from YAML
+                dag_output = PROJECT_ROOT / "output" / "migration" / "dags" / "cur" / f"dag_{pipeline_config['layer']}_{pipeline_config['target_table_name'].lower()}.py"
+                dag_output.parent.mkdir(parents=True, exist_ok=True)
+                with open(dag_output, 'w', encoding='utf-8') as f:
+                    f.write(dag)
+
+
+
+
+            print("[5] Rendering unload (optimized_pyspark.jinja)...")
+            dag = render_template(
+                # template_name="pyspark/optimized_pyspark.jinja",
+                template_name="unload/unl.jinja",
+                render_model=dml_context
+            )
+
+            # 2. Load mapping configuration from YAML
+            dag_output = PROJECT_ROOT / "output" / "migration" / "unload" / f"cur_{pipeline_config['layer'].lower()}_{pipeline_config['target_table_name'].lower()}.py"
+            dag_output.parent.mkdir(parents=True, exist_ok=True)
+            with open(dag_output, 'w', encoding='utf-8') as f:
+                f.write(dag)
+
         return dml_contexts
+
+
 
     def _generate_basic_conversion(self, pipeline_config: Dict[str, Any], output_root: Path):
         """Generates basic conversion scripts using RawPySparkTransformer"""

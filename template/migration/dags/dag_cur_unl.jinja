@@ -1,0 +1,47 @@
+import json
+import os
+import sys
+from datetime import datetime, timedelta
+from airflow import DAG
+from airflow.operators.bash import BashOperator
+from airflow.operators.empty import EmptyOperator
+from airflow.operators.python import PythonOperator, ShortCircuitOperator
+from airflow.datasets import Dataset
+from airflow.models import Variable
+
+sys.path.append(Variable.get("sys_path_dags"))
+from dag_common_function import load_dag_config_ds
+
+source_name = "{{ source_name }}"
+table_name  = "{{ target_table_name }}"
+DAG_ID = source_name + "_" + table_name
+
+schedule, catchup, default_args = load_dag_config_ds(DAG_ID, __file__)
+
+dag = DAG(
+    dag_id=DAG_ID,
+    default_args=default_args,
+    schedule=schedule,
+    catchup=catchup,
+    max_active_tasks=1,
+)
+
+
+{{ source_name }}_{{ target_table_name }} = BashOperator(
+    task_id='{{ source_name }}_{{ target_table_name }}',
+    bash_command="""
+        set -euo pipefail{% raw %}
+        {{ var.value.spark_submit_config_low }} \
+        {{ var.value.script_home_cur }}{% endraw %}/{{ source_name }}_{{ target_table_name }}.py
+        """,
+    dag=dag,
+)
+
+dataset_flow = Dataset(dag.dag_id)
+
+finish = EmptyOperator(
+    task_id="finish",
+    outlets=[dataset_flow]
+)
+
+{{ source_name }}__{{ target_table_name }} >> finish

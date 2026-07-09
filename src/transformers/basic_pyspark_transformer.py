@@ -7,7 +7,7 @@ from src.transformers.utils import (
     is_comment_only,
     format_header_comments,
     replace_variables_in_node,
-    replace_variables_in_strings
+    replace_variables_in_strings, remove_non_standard_fields, rename_remaining_identifiers_and_tables_for_cur
 )
 
 class BasicPySparkTransformer(BaseSqlTransformer):
@@ -45,6 +45,9 @@ class BasicPySparkTransformer(BaseSqlTransformer):
             # 2. Process variables embedded in STRINGS (with single quotes), called Literal by sqlglot
             replace_variables_in_strings(node, self.variable_mapping, dialect)
 
+            node = remove_non_standard_fields(node)
+            node = rename_remaining_identifiers_and_tables_for_cur(node)
+
             # 3. Check if the table is partitioned (for Jinja to know whether to call drop_partition command)
             if isinstance(node, exp.Create) and node.args.get("properties"):
                 for prop in node.args["properties"].expressions:
@@ -68,6 +71,7 @@ class BasicPySparkTransformer(BaseSqlTransformer):
         return JinjaRenderModel(
             source_name=context.source_name,
             table_name=context.table_name,
+            layer=context.layer,
             transformed_queries=transformed_queries,
             is_partitioned=is_partitioned,
             header_comments=formatted_header_comments  # Get header comment from context

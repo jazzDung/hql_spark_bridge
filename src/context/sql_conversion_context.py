@@ -42,6 +42,7 @@ class JinjaRenderModel:
     """
     source_name: str
     table_name: str
+    layer: str
     
     # List of queries translated into f-string format
     # Example: ['DROP TABLE IF EXISTS {params["raw_schema"]}.my_table', 'CREATE TABLE...']

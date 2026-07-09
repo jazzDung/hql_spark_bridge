@@ -11,15 +11,15 @@
   - name: hash_value
     type: STRING
     comment: MD5 of business columns
-  - name: etl_dt
-    type: STRING
-    comment: Batch run date
-  - name: etl_timestamp
-    type: STRING
-    comment: ETL processing timestamp
   - name: source_name
     type: varchar(10)
     comment: Source Name
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
 "2a":
   - name: dl_record_status
     type: VARCHAR(10)
@@ -30,15 +30,15 @@
   - name: dl_record_updated_date
     type: TIMESTAMP
     comment: Last update time
-  - name: etl_dt
-    type: STRING
-    comment: Batch run date
-  - name: etl_timestamp
-    type: STRING
-    comment: ETL processing timestamp
   - name: source_name
     type: varchar(10)
     comment: Source Name
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
 
 "2b":
   - name: dl_record_status
@@ -50,15 +50,15 @@
   - name: dl_record_updated_date
     type: TIMESTAMP
     comment: Last update time
-  - name: etl_dt
-    type: STRING
-    comment: Batch run date
-  - name: etl_timestamp
-    type: STRING
-    comment: ETL processing timestamp
   - name: source_name
     type: varchar(10)
     comment: Source Name
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
 
 "3":
   - name: dl_record_status
@@ -70,15 +70,15 @@
   - name: dl_record_updated_date
     type: TIMESTAMP
     comment: Last update time
-  - name: etl_dt
-    type: STRING
-    comment: Batch run date
-  - name: etl_timestamp
-    type: STRING
-    comment: ETL processing timestamp
   - name: source_name
     type: varchar(10)
     comment: Source Name
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
 
 "3a":
   - name: dl_record_status
@@ -90,15 +90,15 @@
   - name: dl_record_updated_date
     type: TIMESTAMP
     comment: Last update time
-  - name: etl_dt
-    type: STRING
-    comment: Batch run date
-  - name: etl_timestamp
-    type: STRING
-    comment: ETL processing timestamp
   - name: source_name
     type: varchar(10)
     comment: Source Name
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
 
 "3b":
   - name: dl_record_status
@@ -113,15 +113,15 @@
   - name: hash_value
     type: STRING
     comment: MD5 of business columns
-  - name: etl_dt
-    type: STRING
-    comment: Batch run date
-  - name: etl_timestamp
-    type: STRING
-    comment: ETL processing timestamp
   - name: source_name
     type: varchar(10)
     comment: Source Name
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
 
 "4":
   - name: dl_record_status
@@ -133,15 +133,15 @@
   - name: dl_record_updated_date
     type: TIMESTAMP
     comment: Last update time
-  - name: etl_dt
-    type: STRING
-    comment: Batch run date
-  - name: etl_timestamp
-    type: STRING
-    comment: ETL processing timestamp
   - name: source_name
     type: varchar(10)
     comment: Source Name
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
 
 "5a":
   - name: dl_record_status
@@ -153,15 +153,15 @@
   - name: dl_record_updated_date
     type: TIMESTAMP
     comment: Last update time
-  - name: etl_dt
-    type: STRING
-    comment: Batch run date
-  - name: etl_timestamp
-    type: STRING
-    comment: ETL processing timestamp
   - name: source_name
     type: varchar(10)
     comment: Source Name
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
 
 "5b":
   - name: dl_record_status
@@ -173,15 +173,15 @@
   - name: dl_record_updated_date
     type: TIMESTAMP
     comment: Last update time
-  - name: etl_dt
-    type: STRING
-    comment: Batch run date
-  - name: etl_timestamp
-    type: STRING
-    comment: ETL processing timestamp
   - name: source_name
     type: varchar(10)
     comment: Source Name
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date
 
 "6":
   - name: dl_record_status
@@ -193,12 +193,12 @@
   - name: dl_record_updated_date
     type: TIMESTAMP
     comment: Last update time
-  - name: etl_dt
-    type: STRING
-    comment: Batch run date
-  - name: etl_timestamp
-    type: STRING
-    comment: ETL processing timestamp
   - name: source_name
     type: varchar(10)
     comment: Source Name
+  - name: etl_timestamp
+    type: STRING
+    comment: ETL processing timestamp
+  - name: etl_dt
+    type: STRING
+    comment: Batch run date

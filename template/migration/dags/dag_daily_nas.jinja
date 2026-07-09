@@ -1,0 +1,113 @@
+import json
+import os
+import sys
+from datetime import datetime, timedelta
+from airflow import DAG
+from airflow.operators.bash import BashOperator
+from airflow.operators.empty import EmptyOperator
+from airflow.operators.python import PythonOperator, ShortCircuitOperator
+from airflow.datasets import Dataset
+from airflow.models import Variable
+
+#sys.path.append("/mapr/Edfdev.kenanga.local/EDF/dags")
+sys.path.append(Variable.get("sys_path_dags"))
+from dag_common_function import load_dag_config_ds, get_env, sftp_download_files, etl_run_start, etl_run_end_daily, check_should_continue, get_manual_run_params
+
+# ------------- SFTP CONFIGURATION - sftp source only -------------------------------------
+source_name = '{{ source_name }}'                                          # Source name in c_etl_run
+table_name = '{{ table_name }}'                                      # Table name in c_etl_run
+#sftp_conn_id = 'sftp_datalake'                                 # Airflow connection ID
+sftp_conn_id = Variable.get("conn_datalake_files")
+remote_path = '/input/{}/{{ source_name }}'                                # Path on SFTP server, replace yyyymmdd to {}
+# local_base_path = '/mapr/Edfdev.kenanga.local/data/input/'           # Base local folder
+local_base_path = f"{Variable.get('cluster_mount_point')}/data/input/"     # Base local folder
+file_pattern = '{{ source_name }}_{{ table_name }}_i.{}.dat'                     # Replace yyyymmdd to {}
+# -----------------------------------------------------------------------------------------
+
+DAG_ID = "nas_" + "erc_" + source_name + "_" + table_name
+
+schedule, catchup, default_args = load_dag_config_ds(DAG_ID, __file__)
+
+# connection env variable for ctr and mssql source, eg: get_env("etl_control", "{{ source_name }}")
+env = get_env("etl_control", Variable.get("conn_{{ source_name }}"))
+
+dag = DAG(
+    dag_id=DAG_ID,
+    default_args=default_args,
+    schedule=schedule,
+    catchup=catchup,
+    max_active_tasks=1,
+    params=get_manual_run_params(),
+)
+
+
+etl_run_start = PythonOperator(
+    task_id="etl_run_start",
+    python_callable=etl_run_start,
+    op_kwargs={
+        "source_name": source_name,
+        "table_name": table_name
+    },
+    dag=dag,
+)
+
+# sftp source only ------------------------
+sftp_download_task = PythonOperator(
+    task_id='sftp_download_task',
+    python_callable=sftp_download_files,
+    op_kwargs={
+        "source_name": source_name,
+        "table_name": table_name,
+        "sftp_conn_id": sftp_conn_id,
+        "remote_path": remote_path,
+        "local_base_path": local_base_path,
+        "file_pattern": file_pattern
+    },
+    dag=dag,
+)
+# -----------------------------------------
+
+
+raw_{{ source_name }}_{{ table_name }}_nas = BashOperator(
+    task_id="raw_{{ source_name }}_{{ table_name }}_nas",
+    bash_command="""
+        set -euo pipefail{% raw %}
+        {{ var.value.spark_submit_config_low }} \
+        {{ var.value.script_home_raw }}{% endraw %}/raw_{{ source_name }}_{{ table_name }}_nas.py
+    """,
+    env=env,
+    dag=dag,
+)
+
+
+com_t_{{ source_name }}_{{ table_name }} = BashOperator(
+    task_id='com_t_{{ source_name }}_{{ table_name }}',
+    bash_command="""
+        set -euo pipefail{% raw %}
+        {{ var.value.spark_submit_config_low }} \
+        {{ var.value.script_home_com }}{% endraw %}/com_t_{{ source_name }}_{{ table_name }}.py
+        """,
+    env=env,
+    dag=dag,
+)
+
+# trigger for cur flow
+dataset_flow = Dataset(dag.dag_id)
+
+finish = EmptyOperator(
+    task_id="finish",
+    outlets=[dataset_flow]
+)
+
+etl_run_end_daily = PythonOperator(
+    task_id="etl_run_end_daily",
+    python_callable=etl_run_end_daily,
+    op_kwargs={
+            "source_name": source_name,
+            "table_name": table_name
+    },
+    dag=dag,
+)
+
+
+etl_run_start >> sftp_download_task  >> raw_{{ source_name }}_{{ table_name }}_nas >> com_t_{{ source_name }}_{{ table_name }} >> finish >> etl_run_end_daily

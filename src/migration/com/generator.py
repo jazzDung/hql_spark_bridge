@@ -83,9 +83,12 @@ class ComPySparkGenerator:
         ]
 
         # --- Process Header Comments ---
-        header_comments_path = PROJECT_ROOT / Path(pipeline_config.get("header_comments").get("file"))
-        header_comments = header_comments_path.read_text(encoding="utf-8")
-        formatted_header_comments = format_header_comments(header_comments)
+        try:
+            header_comments_path = PROJECT_ROOT / Path(pipeline_config.get("header_comments").get("file"))
+            header_comments = header_comments_path.read_text(encoding="utf-8")
+            formatted_header_comments = format_header_comments(header_comments)
+        except:
+            formatted_header_comments = ""
         
         # Extract base_table from target_table_name
         target_table_name = pipeline_config["target_table_name"]
@@ -94,26 +97,44 @@ class ComPySparkGenerator:
 
         # Read pre_processing SQLs
         pre_processing_sqls = []
-        for step in pipeline_config.get("pre_processing", []):
-            if step.get("action") == "skip":
-                continue
-            step_file = PROJECT_ROOT / Path(step["file"])
-            # print(f"Reading pre-processing SQL from: {step_file.stem}")
 
-            if step_file.exists():
-                # Create a context for the transformer
-                context = HiveScriptParser.parse_file(str(step_file))
-                # print(context.source_name, context.sub_layer)
-                
-                # Apply the ComPysparkTransformer
-                jinja_render_model = self.transformer.transform(pipeline_config, context)
-                
-                # Extract the transformed queries
-                for query_obj in jinja_render_model.transformed_queries:
-                     if isinstance(query_obj, dict) and query_obj.get('type') == 'query':
-                         pre_processing_sqls.append(query_obj.get('content'))
-                     elif isinstance(query_obj, str): # In case it's just a list of strings
-                         pre_processing_sqls.append(query_obj)
+
+        # for step in pipeline_config.get("pre_processing", []):
+        #     if step.get("action") == "skip":
+        #         continue
+        #     step_file = PROJECT_ROOT / Path(step["file"])
+        #     # print(f"Reading pre-processing SQL from: {step_file.stem}")
+        #
+        #     if step_file.exists():
+        #         # Create a context for the transformer
+        #         context = HiveScriptParser.parse_file(str(step_file))
+        #         # print(context.source_name, context.sub_layer)
+        #
+        #         # Apply the ComPysparkTransformer
+        #         jinja_render_model = self.transformer.transform(pipeline_config, context)
+        #
+        #         # Extract the transformed queries
+        #         for query_obj in jinja_render_model.transformed_queries:
+        #              if isinstance(query_obj, dict) and query_obj.get('type') == 'query':
+        #                  pre_processing_sqls.append(query_obj.get('content'))
+        #              elif isinstance(query_obj, str): # In case it's just a list of strings
+        #                  pre_processing_sqls.append(query_obj)
+
+        # Non main sql
+        non_main_processing_sql_path = PROJECT_ROOT / Path(pipeline_config.get("non_main_processing").get("file"))
+        context = HiveScriptParser.parse_file(str(non_main_processing_sql_path))
+        # print(context.source_name, context.sub_layer)
+
+        # Apply the ComPysparkTransformer
+        jinja_render_model = self.transformer.transform(pipeline_config, context)
+
+        # Extract the transformed queries
+        for query_obj in jinja_render_model.transformed_queries:
+            if isinstance(query_obj, dict) and query_obj.get('type') == 'query':
+                pre_processing_sqls.append(query_obj.get('content'))
+            elif isinstance(query_obj, str):  # In case it's just a list of strings
+                pre_processing_sqls.append(query_obj)
+
 
         # Read main processing SQLs
         main_processing_sqls = []

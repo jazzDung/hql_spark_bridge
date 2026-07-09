@@ -1,0 +1,24 @@
+-- Purpose:    DDL/CUR STATUS
+-- Generated:  {{ generated_at }}
+-- Source:     {{ pipeline_id }}
+
+DROP TABLE IF EXISTS cur.{{ target_table_name }}_h;
+
+CREATE TABLE cur.{{ target_table_name }}_h(
+    {% for col in columns if col.remark != "non_original_field" %}
+    {{ ", " if not loop.first else "" }}{{ col.name }} {{ col.type }} comment ''
+    {% endfor %}
+    -- Standard fields (Model {{ model_type }})
+    {% for field in extra_fields %}
+    , {{ field.name }} {{ field.type }} comment '{{ field.comment }}'
+    {% endfor %}
+    , hash_value                   STRING
+    , source_key                   STRING
+    , hist_year                    STRING
+)
+comment ''
+stored as parquet
+tblproperties(
+    'parquet.compression'='SNAPPY'
+    ,'external.table.purge'='true'
+);

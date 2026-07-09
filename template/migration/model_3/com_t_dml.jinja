@@ -10,16 +10,24 @@
 
 import os
 import sys
-sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
-from etl_common_function import run_etl, set_parameter
 from pyspark.sql.functions import current_timestamp, md5, concat_ws
 
-source_name = "{{ source_name }}"
-table_name  = "{{ base_table }}"
+sys.path.append(os.environ["sys_path_py_script"])
+from etl_common_function import run_etl, set_parameter
 
+source_name = "{{ source_name }}"
+table_name = "{{ base_table }}"
+
+# spark session
 spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source_name, table_name)
 batch_date = today_date
+
+# set parameter, call parameter by params["<parameter name>"]
 params = set_parameter(spark)
+
+'''
+MODEL 3
+'''
 
 {% if pre_processing_sqls %}
 # ─── PRE-PROCESSING (Temp tables logic from legacy script) ───────────────────
@@ -115,8 +123,8 @@ spark.sql(f"""
         , dl_record_status
         , dl_record_created_date
         , dl_record_updated_date
-        , '{batch_date}'       AS etl_dt
-        , current_timestamp()  AS etl_timestamp
+        , current_timestamp()    AS etl_timestamp
+        , '{batch_date}'         AS etl_dt
     FROM {params["com_schema"]}.temp_{{ target_table_name }}_updated
 """)
 

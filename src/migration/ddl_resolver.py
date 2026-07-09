@@ -72,8 +72,9 @@ class DdlResolver:
 
         # print(candidates)
         for c in candidates:
-            if c.exists() and self._file_has_create_table(c):
-                return c
+            if c.exists():
+                if self._file_has_create_table(c):
+                    return c
 
         return None
 

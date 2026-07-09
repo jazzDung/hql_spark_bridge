@@ -1,0 +1,125 @@
+##    File Name		: cur_ailab_dm_account
+##    File Type		: DML
+##    Purpose		: unload script 
+##    Logs			: 20260701		Syhmi				Initial Script
+
+
+import sys
+import os
+import shutil
+sys.path.append(os.environ["sys_path_py_script"])
+from pyspark.sql.functions import col, regexp_replace,max
+from etl_common_function import run_etl_cur, set_parameter
+
+source_name = "cur"
+table_name = "{{ base_table }}"
+hive_table_name = source_name + "_" + table_name
+
+# spark session
+spark, batch_date = run_etl_cur(source_name, table_name)
+
+# set parameter, call parameter by params["<parameter name>"]
+params = set_parameter(spark)
+
+print(batch_date)
+
+# unload
+
+final_file = f"{hive_table_name}_f.{batch_date}.dat"
+final_file_ok = f"{hive_table_name}_f.{batch_date}.ok"
+final_path = f"""{params["iel_data_path"]}/{batch_date}"""
+tmp_dir = f"""{params["iel_data_path"]}/tmp/{{ base_table }}"""
+
+df = (
+    spark.table(f"""{params["cur_schema"]}.dim_account""")
+    .select(
+         regexp_replace(regexp_replace(col("account_id"), "\r", ""), "\n", "").alias("account_id")
+        ,regexp_replace(regexp_replace(col("source_account_id"), "\r", ""), "\n", "").alias("source_account_id")
+        ,regexp_replace(regexp_replace(col("source_name"), "\r", ""), "\n", "").alias("source_name")
+        ,regexp_replace(regexp_replace(col("account_status"), "\r", ""), "\n", "").alias("account_status")
+        ,regexp_replace(regexp_replace(col("account_category"), "\r", ""), "\n", "").alias("account_category")
+        ,regexp_replace(regexp_replace(col("customer_id"), "\r", ""), "\n", "").alias("customer_id")
+        ,regexp_replace(regexp_replace(col("account_name_full"), "\r", ""), "\n", "").alias("account_name_full")
+        ,regexp_replace(regexp_replace(col("account_type"), "\r", ""), "\n", "").alias("account_type")
+        ,regexp_replace(regexp_replace(col("account_client_type"), "\r", ""), "\n", "").alias("account_client_type")
+        ,regexp_replace(regexp_replace(col("clr_account_id"), "\r", ""), "\n", "").alias("clr_account_id")
+        ,regexp_replace(regexp_replace(col("islamic_flag"), "\r", ""), "\n", "").alias("islamic_flag")
+        ,regexp_replace(regexp_replace(col("agent_id"), "\r", ""), "\n", "").alias("agent_id")
+        ,regexp_replace(regexp_replace(col("home_branch_id"), "\r", ""), "\n", "").alias("home_branch_id")
+        ,regexp_replace(regexp_replace(col("cds_account_id"), "\r", ""), "\n", "").alias("cds_account_id")
+        ,regexp_replace(regexp_replace(col("dispatch_mode"), "\r", ""), "\n", "").alias("dispatch_mode")
+        ,col("account_creation_date")
+        ,col("account_closed_date")
+        ,regexp_replace(regexp_replace(col("jompay_referencce_code"), "\r", ""), "\n", "").alias("jompay_referencce_code")
+        ,regexp_replace(regexp_replace(col("account_prohibition_type"), "\r", ""), "\n", "").alias("account_prohibition_type")
+        ,col("account_prohibition_date")
+        ,regexp_replace(regexp_replace(col("account_prohibition_user_id"), "\r", ""), "\n", "").alias("account_prohibition_user_id")
+        ,regexp_replace(regexp_replace(col("account_prohibition_remarks"), "\r", ""), "\n", "").alias("account_prohibition_remarks")
+        ,regexp_replace(regexp_replace(col("trading_account_product_type"), "\r", ""), "\n", "").alias("trading_account_product_type")
+        ,regexp_replace(regexp_replace(col("line_of_business"), "\r", ""), "\n", "").alias("line_of_business")
+        ,regexp_replace(regexp_replace(col("account_payee_name"), "\r", ""), "\n", "").alias("account_payee_name")
+        ,regexp_replace(regexp_replace(col("account_remarks_1"), "\r", ""), "\n", "").alias("account_remarks_1")
+        ,regexp_replace(regexp_replace(col("account_remarks_2"), "\r", ""), "\n", "").alias("account_remarks_2")
+        ,regexp_replace(regexp_replace(col("account_remarks_3"), "\r", ""), "\n", "").alias("account_remarks_3")
+        ,regexp_replace(regexp_replace(col("account_stop_payment_flag"), "\r", ""), "\n", "").alias("account_stop_payment_flag")
+        ,regexp_replace(regexp_replace(col("joint_account_flag"), "\r", ""), "\n", "").alias("joint_account_flag")
+        ,regexp_replace(regexp_replace(col("sub_account_flag"), "\r", ""), "\n", "").alias("sub_account_flag")
+        ,regexp_replace(regexp_replace(col("nominees_type"), "\r", ""), "\n", "").alias("nominees_type")
+        ,regexp_replace(regexp_replace(col("pledged_securities_flag"), "\r", ""), "\n", "").alias("pledged_securities_flag")
+        ,regexp_replace(regexp_replace(col("principal_name"), "\r", ""), "\n", "").alias("principal_name")
+        ,regexp_replace(regexp_replace(col("intermediary_name"), "\r", ""), "\n", "").alias("intermediary_name")
+        ,regexp_replace(regexp_replace(col("beneficiary_owner_name"), "\r", ""), "\n", "").alias("beneficiary_owner_name")
+        ,regexp_replace(regexp_replace(col("beneficiary_owner_id_no"), "\r", ""), "\n", "").alias("beneficiary_owner_id_no")
+        ,regexp_replace(regexp_replace(col("beneficiary_customer_id"), "\r", ""), "\n", "").alias("beneficiary_customer_id")
+        ,regexp_replace(regexp_replace(col("account_application_source"), "\r", ""), "\n", "").alias("account_application_source")
+        ,col("dco_onboard_date")
+        ,regexp_replace(regexp_replace(col("last_transaction_date"), "\r", ""), "\n", "").alias("last_transaction_date")
+        ,regexp_replace(regexp_replace(col("cds_branch_code"), "\r", ""), "\n", "").alias("cds_branch_code")
+        ,regexp_replace(regexp_replace(col("account_attribute"), "\r", ""), "\n", "").alias("account_attribute")
+        ,regexp_replace(regexp_replace(col("account_attribute_type"), "\r", ""), "\n", "").alias("account_attribute_type")
+        ,regexp_replace(regexp_replace(col("account_client_group"), "\r", ""), "\n", "").alias("account_client_group")
+        ,regexp_replace(regexp_replace(col("w8ben"), "\r", ""), "\n", "").alias("w8ben")
+        ,col("w8ben_expiry_date")
+        ,regexp_replace(regexp_replace(col("account_entity"), "\r", ""), "\n", "").alias("account_entity")
+        ,regexp_replace(regexp_replace(col("account_classification"), "\r", ""), "\n", "").alias("account_classification")
+        ,col("etl_timestamp")
+        ,col("etl_dt")
+
+    )
+)
+
+
+df.cache()
+row_count = df.count()
+
+(
+    df.coalesce(1)
+    .write
+    .mode("overwrite")
+    .option("delimiter", "\001")
+    .option("nullValue", "")
+    .option("lineSep", "\n")
+    .csv(tmp_dir)
+)
+
+final_path_os = params["cluster_mount_point"] + final_path
+tmp_dir_os = params["cluster_mount_point"] + tmp_dir
+
+print(final_path_os)
+print(tmp_dir_os)
+
+if not os.path.exists(final_path_os):
+    os.makedirs(final_path_os)
+
+for f in os.listdir(tmp_dir_os):
+    if f.startswith("part-"):
+        shutil.move(
+            os.path.join(tmp_dir_os, f),
+            os.path.join(final_path_os, final_file)
+        )
+
+with open(os.path.join(final_path_os, final_file_ok), "w") as f:
+    f.write(f"{hive_table_name}={row_count}")
+
+# Stop Spark when done
+spark.stop()

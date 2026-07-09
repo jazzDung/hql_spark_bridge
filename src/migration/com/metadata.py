@@ -68,6 +68,7 @@ class ComMetadataProcessor:
         ]
 
         target_table_name = f"t_{decomposed.source_name}_{decomposed.base_table}" if decomposed.sub_layer == "r" else decomposed.main_table
+        non_main_file_path = output_root / decomposed.pipeline_id / "processing_steps" / "_non_main_dml.sql"
         main_file_path = output_root / decomposed.pipeline_id / "processing_steps" / "_main_dml.sql"
         header_comments_file_path = output_root / decomposed.pipeline_id / "processing_steps" / "_header_comments.sql"
 
@@ -83,6 +84,9 @@ class ComMetadataProcessor:
             "primary_key": primary_key,
             "header_comments": {
                 "file": str(header_comments_file_path.as_posix())
+            },
+            "non_main_processing": {
+                "file": str(non_main_file_path.as_posix())
             },
             "main_processing": {
                 "file": str(main_file_path.as_posix())

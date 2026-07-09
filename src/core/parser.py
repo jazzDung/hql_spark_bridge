@@ -1,6 +1,8 @@
 import os
 import re
 import sqlglot
+
+from context import ext_context
 from src.context.sql_conversion_context import SqlConversionContext
 from src.utils.file_utils import parse_file_name
 

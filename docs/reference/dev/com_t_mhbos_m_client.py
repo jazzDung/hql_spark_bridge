@@ -35,8 +35,8 @@ table_name  = "m_client"
 
 # spark session
 spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source_name, table_name)
-batch_date = today_date
-# batch_date = '20251231'
+# batch_date = today_date
+batch_date = '20260505'
 last_date = yesterday_date
 batch_yyyymm = batch_date[:-2]
 
@@ -3045,7 +3045,7 @@ FROM (
     mmca.bene_type
   FROM {params["com_schema"]}.temp_t_mhbos_m_client_all AS cn
   LEFT JOIN {params["com_schema"]}.t_mhbos_m_mcd_client_addr AS mmca
-    ON cn.client_no = mmca.client_no AND mmca.part_id = '{batch_date}'
+    ON cn.client_no = mmca.client_no
 ) AS t1
 """)
 
@@ -4260,16 +4260,16 @@ FROM (
     LEFT JOIN {params["com_schema"]}.temp_t_mhbos_m_client_identification_info AS id
       ON mmca.client_no = id.client_no
   ) AS t1
-  LEFT JOIN {params["com_schema"]}.r_lookup_clientno_custname AS l2
+  LEFT JOIN {params["com_schema"]}.t_manual_lookup_clientno_custname AS l2
     ON t1.client_no = l2.client_no AND l2.source_system = 'MHBOS'
-  LEFT JOIN {params["com_schema"]}.r_lookup_custname_custname AS l3
+  LEFT JOIN {params["com_schema"]}.t_manual_lookup_custname_custname AS l3
     ON t1.customer_name = l3.cust_name AND l3.source_system = 'MHBOS'
-  LEFT JOIN {params["com_schema"]}.r_lookup_primaryidno_newcustname AS l4 /* added 20250313 */
+  LEFT JOIN {params["com_schema"]}.t_manual_lookup_primaryidno_newcustname AS l4 /* added 20250313 */
     ON t1.primary_identification_no = l4.primary_id_no AND l4.source_system = 'MHBOS'
-  LEFT JOIN {params["com_schema"]}.r_lookup_custname_primaryidno AS l5 /* added 20250620 */
+  LEFT JOIN {params["com_schema"]}.t_manual_lookup_custname_primaryidno AS l5 /* added 20250620 */
     ON t1.primary_identification_no = l5.primary_id_no AND l5.source_system = 'MHBOS'
 ) AS t2
-LEFT JOIN {params["com_schema"]}.r_lookup_custname_primaryidno AS l1
+LEFT JOIN {params["com_schema"]}.t_manual_lookup_custname_primaryidno AS l1
   ON t2.customer_name = l1.cust_name AND l1.source_system = 'MHBOS'
 """)
 
@@ -5278,293 +5278,290 @@ LEFT JOIN {params["com_schema"]}.temp_t_mhbos_m_client_identification_info_step2
 # ─── TEMP TABLE SETUP ────────────────────────────────────────────────────────
 spark.sql(f"""DROP TABLE IF EXISTS {params["com_schema"]}.temp_t_mhbos_m_client_updated""")
 
-
-
 spark.sql(f"""
 CREATE TABLE {params["com_schema"]}.temp_t_mhbos_m_client_updated (
-    client_no VARCHAR(9)
-    , clean_rule_flag VARCHAR(60)
-    , primary_identification_type VARCHAR(10)
-    , primary_identification_no VARCHAR(60)
-    , secondary_identification_type VARCHAR(10)
-    , secondary_identification_no VARCHAR(60)
-    , customer_name VARCHAR(250)
-    , customer_name_concatenate VARCHAR(250)
-    , client_name VARCHAR(60)
-    , client_name1 VARCHAR(60)
-    , client_name2 VARCHAR(60)
-    , client_name3 VARCHAR(60)
-    , mobile_no VARCHAR(20)
-    , fax_no VARCHAR(20)
-    , tel_no_home VARCHAR(20)
-    , tel_no_office VARCHAR(20)
+    client_no STRING
+    , clean_rule_flag STRING
+    , primary_identification_type STRING
+    , primary_identification_no STRING
+    , secondary_identification_type STRING
+    , secondary_identification_no STRING
+    , customer_name STRING
+    , customer_name_concatenate STRING
+    , client_name STRING
+    , client_name1 STRING
+    , client_name2 STRING
+    , client_name3 STRING
+    , mobile_no STRING
+    , fax_no STRING
+    , tel_no_home STRING
+    , tel_no_office STRING
     , date_of_birth TIMESTAMP
-    , race VARCHAR(30)
-    , email_1 VARCHAR(300)
-    , email_2 VARCHAR(300)
-    , email_3 VARCHAR(300)
-    , email_4 VARCHAR(300)
-    , email_5 VARCHAR(300)
-    , email_6 VARCHAR(300)
-    , email_7 VARCHAR(300)
-    , email_8 VARCHAR(300)
-    , email_9 VARCHAR(300)
-    , email_10 VARCHAR(300)
-    , sex VARCHAR(10)
-    , addr1 VARCHAR(45)
-    , addr2 VARCHAR(45)
-    , addr3 VARCHAR(45)
-    , addr4 VARCHAR(45)
-    , postcode VARCHAR(6)
-    , city VARCHAR(255)
-    , state VARCHAR(50)
-    , perm_addr1 VARCHAR(45)
-    , perm_addr2 VARCHAR(45)
-    , perm_addr3 VARCHAR(45)
-    , perm_addr4 VARCHAR(45)
-    , perm_postcode VARCHAR(6)
-    , perm_city VARCHAR(255)
-    , perm_state VARCHAR(50)
-    , noms_ind VARCHAR(1)
-    , cleaned_nominees_name VARCHAR(300)
-    , principal_name VARCHAR(300)
-    , intermediary_name VARCHAR(300)
-    , beneficiary_name VARCHAR(300)
-    , nominees_type VARCHAR(10)
-    , pledged_securities_flag VARCHAR(1)
-    , id_type VARCHAR(10)
-    , ic_no_new VARCHAR(15)
-    , ic_no_old VARCHAR(14)
-    , secondary_id_type VARCHAR(2)
-    , secondary_id_no VARCHAR(15)
-    , source_client_name VARCHAR(50)
-    , source_client_name1 VARCHAR(50)
-    , source_client_name2 VARCHAR(50)
-    , source_client_name3 VARCHAR(50)
-    , source_mobile_no VARCHAR(15)
-    , source_fax_no VARCHAR(15)
-    , source_tel_no_home VARCHAR(15)
-    , source_tel_no_office VARCHAR(15)
+    , race STRING
+    , email_1 STRING
+    , email_2 STRING
+    , email_3 STRING
+    , email_4 STRING
+    , email_5 STRING
+    , email_6 STRING
+    , email_7 STRING
+    , email_8 STRING
+    , email_9 STRING
+    , email_10 STRING
+    , sex STRING
+    , addr1 STRING
+    , addr2 STRING
+    , addr3 STRING
+    , addr4 STRING
+    , postcode STRING
+    , city STRING
+    , state STRING
+    , perm_addr1 STRING
+    , perm_addr2 STRING
+    , perm_addr3 STRING
+    , perm_addr4 STRING
+    , perm_postcode STRING
+    , perm_city STRING
+    , perm_state STRING
+    , noms_ind STRING
+    , cleaned_nominees_name STRING
+    , principal_name STRING
+    , intermediary_name STRING
+    , beneficiary_name STRING
+    , nominees_type STRING
+    , pledged_securities_flag STRING
+    , id_type STRING
+    , ic_no_new STRING
+    , ic_no_old STRING
+    , secondary_id_type STRING
+    , secondary_id_no STRING
+    , source_client_name STRING
+    , source_client_name1 STRING
+    , source_client_name2 STRING
+    , source_client_name3 STRING
+    , source_mobile_no STRING
+    , source_fax_no STRING
+    , source_tel_no_home STRING
+    , source_tel_no_office STRING
     , source_date_of_birth TIMESTAMP
-    , source_race VARCHAR(20)
-    , source_email VARCHAR(300)
-    , source_sex VARCHAR(10)
-    , client_group VARCHAR(14)
-    , cds_acc_no VARCHAR(9)
-    , tdr_code VARCHAR(5)
-    , client_type VARCHAR(3)
-    , margin VARCHAR(1)
+    , source_race STRING
+    , source_email STRING
+    , source_sex STRING
+    , client_group STRING
+    , cds_acc_no STRING
+    , tdr_code STRING
+    , client_type STRING
+    , margin STRING
     , last_margin_date TIMESTAMP
-    , int_rate DECIMAL(5, 2)
-    , auto_ded VARCHAR(1)
-    , despatch_mode VARCHAR(2)
-    , copies DECIMAL(2, 0)
-    , prohibit_trade VARCHAR(1)
-    , custody_status VARCHAR(1)
-    , country VARCHAR(3)
-    , margin_limit DECIMAL(9, 0)
-    , margin_pct DECIMAL(5, 2)
-    , rollover_rate DECIMAL(6, 3)
-    , form_completed VARCHAR(1)
+    , int_rate STRING
+    , auto_ded STRING
+    , despatch_mode STRING
+    , copies STRING
+    , prohibit_trade STRING
+    , custody_status STRING
+    , country STRING
+    , margin_limit STRING
+    , margin_pct STRING
+    , rollover_rate STRING
+    , form_completed STRING
     , last_tran_date TIMESTAMP
-    , ytd_bvalue DECIMAL(12, 2)
-    , ytd_svalue DECIMAL(12, 2)
-    , ytd_brokerage DECIMAL(11, 2)
-    , os_led_bal DECIMAL(12, 2)
-    , title VARCHAR(20)
+    , ytd_bvalue STRING
+    , ytd_svalue STRING
+    , ytd_brokerage STRING
+    , os_led_bal STRING
+    , title STRING
     , date_created TIMESTAMP
-    , stop_payt VARCHAR(1)
-    , acc_payee VARCHAR(100)
-    , category VARCHAR(1)
-    , auto_contra VARCHAR(1)
-    , pnl_acc_no VARCHAR(18)
-    , cr_limit DECIMAL(9, 0)
-    , trust_bal DECIMAL(12, 2)
-    , avg_ind VARCHAR(8)
-    , remarks VARCHAR(60)
-    , contact_person VARCHAR(40)
+    , stop_payt STRING
+    , acc_payee STRING
+    , category STRING
+    , auto_contra STRING
+    , pnl_acc_no STRING
+    , cr_limit STRING
+    , trust_bal STRING
+    , avg_ind STRING
+    , remarks STRING
+    , contact_person STRING
     , date_closed TIMESTAMP
-    , grace_period DECIMAL(3, 0)
-    , acct_type DECIMAL(2, 0)
-    , assoc_ind VARCHAR(1)
-    , short_sell_ind VARCHAR(1)
-    , short_name VARCHAR(10)
-    , mesdaq_pctlmt DECIMAL(5, 2)
+    , grace_period STRING
+    , acct_type STRING
+    , assoc_ind STRING
+    , short_sell_ind STRING
+    , short_name STRING
+    , mesdaq_pctlmt STRING
     , date_change TIMESTAMP
-    , resi_code VARCHAR(5)
-    , charge_int VARCHAR(1)
-    , bdebt VARCHAR(1)
-    , assets DECIMAL(12, 2)
-    , liabilities DECIMAL(12, 2)
-    , income DECIMAL(12, 2)
-    , expenses DECIMAL(12, 2)
-    , bdebt_his_ind VARCHAR(3)
-    , rel_ac1 VARCHAR(9)
-    , rel_ac2 VARCHAR(9)
-    , rel_ac3 VARCHAR(9)
-    , rel_ac4 VARCHAR(9)
-    , occupation VARCHAR(60)
-    , margin_int DECIMAL(12, 2)
-    , lst_led_no DECIMAL(9, 0)
-    , cur_led_no DECIMAL(9, 0)
-    , remarks2 VARCHAR(60)
-    , acc_type VARCHAR(1)
-    , mas_accno VARCHAR(9)
-    , legal VARCHAR(1)
-    , sell_limit DECIMAL(9, 0)
-    , brk_rate DECIMAL(9, 4)
-    , brokerage_type VARCHAR(3)
-    , cds_acc_no1 VARCHAR(9)
-    , remarks1 VARCHAR(60)
-    , payment_bank_code VARCHAR(5)
-    , noms VARCHAR(1)
+    , resi_code STRING
+    , charge_int STRING
+    , bdebt STRING
+    , assets STRING
+    , liabilities STRING
+    , income STRING
+    , expenses STRING
+    , bdebt_his_ind STRING
+    , rel_ac1 STRING
+    , rel_ac2 STRING
+    , rel_ac3 STRING
+    , rel_ac4 STRING
+    , occupation STRING
+    , margin_int STRING
+    , lst_led_no STRING
+    , cur_led_no STRING
+    , remarks2 STRING
+    , acc_type STRING
+    , mas_accno STRING
+    , legal STRING
+    , sell_limit STRING
+    , brk_rate STRING
+    , brokerage_type STRING
+    , cds_acc_no1 STRING
+    , remarks1 STRING
+    , payment_bank_code STRING
+    , noms STRING
     , dms_date TIMESTAMP
     , violation_date TIMESTAMP
-    , mcd_branch VARCHAR(3)
-    , home_branch VARCHAR(3)
-    , eaf_code VARCHAR(1)
-    , call_warrant VARCHAR(1)
-    , user_id VARCHAR(20)
-    , credit_int_rate DECIMAL(5, 2)
-    , min_eligible_amt DECIMAL(18, 4)
-    , intraday_flag VARCHAR(1)
-    , intraday_rate DECIMAL(5, 4)
-    , cta_weight DECIMAL(3, 0)
-    , sta_weight DECIMAL(3, 0)
-    , bo_cds_acc_no VARCHAR(20)
-    , ecos_form VARCHAR(1)
-    , custodian_no VARCHAR(7)
-    , prin_acc VARCHAR(2)
-    , armada_type VARCHAR(8)
-    , old_authorisee VARCHAR(5)
-    , etrade_rate DECIMAL(9, 4)
-    , etf VARCHAR(1)
-    , cstamp_client_exempt VARCHAR(1)
-    , main_branch VARCHAR(3)
-    , prev_client_no VARCHAR(9)
-    , web_eds VARCHAR(1)
-    , place VARCHAR(5)
-    , excl_tdr_deduct VARCHAR(1)
-    , excl_auto_susp VARCHAR(1)
-    , trust_flag VARCHAR(1)
-    , mgn_new_int_rate DECIMAL(5, 2)
-    , counter_concentration DECIMAL(5, 2)
-    , auto_trust VARCHAR(1)
-    , margin_pct2 DECIMAL(5, 2)
-    , df_flag VARCHAR(1)
-    , mgn_curr_int_rate DECIMAL(5, 2)
-    , product_type VARCHAR(1)
-    , web_ecos VARCHAR(1)
-    , xeye_clt_grp VARCHAR(14)
+    , mcd_branch STRING
+    , home_branch STRING
+    , eaf_code STRING
+    , call_warrant STRING
+    , user_id STRING
+    , credit_int_rate STRING
+    , min_eligible_amt STRING
+    , intraday_flag STRING
+    , intraday_rate STRING
+    , cta_weight STRING
+    , sta_weight STRING
+    , bo_cds_acc_no STRING
+    , ecos_form STRING
+    , custodian_no STRING
+    , prin_acc STRING
+    , armada_type STRING
+    , old_authorisee STRING
+    , etrade_rate STRING
+    , etf STRING
+    , cstamp_client_exempt STRING
+    , main_branch STRING
+    , prev_client_no STRING
+    , web_eds STRING
+    , place STRING
+    , excl_tdr_deduct STRING
+    , excl_auto_susp STRING
+    , trust_flag STRING
+    , mgn_new_int_rate STRING
+    , counter_concentration STRING
+    , auto_trust STRING
+    , margin_pct2 STRING
+    , df_flag STRING
+    , mgn_curr_int_rate STRING
+    , product_type STRING
+    , web_ecos STRING
+    , xeye_clt_grp STRING
     , bursa_violation_date TIMESTAMP
-    , brokerage_type_etrade VARCHAR(3)
-    , brokerage_type_odd_lot VARCHAR(3)
-    , omnibus VARCHAR(1)
-    , cg_tdr_code VARCHAR(7)
-    , limit_foreign DECIMAL(9, 4)
-    , limit_bursa DECIMAL(9, 4)
-    , brokerage_type_intraday VARCHAR(3)
-    , brokerage_type_intraday_etrade VARCHAR(3)
+    , brokerage_type_etrade STRING
+    , brokerage_type_odd_lot STRING
+    , omnibus STRING
+    , cg_tdr_code STRING
+    , limit_foreign STRING
+    , limit_bursa STRING
+    , brokerage_type_intraday STRING
+    , brokerage_type_intraday_etrade STRING
     , bursa_violation_date1 TIMESTAMP
-    , cif_no VARCHAR(20)
-    , brokerage_type_foreign VARCHAR(3)
-    , soft_copy VARCHAR(1)
-    , exclude_rollover VARCHAR(1)
-    , account_status VARCHAR(1)
-    , w8ben VARCHAR(1)
-    , ic_no_rel1 VARCHAR(15)
-    , ic_no_rel2 VARCHAR(15)
-    , ic_no_rel3 VARCHAR(15)
-    , ic_no_rel4 VARCHAR(15)
-    , ic_no_rel5 VARCHAR(15)
-    , rel1 VARCHAR(15)
-    , rel2 VARCHAR(15)
-    , rel3 VARCHAR(15)
-    , rel4 VARCHAR(15)
-    , rel5 VARCHAR(15)
-    , brokerage_type_etrade_b VARCHAR(3)
-    , brokerage_type_odd_lot_b VARCHAR(3)
-    , brokerage_type_b VARCHAR(3)
-    , brokerage_type_foreign_b VARCHAR(3)
-    , brokerage_type_intraday_b VARCHAR(3)
-    , brokerage_type_intraday_etrade_b VARCHAR(3)
-    , brokerage_type_etrade_s VARCHAR(3)
-    , brokerage_type_odd_lot_s VARCHAR(3)
-    , brokerage_type_s VARCHAR(3)
-    , brokerage_type_foreign_s VARCHAR(3)
-    , brokerage_type_intraday_s VARCHAR(3)
-    , brokerage_type_intraday_etrade_s VARCHAR(3)
-    , no_free_trade DECIMAL(2, 0)
-    , sms VARCHAR(1)
-    , mobile_prefix VARCHAR(5)
-    , foreign_curr_set VARCHAR(1)
-    , num_free_trade DECIMAL(2, 0)
-    , etrader_type VARCHAR(2)
-    , check_limit VARCHAR(1)
-    , auto_margin VARCHAR(1)
-    , margin_client_no VARCHAR(9)
-    , dup_despatch_mode VARCHAR(1)
-    , risk VARCHAR(1)
-    , exclude_trader_limit VARCHAR(1)
+    , cif_no STRING
+    , brokerage_type_foreign STRING
+    , soft_copy STRING
+    , exclude_rollover STRING
+    , account_status STRING
+    , w8ben STRING
+    , ic_no_rel1 STRING
+    , ic_no_rel2 STRING
+    , ic_no_rel3 STRING
+    , ic_no_rel4 STRING
+    , ic_no_rel5 STRING
+    , rel1 STRING
+    , rel2 STRING
+    , rel3 STRING
+    , rel4 STRING
+    , rel5 STRING
+    , brokerage_type_etrade_b STRING
+    , brokerage_type_odd_lot_b STRING
+    , brokerage_type_b STRING
+    , brokerage_type_foreign_b STRING
+    , brokerage_type_intraday_b STRING
+    , brokerage_type_intraday_etrade_b STRING
+    , brokerage_type_etrade_s STRING
+    , brokerage_type_odd_lot_s STRING
+    , brokerage_type_s STRING
+    , brokerage_type_foreign_s STRING
+    , brokerage_type_intraday_s STRING
+    , brokerage_type_intraday_etrade_s STRING
+    , no_free_trade STRING
+    , sms STRING
+    , mobile_prefix STRING
+    , foreign_curr_set STRING
+    , num_free_trade STRING
+    , etrader_type STRING
+    , check_limit STRING
+    , auto_margin STRING
+    , margin_client_no STRING
+    , dup_despatch_mode STRING
+    , risk STRING
+    , exclude_trader_limit STRING
     , sett_mode_date_change TIMESTAMP
-    , pick_up_fee_pct DECIMAL(5, 2)
-    , e_payment VARCHAR(1)
-    , mgn_new_int_rate2 DECIMAL(5, 2)
-    , fund_cost_type VARCHAR(1)
-    , check_share VARCHAR(1)
-    , citibank_changes VARCHAR(1)
-    , citibank_charges VARCHAR(1)
-    , cq_market VARCHAR(1)
-    , exclude_margin_pro_rate VARCHAR(1)
-    , brokerage_type_cash_b VARCHAR(3)
-    , brokerage_type_etrade_cash_b VARCHAR(3)
-    , clt_consent VARCHAR(1)
+    , pick_up_fee_pct STRING
+    , e_payment STRING
+    , mgn_new_int_rate2 STRING
+    , fund_cost_type STRING
+    , check_share STRING
+    , citibank_changes STRING
+    , citibank_charges STRING
+    , cq_market STRING
+    , exclude_margin_pro_rate STRING
+    , brokerage_type_cash_b STRING
+    , brokerage_type_etrade_cash_b STRING
+    , clt_consent STRING
     , consent_start_date TIMESTAMP
-    , portfolio VARCHAR(1)
+    , portfolio STRING
     , expiry_date TIMESTAMP
-    , intraday_auto_contra_option VARCHAR(1)
-    , dcf_limit DECIMAL(9, 0)
-    , brokerage_type_etb VARCHAR(3)
-    , mgn_force_sell_pct DECIMAL(5, 2)
-    , mgn_tenure DECIMAL(3, 0)
+    , intraday_auto_contra_option STRING
+    , dcf_limit STRING
+    , brokerage_type_etb STRING
+    , mgn_force_sell_pct STRING
+    , mgn_tenure STRING
     , mgn_expiry_date TIMESTAMP
-    , loss_gl_acc_no VARCHAR(18)
+    , loss_gl_acc_no STRING
     , portfolio_date TIMESTAMP
-    , day_prior_temp_susp DECIMAL(4, 0)
-    , day_prior_perm_susp DECIMAL(4, 0)
-    , gst_code VARCHAR(3)
-    , match_price_decimal_local DECIMAL(1, 0)
-    , match_price_decimal_foreign DECIMAL(1, 0)
+    , day_prior_temp_susp STRING
+    , day_prior_perm_susp STRING
+    , gst_code STRING
+    , match_price_decimal_local STRING
+    , match_price_decimal_foreign STRING
     , primary_id_expiry_date TIMESTAMP
     , secondary_id_expiry_date TIMESTAMP
-    , mgn_int_tdr_spread_pct DECIMAL(5, 2)
-    , mgn_base_int_rate DECIMAL(5, 2)
-    , mgn_int_tdr_share DECIMAL(5, 2)
-    , islamic_flag VARCHAR(1)
-    , mcd_resident_flag VARCHAR(1)
-    , chq_charges_flag VARCHAR(1)
-    , chq_charges_tdr_pct DECIMAL(9, 2)
-    , brokerage_type_foreign_etrade VARCHAR(3)
-    , brokerage_type_foreign_etrade_b VARCHAR(3)
-    , brokerage_type_foreign_etrade_s VARCHAR(3)
-    , grp_exch_code VARCHAR(5)
-    , bdebt_ras VARCHAR(1)
-    , twse_declaration VARCHAR(1)
-    , joint_acc_amt DECIMAL(12, 2)
-    , high_risk_market VARCHAR(2)
-    , brokerage_type_leap_normal VARCHAR(3)
-    , brokerage_type_leap_etrade VARCHAR(3)
-    , perm_country VARCHAR(3)
+    , mgn_int_tdr_spread_pct STRING
+    , mgn_base_int_rate STRING
+    , mgn_int_tdr_share STRING
+    , islamic_flag STRING
+    , mcd_resident_flag STRING
+    , chq_charges_flag STRING
+    , chq_charges_tdr_pct STRING
+    , brokerage_type_foreign_etrade STRING
+    , brokerage_type_foreign_etrade_b STRING
+    , brokerage_type_foreign_etrade_s STRING
+    , grp_exch_code STRING
+    , bdebt_ras STRING
+    , twse_declaration STRING
+    , joint_acc_amt STRING
+    , high_risk_market STRING
+    , brokerage_type_leap_normal STRING
+    , brokerage_type_leap_etrade STRING
+    , perm_country STRING
     , type_of_account STRING
     , einvoice_email STRING
-    , dl_record_status       VARCHAR(10)
-    , dl_record_created_date TIMESTAMP
-    , dl_record_updated_date TIMESTAMP
+    ,dl_record_status       VARCHAR(10)
+    ,dl_record_created_date TIMESTAMP
+    ,dl_record_updated_date TIMESTAMP
 )
 stored as parquet
 tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
 """)
-
 
 # ─── STEP 1: Keep unchanged records ──────────────────────────────────────────
 spark.sql(f"""

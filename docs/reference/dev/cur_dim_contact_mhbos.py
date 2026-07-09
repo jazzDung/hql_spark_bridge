@@ -7,15 +7,15 @@
 import os
 import sys
 sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
-from etl_common_function import run_etl, set_parameter
+from etl_common_function import run_etl, set_parameter, run_etl_cur
 from pyspark.sql.functions import current_timestamp, md5, concat_ws
 
 source_name = "cur"
-table_name  = "dim_contact_mhbos"
+table_name  = "dim_contact"
 
-spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source_name, table_name)
-# batch_date = today_date
-batch_date = '20260513'
+spark, today_date = run_etl_cur(source_name, table_name)
+batch_date = today_date
+# batch_date = '20260513'
 params = set_parameter(spark)
 
 # ─── PRE-PROCESSING (Temp tables logic from legacy script) ───────────────────
@@ -610,7 +610,7 @@ spark.sql(f"""
       NULL AS CONTACT_UPDATE_DATE, /* None */
       'EB' AS LINE_OF_BUSINESS, /* None */
       'MHBOS' AS SOURCE_NAME, /* None */
-      IC_NO_NEW AS SOURCE_RECORD_ID, /* None */
+      T1.IC_NO_NEW AS SOURCE_RECORD_ID, /* None */
       1 AS SEQUENCE_NO /* None */
     FROM (
       SELECT
@@ -653,7 +653,7 @@ spark.sql(f"""
       NULL AS CONTACT_UPDATE_DATE, /* None */
       'EB' AS LINE_OF_BUSINESS, /* None */
       'MHBOS' AS SOURCE_NAME, /* None */
-      IC_NO_NEW AS SOURCE_RECORD_ID, /* None */
+      T1.IC_NO_NEW AS SOURCE_RECORD_ID, /* None */
       1 AS SEQUENCE_NO /* None */
     FROM (
       SELECT
@@ -845,7 +845,7 @@ INSERT INTO {params["cur_schema"]}.TEMP_DIM_CUSTOMER_CONTACT_MHBOS (
       T1.CONTACT_CREATE_DATE AS CONTACT_CREATE_DATE, /* None */
       T1.CONTACT_UPDATE_DATE AS CONTACT_UPDATE_DATE, /* None */
       NULL AS LINE_OF_BUSINESS, /* None */
-      T1.SOURCE_NAME AS SOURCE_NAME, /* None */
+      NULL AS SOURCE_NAME, /* None */
       T1.SOURCE_RECORD_ID AS SOURCE_RECORD_ID, /* None */
       1 AS SEQUENCE_NO /* None */
     FROM (
@@ -894,7 +894,7 @@ spark.sql(f"""
       T1.CONTACT_CREATE_DATE AS CONTACT_CREATE_DATE, /* None */
       T1.CONTACT_UPDATE_DATE AS CONTACT_UPDATE_DATE, /* None */
       NULL AS LINE_OF_BUSINESS, /* None */
-      T1.SOURCE_NAME AS SOURCE_NAME, /* None */
+      NULL AS SOURCE_NAME, /* None */
       T1.SOURCE_RECORD_ID AS SOURCE_RECORD_ID, /* None */
       1 AS SEQUENCE_NO /* None */
     FROM (
@@ -943,7 +943,7 @@ spark.sql(f"""
       T1.CONTACT_CREATE_DATE AS CONTACT_CREATE_DATE, /* None */
       T1.CONTACT_UPDATE_DATE AS CONTACT_UPDATE_DATE, /* None */
       NULL AS LINE_OF_BUSINESS, /* None */
-      T1.SOURCE_NAME AS SOURCE_NAME, /* None */
+      NULL AS SOURCE_NAME, /* None */
       T1.SOURCE_RECORD_ID AS SOURCE_RECORD_ID, /* None */
       1 AS SEQUENCE_NO /* None */
     FROM (
@@ -992,7 +992,7 @@ spark.sql(f"""
       T1.CONTACT_CREATE_DATE AS CONTACT_CREATE_DATE, /* None */
       T1.CONTACT_UPDATE_DATE AS CONTACT_UPDATE_DATE, /* None */
       NULL AS LINE_OF_BUSINESS, /* None */
-      T1.SOURCE_NAME AS SOURCE_NAME, /* None */
+      NULL AS SOURCE_NAME, /* None */
       T1.SOURCE_RECORD_ID AS SOURCE_RECORD_ID, /* None */
       1 AS SEQUENCE_NO /* None */
     FROM (
@@ -1041,7 +1041,7 @@ spark.sql(f"""
       T1.CONTACT_CREATE_DATE AS CONTACT_CREATE_DATE, /* None */
       T1.CONTACT_UPDATE_DATE AS CONTACT_UPDATE_DATE, /* None */
       NULL AS LINE_OF_BUSINESS, /* None */
-      T1.SOURCE_NAME AS SOURCE_NAME, /* None */
+      NULL AS SOURCE_NAME, /* None */
       T1.SOURCE_RECORD_ID AS SOURCE_RECORD_ID, /* None */
       1 AS SEQUENCE_NO /* None */
     FROM (
@@ -1082,7 +1082,8 @@ CREATE TABLE {params["cur_schema"]}.temp_dim_contact_mhbos_consolidated (
       LINE_OF_BUSINESS VARCHAR(20), /* None */
       SOURCE_NAME VARCHAR(10), /* None */
       SOURCE_RECORD_ID VARCHAR(50), /* None */
-      SEQUENCE_NO INT /* None */
+      SEQUENCE_NO INT,
+      SOURCE_KEY VARCHAR(50)
     )
     USING PARQUET
     TBLPROPERTIES (
@@ -1106,7 +1107,8 @@ spark.sql(f"""
       LINE_OF_BUSINESS, /* None */
       SOURCE_NAME, /* None */
       SOURCE_RECORD_ID, /* None */
-      SEQUENCE_NO /* None */
+      SEQUENCE_NO, /* None */
+      SOURCE_KEY
     )
     SELECT
       T1.OWNER_ID AS OWNER_ID, /* None */
@@ -1119,22 +1121,27 @@ spark.sql(f"""
       T1.LINE_OF_BUSINESS AS LINE_OF_BUSINESS, /* None */
       T1.SOURCE_NAME AS SOURCE_NAME, /* None */
       T1.SOURCE_RECORD_ID AS SOURCE_RECORD_ID, /* None */
-      T1.SEQUENCE_NO AS SEQUENCE_NO /* None */
+      T1.SEQUENCE_NO AS SEQUENCE_NO, /* None */
+      T1.source_key
     FROM (
       SELECT
         *
+        , SOURCE_NAME || '_' || CONTACT_OWNER_TYPE AS source_key
       FROM {params["cur_schema"]}.TEMP_DIM_ACCOUNT_CONTACT_MHBOS
       UNION ALL
       SELECT
         *
+        , SOURCE_NAME || '_' || CONTACT_OWNER_TYPE AS source_key
       FROM {params["cur_schema"]}.TEMP_DIM_TRADER_CONTACT_MHBOS
       UNION ALL
       SELECT
         *
+        , SOURCE_NAME || '_' || CONTACT_OWNER_TYPE AS source_key
       FROM {params["cur_schema"]}.TEMP_DIM_BRANCH_CONTACT_MHBOS
       UNION ALL
       SELECT
         *
+        , CONTACT_OWNER_TYPE AS source_key
       FROM {params["cur_schema"]}.TEMP_DIM_CUSTOMER_CONTACT_MHBOS
     ) AS T1 /* None */
     WHERE
@@ -1161,6 +1168,7 @@ CREATE TABLE {params["cur_schema"]}.temp_dim_contact_mhbos_updated (
     , dl_record_status       VARCHAR(10)
     , dl_record_created_date TIMESTAMP
     , dl_record_updated_date TIMESTAMP
+    , SOURCE_KEY VARCHAR(50)
 )
 stored as parquet
 tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
@@ -1170,28 +1178,29 @@ tblproperties('parquet.compression'='SNAPPY', 'external.table.purge'='true')
 spark.sql(f"""
 INSERT INTO TABLE {params["cur_schema"]}.temp_dim_contact_mhbos_updated
 SELECT
-    owner_id
-    , contact_owner_type
-    , contact_type
-    , contact_value
-    , contact_name
-    , contact_create_date
-    , contact_update_date
-    , line_of_business
-    , source_name
-    , source_record_id
-    , sequence_no
+    cur.owner_id
+    , cur.contact_owner_type
+    , cur.contact_type
+    , cur.contact_value
+    , cur.contact_name
+    , cur.contact_create_date
+    , cur.contact_update_date
+    , cur.line_of_business
+    , cur.source_name
+    , cur.source_record_id
+    , cur.sequence_no
     , 'A' AS dl_record_status
-    , dl_record_created_date
-    , dl_record_updated_date
+    , cur.dl_record_created_date
+    , cur.dl_record_updated_date
+    , cur.source_key
 FROM {params["cur_schema"]}.dim_contact cur
 WHERE 
-    cur.source_name = 'MHBOS'
+    cur.source_key in ('CUSTOMER', 'MHBOS_ACCOUNT', 'MHBOS_AGENT', 'MHBOS_AGENT_ASSISTANT', 'MHBOS_BRANCH')
     AND NOT EXISTS (
     SELECT 1 FROM {params["cur_schema"]}.temp_dim_contact_mhbos_consolidated r
     WHERE r.owner_id = cur.owner_id
       AND r.contact_owner_type = cur.contact_owner_type
-      and r.contact_type = cur.contact_type
+      and r.source_key = cur.source_key
 )
 """)
 
@@ -1215,17 +1224,20 @@ SELECT
         WHEN cur.owner_id IS NOT NULL THEN cur.dl_record_created_date
         ELSE current_timestamp() END AS dl_record_created_date
     , current_timestamp() AS dl_record_updated_date
+    , r.source_key
 FROM {params["cur_schema"]}.temp_dim_contact_mhbos_consolidated r
 LEFT JOIN {params["cur_schema"]}.dim_contact cur
-    ON cur.source_name = 'MHBOS'
-      AND r.owner_id = cur.owner_id
-      AND r.contact_owner_type = cur.contact_owner_type
-      and r.contact_type = cur.contact_type
+    ON cur.source_key in ('CUSTOMER', 'MHBOS_ACCOUNT', 'MHBOS_AGENT', 'MHBOS_AGENT_ASSISTANT', 'MHBOS_BRANCH')
+    AND r.owner_id = cur.owner_id
+    AND r.contact_owner_type = cur.contact_owner_type
+    and r.contact_type = cur.contact_type
+    and r.source_key = cur.source_key
+    and r.sequence_no = cur.sequence_no
 """)
 
 # ─── STEP 3: Overwrite target table ──────────────────────────────────────────
 spark.sql(f"""
-INSERT OVERWRITE TABLE {params["cur_schema"]}.dim_contact PARTITION(source_name = 'MHBOS') 
+INSERT OVERWRITE TABLE {params["cur_schema"]}.dim_contact PARTITION (source_key) 
 SELECT
     owner_id
     , contact_owner_type
@@ -1235,13 +1247,15 @@ SELECT
     , contact_create_date
     , contact_update_date
     , line_of_business
+    , source_name
     , source_record_id
     , sequence_no
+    , current_timestamp()  AS etl_timestamp
+    , '{batch_date}'       AS etl_dt
     , dl_record_status
     , dl_record_created_date
     , dl_record_updated_date
-    , '{batch_date}'       AS etl_dt
-    , current_timestamp()  AS etl_timestamp
+    , source_key
 FROM {params["cur_schema"]}.temp_dim_contact_mhbos_updated
 """)
 

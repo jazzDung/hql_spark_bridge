@@ -1,0 +1,69 @@
+{% if header_comments %}
+{{ header_comments }}
+{% endif %}
+
+import sys
+import os
+import shutil
+import sys
+import os
+sys.path.append(os.environ["sys_path_py_script"])
+from pyspark.sql.functions import col, regexp_replace, max
+from etl_common_function import run_etl_cur, set_parameter
+
+source_name = "cur"
+table_name = {{ base_table }}
+hive_table_name = source_name + "_" + table_name
+
+# spark session
+spark, batch_date = run_etl_cur(source_name, table_name)
+
+# set parameter, call parameter by params["<parameter name>"]
+params = set_parameter(spark)
+
+print(batch_date)
+
+# unload
+final_file = f"{hive_table_name}_f.{batch_date}.dat"
+final_file_ok = f"{hive_table_name}_f.{batch_date}.ok"
+final_path = f"""{params["iel_data_path"]}/{batch_date}"""
+tmp_dir = f"""{params["iel_data_path"]}/tmp/{{ base_table }}"""
+
+
+{{ unload_query }}
+
+
+df.cache()
+row_count = df.count()
+
+(
+    df.coalesce(1)
+    .write
+    .mode("overwrite")
+    .option("delimiter", "\001")
+    .option("nullValue", "")
+    .option("lineSep", "\n")
+    .csv(tmp_dir)
+)
+
+final_path_os = params["cluster_mount_point"] + final_path
+tmp_dir_os = params["cluster_mount_point"] + tmp_dir
+
+print(final_path_os)
+print(tmp_dir_os)
+
+if not os.path.exists(final_path_os):
+    os.makedirs(final_path_os)
+
+for f in os.listdir(tmp_dir_os):
+    if f.startswith("part-"):
+        shutil.move(
+            os.path.join(tmp_dir_os, f),
+            os.path.join(final_path_os, final_file)
+        )
+
+with open(os.path.join(final_path_os, final_file_ok), "w") as f:
+    f.write(f"{hive_table_name}={row_count}")
+
+# Stop Spark when done
+spark.stop()

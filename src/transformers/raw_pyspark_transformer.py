@@ -84,8 +84,11 @@ class RawPySparkTransformer(BaseSqlTransformer):
         formatted_header_comments = format_header_comments(context.header_comments)
 
         for node in context.ast_nodes:
+            print("*" * 50)
+            print(f"Optimization for node: {type(node)}")
             # print(f"Optimize for {type(node)}")
             optimization_result = self._find_and_apply_optimization_rule(node, context)
+            print(optimization_result)
             
             if optimization_result:
                 if optimization_result.get("type") == "skip":
@@ -107,20 +110,21 @@ class RawPySparkTransformer(BaseSqlTransformer):
                     continue
 
                 if optimization_result.get("type") == "generate_jdbc_read":
+                    print("Got a JDBC read block")
                     external_table_create_node = optimization_result.get("external_table_create_node")
                     # print(f"external_table_create_node: {external_table_create_node}")
-                    if external_table_create_node:
-                        temp_context = SqlConversionContext(
-                            original_file_path=context.original_file_path,
-                            layer=context.layer,
-                            sub_layer=context.sub_layer,
-                            raw_sql_content=node.sql(),
-                            source_name=context.source_name,
-                            table_name=context.table_name,
-                            ast_nodes=[external_table_create_node]
-                        )
-                        fallback_model = self.fallback_transformer.transform(temp_context)
-                        optimized_blocks.extend(q for q in fallback_model.transformed_queries)
+                    # if external_table_create_node:
+                    #     temp_context = SqlConversionContext(
+                    #         original_file_path=context.original_file_path,
+                    #         layer=context.layer,
+                    #         sub_layer=context.sub_layer,
+                    #         raw_sql_content=node.sql(),
+                    #         source_name=context.source_name,
+                    #         table_name=context.table_name,
+                    #         ast_nodes=[external_table_create_node]
+                    #     )
+                    #     fallback_model = self.fallback_transformer.transform(temp_context)
+                    #     optimized_blocks.extend(q for q in fallback_model.transformed_queries)
 
                     optimized_blocks.append(optimization_result)
                     continue
@@ -141,6 +145,7 @@ class RawPySparkTransformer(BaseSqlTransformer):
             source_name=context.source_name,
             table_name=context.table_name,
             header_comments=formatted_header_comments,
+            layer=context.layer,
         )
         render_model.optimized_blocks = optimized_blocks
         return render_model

@@ -3,18 +3,17 @@
 
 {% endif %}import os
 import sys
-sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
+import os
+sys.path.append(os.environ["sys_path_py_script"])
 
-from etl_common_function import run_etl, set_parameter, drop_partition_day
-from pyspark.sql.functions import current_timestamp, lit
-from datetime import datetime, timedelta
+from etl_common_function import run_etl_cur, set_parameter
+
+source_name = "cur"
+table_name = "{{ source_name }}_{{ table_name }}"
+hive_table_name = source_name + "_" + table_name
 
 # spark session
-spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source_name, table_name)
-batch_date = today_date
-last_date = yesterday_date
-batch_yyyymm = batch_date[:-2]
-
+spark, batch_date = run_etl_cur(source_name, table_name)
 
 # set parameter, call parameter by params["<parameter name>"]
 params = set_parameter(spark)
@@ -41,6 +40,10 @@ spark.sql(rf"""
 
 {% endfor %}
 
+
+spark.sql(f"""
+    ANALYZE TABLE {params["cur_schema"]}.{{ source_name }}_{{ table_name }} PARTITION (etl_dt ='{batch_date}') COMPUTE STATISTICS
+""")
 
 # Stop Spark when done
 spark.stop()

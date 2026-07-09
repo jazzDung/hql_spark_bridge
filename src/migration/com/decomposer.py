@@ -31,6 +31,7 @@ class ComDecomposedScript:
     schema_name: str             # "com" | "raw" | "cur | "unl"
     sub_layer: str               # "r" | "t" | "m"
     temp_tables: list[ComTempTableBlock]
+    non_main_sql: str
     main_sql: str                # Block INSERT INTO bảng đích (target table) cuối cùng
     raw_sql_full: str            # Nội dung gốc của file
     header_comments: str = ""    # Header comments from the original file
@@ -45,7 +46,7 @@ class ComSqlDecomposer:
         Parse và chia nhỏ một file HiveQL nguyên khối thành các block có tên.
         """
         content = sql_file.read_text(encoding="utf-8")
-        
+
         # 1. Separate header comments from the main SQL code
         header_lines = []
         sql_lines = []
@@ -68,7 +69,7 @@ class ComSqlDecomposer:
         # 2. Parse AST from the SQL content (without header)
         statements = sqlglot.parse(sql_content, read="hive", error_level=sqlglot.ErrorLevel.WARN)
         # 3. Nhóm các câu lệnh theo từng temp table
-        blocks = self._group_by_table(statements)
+        blocks, non_main_sql = self._group_by_table(statements, main_table)
         # 4. Nhận diện khối lệnh INSERT chính (bảng đích, không phải bảng tạm)
         main_sql, temp_blocks = self._separate_main(blocks, content, main_table)
         # 5. Build các object TempTableBlock
@@ -84,22 +85,29 @@ class ComSqlDecomposer:
             schema_name=schema,
             sub_layer=sub_layer,
             temp_tables=temp_table_objs,
+            non_main_sql=non_main_sql,
             main_sql=main_sql,
             raw_sql_full=content,
             header_comments=header_comments
         )
 
-    def _group_by_table(self, statements: list) -> dict[str, list]:
+    def _group_by_table(self, statements: list, main_table_name: str) -> (dict[str, list], str):
         """
         Trả về dict: { table_name: [stmt1, stmt2, ...] }
         """
         groups = {}
+        non_main_nodes = []
         for stmt in statements:
             # Trích xuất tên bảng từ bất kỳ loại câu lệnh nào
             table_name = self._extract_table_name(stmt)
             if table_name:
                 groups.setdefault(table_name, []).append(stmt)
-        return groups
+                if table_name != main_table_name:
+                    non_main_nodes.append(stmt)
+
+        non_main_sql = "\n\n".join(f"{s.sql(dialect='hive', pretty=True)};" for s in non_main_nodes)
+
+        return groups, non_main_sql
 
     def _extract_table_name(self, stmt) -> Optional[str]:
         """
@@ -213,3 +221,6 @@ class ComDecomposerWriter:
 
         # Ghi riêng Main SQL để tham chiếu
         (steps_dir / "_main_dml.sql").write_text(decomposed.main_sql, encoding="utf-8")
+
+        # Ghi riêng Non Main SQL để tham chiếu
+        (steps_dir / "_non_main_dml.sql").write_text(decomposed.non_main_sql, encoding="utf-8")

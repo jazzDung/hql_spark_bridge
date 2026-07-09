@@ -1,0 +1,91 @@
+task:
+  source_layer: "Data Lake - CUR"
+  object_name: "DIM_ACCOUNT_BANK"
+  object_type: "table"
+
+ownership:
+  current_pic: "NTT/KIBB (by source)"
+  developer_name: "CK"
+  new_pic: "NTT/KIBB (by source)"
+
+etl:
+  grouping: "irem-acc-bank (mhbos)"
+  development_sequence: "irem-2b"
+  dependency: null
+  environment: null
+  remarks: null
+
+source_control:
+  ext:
+    enabled: false
+  raw:
+    enabled: false
+  com_t:
+    enabled: false
+    script_model: null
+  com_m:
+    enabled: false
+    script_model: null
+  cur:
+    enabled: true
+    script_model:
+      model: "Model 3"
+
+      business_key:
+        - ACCOUNT_ID
+        - BANK_ACCOUNT_TYPE
+        - BANK_ACCOUNT_LOCALE
+
+      partition:
+        column: SOURCE_KEY
+
+      partition_rules:
+        default:
+          description: "SOURCE_KEY has the same value as SOURCE_NAME"
+
+        exceptions:
+          - source_name: "MHBOS"
+            dataset: "m_client_thirdparty"
+            source_key: "MHBOS_THIRDPARTY"
+            description: "Hardcode SOURCE_KEY for MHBOS third-party dataset"
+
+  unl:
+    enabled: false
+
+loading_strategy:
+  datasets:
+
+    - name: "MHBOS_THIRDPARTY"
+      source_name: "MHBOS"
+      bank_account_type: "THIRDPARTY"
+
+      extraction_strategy:
+        type: "FULL_LOAD"
+        source_layer: "COM_T"
+
+      rationale: >
+        Source table is already extracted as full data from source system,
+        therefore full reload is recommended.
+
+    - name: "DEFAULT"
+      applies_to: "all datasets except MHBOS_THIRDPARTY"
+
+      extraction_strategy:
+        type: "INCREMENTAL"
+
+      source_filter:
+        etl_dt: "<last available date>"
+
+implementation_notes:
+  - "Follow partition design defined in ETL Grouping column."
+  - "SOURCE_KEY partition value generally follows SOURCE_NAME."
+  - "MHBOS third-party records must be stored under SOURCE_KEY='MHBOS_THIRDPARTY'."
+
+metadata:
+  criteria: >
+    Dataset for SOURCE_NAME='MHBOS' and BANK_ACCOUNT_TYPE='THIRDPARTY'
+    should be loaded using full load from COM_T.
+
+    All other datasets should use ETL_DT=<last available date>.
+
+    Follow the partition definition described in the CUR model.

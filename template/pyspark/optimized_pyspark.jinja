@@ -4,10 +4,11 @@
 {% endif %}
 import os
 import sys
-sys.path.append("/mapr/Edfdev.kenanga.local/EDF/py_script")
+from pyspark.sql.functions import current_timestamp, lit
+
+sys.path.append(os.environ["sys_path_py_script"])
 
 from etl_common_function import run_etl, set_parameter, drop_partition_day
-from pyspark.sql.functions import current_timestamp, lit
 from datetime import datetime
 
 source_name = "{{ source_name }}"
@@ -18,11 +19,6 @@ partition_col = "etl_dt"
 # spark session
 spark, ext_start_time, ext_end_time, today_date, yesterday_date = run_etl(source_name, table_name)
 batch_date = today_date
-last_date = yesterday_date
-batch_yyyymm = batch_date[:-2]
-
-# ext_start_time = datetime.strptime(ext_start_time, '%Y-%m-%d %H:%M:%S.%f').strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]
-# ext_end_time = datetime.strptime(ext_end_time, '%Y-%m-%d %H:%M:%S.%f').strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]
 
 # set parameter, call parameter by params["<parameter name>"]
 params = set_parameter(spark)
